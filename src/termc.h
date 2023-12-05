@@ -1,6 +1,8 @@
 #ifndef TERMC
 #define TERMC
 
-void say_hi();
+void set_raw_term();
+void set_cooked_term();
+char get_ch();
 
 #endif
