@@ -1,6 +1,14 @@
+#include <asm-generic/ioctls.h>
 #include <termios.h>
+#include <sys/ioctl.h>
+#include <unistd.h>
 #include <stdio.h>
 #include "termc.h"
+
+struct wh {
+  unsigned int width;
+  unsigned int height;
+};
 
 // Set the terminal into raw mode (i.e. do not wait for the user to press return to accept and begin processing the input)
 void set_raw_term() {
@@ -40,4 +48,14 @@ char get_ch() {
   scanf("%c", &c);
 
   return c;
+}
+
+struct wh get_term_size() {
+  struct winsize w;
+  
+  ioctl(STDOUT_FILENO, TIOCGWINSZ, &w);
+
+  struct wh res = { .width = w.ws_col, .height = w.ws_row };
+
+  return res;
 }
