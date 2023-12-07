@@ -31,9 +31,13 @@ fn change_mode(
     move_cursor_to(curr_cursor_row, curr_cursor_column);
 }
 
-// Examples of ANSI escape codes from: https://gist.github.com/fnky/458719343aabd01cfb17a3a4f7296797
-// println!("\u{001b}[{}BBrunt Mann", test.height as u32);
-// println!("\u{001b}[HBrunt Mann");
+const J_LOWER: u8 = 106;
+const K_LOWER: u8 = 107;
+const L_LOWER: u8 = 108;
+const H_LOWER: u8 = 107;
+const I_LOWER: u8 = 105;
+const Q_LOWER: u8 = 113;
+const ESC: u8 = 27;
 
 fn main() {
     let test = term_size();
@@ -57,33 +61,33 @@ fn main() {
 
     loop {
         match get_char() as u8 {
-            106 if mode == Modes::Normal => {
+            J_LOWER if mode == Modes::Normal => {
                 // Move up
                 cursor_y += 1;
                 move_cursor_to(cursor_x, cursor_y);
             }
-            108 if mode == Modes::Normal => {
+            L_LOWER if mode == Modes::Normal => {
                 // Move right
                 cursor_x += 1;
                 move_cursor_to(cursor_x, cursor_y);
             }
-            107 if mode == Modes::Normal => {
+            K_LOWER if mode == Modes::Normal => {
                 // Move down
                 cursor_y -= 1;
                 move_cursor_to(cursor_x, cursor_y);
             }
-            104 if mode == Modes::Normal => {
+            H_LOWER if mode == Modes::Normal => {
                 // Move left
                 cursor_x -= 1;
                 move_cursor_to(cursor_x, cursor_y);
             }
-            105 if mode == Modes::Normal => {
+            I_LOWER if mode == Modes::Normal => {
                 change_mode(&mut mode, test.get_height() - 1, 0, cursor_x, cursor_y);
             }
-            27 if mode == Modes::Insert => {
+            ESC if mode == Modes::Insert => {
                 change_mode(&mut mode, test.get_height() - 1, 0, cursor_x, cursor_y)
             }
-            113 if mode == Modes::Normal => break,
+            Q_LOWER if mode == Modes::Normal => break,
             c if mode == Modes::Insert => {
                 print!("{}", c as char);
                 cursor_x += 1;
