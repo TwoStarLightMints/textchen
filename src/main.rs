@@ -1,5 +1,13 @@
-use std::io::{self, Write};
+use std::env;
+use std::fs::File;
+use std::io::{self, Read, Write};
+use textchen::cursor::*;
+use textchen::document::*;
 use textchen::term::*;
+
+// Every line is a String
+// A file is a collection of lines with some whitespace
+// Vec<&str>
 
 #[derive(PartialEq, Eq)]
 enum Modes {
@@ -7,41 +15,7 @@ enum Modes {
     Insert,
 }
 
-struct Cursor {
-    row: u32,
-    column: u32,
-}
-
-impl Cursor {
-    fn new(row: u32, column: u32) -> Self {
-        Self { row, column }
-    }
-
-    fn move_up(&mut self) {
-        self.row -= 1;
-        move_cursor_to(self.column, self.row)
-    }
-    fn move_left(&mut self) {
-        self.column -= 1;
-        move_cursor_to(self.column, self.row)
-    }
-    fn move_down(&mut self) {
-        self.row += 1;
-        move_cursor_to(self.column, self.row)
-    }
-    fn move_right(&mut self) {
-        self.column += 1;
-        move_cursor_to(self.column, self.row)
-    }
-}
-
-fn change_mode(
-    curr: &mut Modes,
-    mode_row: u32,
-    mode_column: u32,
-    curr_cursor_row: u32,
-    curr_cursor_column: u32,
-) {
+fn change_mode(curr: &mut Modes, mode_row: u32, mode_column: u32, cursor: &Cursor) {
     *curr = match curr {
         Modes::Normal => Modes::Insert,
         Modes::Insert => Modes::Normal,
@@ -56,7 +30,7 @@ fn change_mode(
 
     io::stdout().flush().unwrap();
 
-    move_cursor_to(curr_cursor_row, curr_cursor_column);
+    move_cursor_to(cursor.column, cursor.row);
 }
 
 const J_LOWER: u8 = 106;
@@ -79,16 +53,38 @@ fn main() {
     let editor_bottom = test.get_height() - 1;
     let editor_right = test.get_width();
 
+    let mut args = env::args();
+    args.next();
+
+    let mut buf = String::new();
+    let mut document: Document;
+
     clear_screen();
-    move_cursor_home();
-    print!("Title");
+
+    if let Some(file_name) = args.next() {
+        // If a file has been provided through command line
+        let mut in_file = File::open(&file_name).unwrap();
+
+        in_file.read_to_string(&mut buf).unwrap();
+
+        move_cursor_to(0, editor_top);
+
+        document = Document::new(buf);
+
+        println!("{document}");
+
+        move_cursor_home();
+        print!("{file_name}");
+    } else {
+        document = Document::new("".to_string());
+        move_cursor_home();
+        print!("[ scratch ]");
+    }
+
     move_cursor_to(0, mode_row);
     print!("NOR");
     move_cursor_to(0, command_row);
     print!("Command area");
-    move_cursor_to(0, 2);
-
-    io::stdout().flush().unwrap();
 
     set_raw();
 
@@ -123,22 +119,10 @@ fn main() {
                 }
             }
             I_LOWER if mode == Modes::Normal => {
-                change_mode(
-                    &mut mode,
-                    test.get_height() - 1,
-                    0,
-                    cursor.column,
-                    cursor.row,
-                );
+                change_mode(&mut mode, test.get_height() - 1, 0, &cursor);
             }
             ESC if mode == Modes::Insert => {
-                change_mode(
-                    &mut mode,
-                    test.get_height() - 1,
-                    0,
-                    cursor.column,
-                    cursor.row,
-                );
+                change_mode(&mut mode, test.get_height() - 1, 0, &cursor);
             }
             Q_LOWER if mode == Modes::Normal => {
                 clear_screen();
