@@ -1,51 +1,10 @@
 use std::io::{self, Write};
+use textchen::term::*;
 
-#[allow(dead_code)]
-use std::ffi::{c_char, c_uint};
-
-#[repr(C)]
-struct Wh {
-    width: c_uint,
-    height: c_uint,
-}
-
-extern "C" {
-    fn set_raw_term();
-    fn set_cooked_term();
-    fn get_ch() -> c_char;
-    fn get_term_size() -> Wh;
-}
-
-fn set_raw() {
-    unsafe {
-        set_raw_term();
-    }
-}
-
-fn set_cooked() {
-    unsafe {
-        set_cooked_term();
-    }
-}
-
-fn get_char() -> char {
-    unsafe { get_ch() as u8 as char }
-}
-
-fn move_cursor_home() {
-    // print!("\u{001b}[H");
-    print!("\u{001b}[H");
-    io::stdout().flush().unwrap();
-}
-
-fn clear_screen() {
-    print!("\u{001b}[2J");
-    io::stdout().flush().unwrap();
-}
-
-fn move_cursor_to(x: u32, y: u32) {
-    print!("\u{001b}[{};{}H", y, x);
-    io::stdout().flush().unwrap();
+#[derive(PartialEq, Eq)]
+enum Modes {
+    Normal,
+    Insert,
 }
 
 fn change_mode(
@@ -76,21 +35,16 @@ fn change_mode(
 // println!("\u{001b}[{}BBrunt Mann", test.height as u32);
 // println!("\u{001b}[HBrunt Mann");
 
-enum Modes {
-    Normal,
-    Insert,
-}
-
 fn main() {
-    let test = unsafe { get_term_size() };
+    let test = term_size();
     let mut mode = Modes::Normal;
 
     clear_screen();
     move_cursor_home();
     print!("Title");
-    move_cursor_to(0, test.height as u32 - 1);
+    move_cursor_to(0, test.get_height() - 1);
     print!("NOR");
-    move_cursor_to(0, test.height as u32);
+    move_cursor_to(0, test.get_height());
     print!("Command area");
     move_cursor_to(0, 2);
 
@@ -103,30 +57,38 @@ fn main() {
 
     loop {
         match get_char() as u8 {
-            106 => {
+            106 if mode == Modes::Normal => {
                 // Move up
                 cursor_y += 1;
                 move_cursor_to(cursor_x, cursor_y);
             }
-            108 => {
+            108 if mode == Modes::Normal => {
                 // Move right
                 cursor_x += 1;
                 move_cursor_to(cursor_x, cursor_y);
             }
-            107 => {
+            107 if mode == Modes::Normal => {
                 // Move down
                 cursor_y -= 1;
                 move_cursor_to(cursor_x, cursor_y);
             }
-            104 => {
+            104 if mode == Modes::Normal => {
                 // Move left
                 cursor_x -= 1;
                 move_cursor_to(cursor_x, cursor_y);
             }
-            105 | 27 => {
-                change_mode(&mut mode, test.height as u32 - 1, 0, cursor_x, cursor_y);
+            105 if mode == Modes::Normal => {
+                change_mode(&mut mode, test.get_height() - 1, 0, cursor_x, cursor_y);
             }
-            113 => break,
+            27 if mode == Modes::Insert => {
+                change_mode(&mut mode, test.get_height() - 1, 0, cursor_x, cursor_y)
+            }
+            113 if mode == Modes::Normal => break,
+            c if mode == Modes::Insert => {
+                print!("{}", c as char);
+                cursor_x += 1;
+                move_cursor_to(cursor_x, cursor_y);
+            }
             _ => (),
         }
     }
