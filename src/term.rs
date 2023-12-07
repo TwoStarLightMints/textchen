@@ -1,5 +1,7 @@
 use std::io::{self, Write};
 
+// Examples of ANSI escape codes from: https://gist.github.com/fnky/458719343aabd01cfb17a3a4f7296797
+
 #[allow(dead_code)]
 use std::ffi::{c_char, c_uint};
 
