@@ -149,14 +149,12 @@ fn main() {
                 if cursor.column - 1 > 0 {
                     cursor.move_left(); // Move the cursor on top of the character to be deleted
                     print!(" "); // Print a space on top of whatever was there, effectively "deleting" it
-                    io::stdout().flush().unwrap(); // Flush to screen
                     move_cursor_to(cursor.column, cursor.row); // The cursor was moved from the inteded position, move it back
                 }
             }
             c if mode == Modes::Insert => {
                 if cursor.column + 1 < editor_right {
                     print!("{}", c as char);
-                    io::stdout().flush().unwrap();
                     cursor.move_right()
                 }
             }
