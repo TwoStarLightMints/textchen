@@ -1,2 +1,3 @@
 /target
-/src/clib/*
+*.o
+*.a
