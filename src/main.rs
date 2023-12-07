@@ -33,6 +33,7 @@ fn get_char() -> char {
 }
 
 fn move_cursor_home() {
+    // print!("\u{001b}[H");
     print!("\u{001b}[H");
     io::stdout().flush().unwrap();
 }
@@ -47,6 +48,30 @@ fn move_cursor_to(x: u32, y: u32) {
     io::stdout().flush().unwrap();
 }
 
+fn change_mode(
+    curr: &mut Modes,
+    mode_row: u32,
+    mode_column: u32,
+    curr_cursor_row: u32,
+    curr_cursor_column: u32,
+) {
+    *curr = match curr {
+        Modes::Normal => Modes::Insert,
+        Modes::Insert => Modes::Normal,
+    };
+
+    move_cursor_to(mode_column, mode_row);
+
+    match curr {
+        Modes::Normal => print!("NOR"),
+        Modes::Insert => print!("INS"),
+    };
+
+    io::stdout().flush().unwrap();
+
+    move_cursor_to(curr_cursor_row, curr_cursor_column);
+}
+
 // Examples of ANSI escape codes from: https://gist.github.com/fnky/458719343aabd01cfb17a3a4f7296797
 // println!("\u{001b}[{}BBrunt Mann", test.height as u32);
 // println!("\u{001b}[HBrunt Mann");
@@ -58,14 +83,15 @@ enum Modes {
 
 fn main() {
     let test = unsafe { get_term_size() };
+    let mut mode = Modes::Normal;
 
     clear_screen();
     move_cursor_home();
     print!("Title");
     move_cursor_to(0, test.height as u32 - 1);
-    print!("Brunt Mann");
+    print!("NOR");
     move_cursor_to(0, test.height as u32);
-    print!("Brunt Meanner");
+    print!("Command area");
     move_cursor_to(0, 2);
 
     io::stdout().flush().unwrap();
@@ -96,6 +122,9 @@ fn main() {
                 // Move left
                 cursor_x -= 1;
                 move_cursor_to(cursor_x, cursor_y);
+            }
+            105 | 27 => {
+                change_mode(&mut mode, test.height as u32 - 1, 0, cursor_x, cursor_y);
             }
             113 => break,
             _ => (),
