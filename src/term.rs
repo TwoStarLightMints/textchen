@@ -63,3 +63,8 @@ pub fn move_cursor_to(column: u32, row: u32) {
     print!("\u{001b}[{};{}H", row, column);
     io::stdout().flush().unwrap();
 }
+
+pub fn print_flush(message: &str) {
+    print!("{message}");
+    io::stdout().flush().unwrap();
+}
