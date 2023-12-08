@@ -26,4 +26,8 @@ impl Cursor {
         self.column += 1;
         move_cursor_to(self.column, self.row)
     }
+
+    pub fn update_pos(&self) {
+        move_cursor_to(self.column, self.row)
+    }
 }
