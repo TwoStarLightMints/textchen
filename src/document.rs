@@ -1,7 +1,7 @@
 use std::fmt::Display;
 
 pub struct Document {
-    lines: Vec<String>,
+    pub lines: Vec<String>,
 }
 
 impl Document {
