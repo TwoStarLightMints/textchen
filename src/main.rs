@@ -13,19 +13,24 @@ use textchen::term::*;
 enum Modes {
     Normal,
     Insert,
+    Command,
 }
 
-fn change_mode(curr: &mut Modes, mode_row: u32, mode_column: u32, cursor: &Cursor) {
-    *curr = match curr {
-        Modes::Normal => Modes::Insert,
-        Modes::Insert => Modes::Normal,
-    };
+fn change_mode(
+    curr: &mut Modes,
+    new_mode: Modes,
+    mode_row: u32,
+    mode_column: u32,
+    cursor: &Cursor,
+) {
+    *curr = new_mode;
 
     move_cursor_to(mode_column, mode_row);
 
     match curr {
         Modes::Normal => print!("NOR"),
         Modes::Insert => print!("INS"),
+        Modes::Command => print!("COM"),
     };
 
     io::stdout().flush().unwrap();
@@ -37,8 +42,10 @@ const J_LOWER: u8 = 106;
 const K_LOWER: u8 = 107;
 const L_LOWER: u8 = 108;
 const H_LOWER: u8 = 104;
+const O_LOWER: u8 = 111;
 const I_LOWER: u8 = 105;
 const Q_LOWER: u8 = 113;
+const COLON: u8 = 58;
 const ESC: u8 = 27;
 const BCKSP: u8 = 127;
 
@@ -69,7 +76,7 @@ fn main() {
 
         move_cursor_to(0, editor_top);
 
-        document = Document::new(buf);
+        document = Document::new(buf.clone());
 
         println!("{document}");
 
@@ -92,24 +99,41 @@ fn main() {
     let mut cursor = Cursor::new(2, 1);
     move_cursor_to(cursor.column, cursor.row);
 
+    let mut insert_point: usize = 0;
+    buf.clear();
+
     loop {
         match get_char() as u8 {
             J_LOWER if mode == Modes::Normal => {
                 // Move down
-                if cursor.row + 1 < editor_bottom {
-                    cursor.move_down()
+                if cursor.row <= document.lines.len() as u32 {
+                    cursor.move_down();
+
+                    if cursor.column > document.lines[(cursor.row - 2) as usize].len() as u32 {
+                        // If moving the cursor down moves the cursor out of bounds of the next line
+                        cursor.column =
+                            (document.lines[(cursor.row - 2) as usize].len() + 1) as u32;
+                        cursor.update_pos();
+                    }
                 }
             }
             L_LOWER if mode == Modes::Normal => {
                 // Move right
-                if cursor.column + 1 < editor_right {
+                if cursor.column <= document.lines[(cursor.row - 2) as usize].len() as u32 {
                     cursor.move_right()
                 }
             }
             K_LOWER if mode == Modes::Normal => {
                 // Move up
+                cursor.move_up();
+
                 if cursor.row - 1 >= editor_top {
-                    cursor.move_up()
+                    if cursor.column > document.lines[(cursor.row - 2) as usize].len() as u32 {
+                        // If moving the cursor down moves the cursor out of bounds of the next line
+                        cursor.column =
+                            (document.lines[(cursor.row - 2) as usize].len() + 1) as u32;
+                        cursor.update_pos();
+                    }
                 }
             }
             H_LOWER if mode == Modes::Normal => {
@@ -119,10 +143,24 @@ fn main() {
                 }
             }
             I_LOWER if mode == Modes::Normal => {
-                change_mode(&mut mode, test.get_height() - 1, 0, &cursor);
+                change_mode(&mut mode, Modes::Insert, test.get_height() - 1, 0, &cursor);
+                insert_point = cursor.column as usize;
+            }
+            O_LOWER if mode == Modes::Normal => {
+                document.lines.push(String::new());
+                change_mode(&mut mode, Modes::Insert, test.get_height() - 1, 0, &cursor);
             }
             ESC if mode == Modes::Insert => {
-                change_mode(&mut mode, test.get_height() - 1, 0, &cursor);
+                change_mode(&mut mode, Modes::Normal, test.get_height() - 1, 0, &cursor);
+
+                let original_line = document.lines[cursor.row as usize].clone();
+                let mut new_line = String::with_capacity(original_line.len() + buf.len() + 1);
+
+                new_line += &original_line;
+                new_line.insert_str(insert_point, &buf);
+
+                document.lines[cursor.row as usize] = new_line;
+                buf.clear();
             }
             Q_LOWER if mode == Modes::Normal => {
                 clear_screen();
@@ -134,13 +172,21 @@ fn main() {
                     cursor.move_left(); // Move the cursor on top of the character to be deleted
                     print!(" "); // Print a space on top of whatever was there, effectively "deleting" it
                     move_cursor_to(cursor.column, cursor.row); // The cursor was moved from the inteded position, move it back
+                    buf.pop();
                 }
             }
             c if mode == Modes::Insert => {
                 if cursor.column + 1 < editor_right {
                     print!("{}", c as char);
-                    cursor.move_right()
+                    cursor.move_right();
+                    buf.push(c as char);
                 }
+            }
+            COLON if mode == Modes::Normal => {
+                change_mode(&mut mode, Modes::Command, test.get_height() - 1, 0, &cursor);
+            }
+            c if mode == Modes::Command => {
+                todo!("Implement commands");
             }
             _ => (),
         }
