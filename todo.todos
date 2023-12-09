@@ -1,2 +1,2 @@
-0|Make text editable|[0|When something is deleted, update rest of line|%0|Make changes persist|]
+0|Make text editable|[1|When something is deleted, update rest of line|%0|Make changes persist|%0|Change current setup to use gap buffer struct and reprint line after editing|]
 0|Create command mode methods|[0|Add ability to write commands such as :w or :wq|%0|Save cursor position to go back to editor area after leaving command mode|]
