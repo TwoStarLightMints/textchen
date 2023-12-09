@@ -27,6 +27,7 @@ impl GapBuf {
 
     pub fn pop(&mut self) {
         self.lhs.pop();
+        self.lhs.shrink_to_fit();
     }
 
     pub fn len(&self) -> usize {
