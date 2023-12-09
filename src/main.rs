@@ -236,14 +236,56 @@ fn main() {
 
                     cursor.revert_pos();
                 } else {
+                    // cursor.column >= 0
                     if document.lines.len() > 1 {
-                        document.lines.remove((cursor.row - 2) as usize);
-                        cursor.move_up();
+                        //xxx
+                        if document.get_line_from_cursor_pos(cursor.row).len() > 0 {
+                            let curr_line = document.get_line_from_cursor_pos(cursor.row);
 
-                        cursor.column =
-                            (document.get_line_from_cursor_pos(cursor.row).len() + 1) as u32;
+                            document.lines.remove((cursor.row - 1) as usize);
 
-                        cursor.update_pos();
+                            cursor.move_up();
+                            cursor.move_to(
+                                cursor.row,
+                                (document.get_line_from_cursor_pos(cursor.row).len() + 1) as u32,
+                            );
+
+                            let new_line = document.get_line_from_cursor_pos(cursor.row);
+
+                            document.lines[(cursor.row - 2) as usize] = String::with_capacity(
+                                document.get_line_from_cursor_pos(cursor.row).len()
+                                    + curr_line.len(),
+                            );
+
+                            document.lines[(cursor.row - 2) as usize] = new_line;
+                            document.lines[(cursor.row - 2) as usize] += &curr_line;
+
+                            // gap_buf = GapBuf::from_str(
+                            //     document.get_line_from_cursor_pos(cursor.row),
+                            //     (cursor.column - 1) as usize,
+                            // );
+
+                            gap_buf = GapBuf::from_str(
+                                document.get_line_from_cursor_pos(cursor.row),
+                                (cursor.column - 1) as usize,
+                            );
+
+                            cursor.save_current_pos();
+
+                            cursor.move_to_left_border();
+
+                            print!("{gap_buf}");
+
+                            cursor.revert_pos();
+                        } else {
+                            document.lines.remove((cursor.row - 2) as usize);
+                            cursor.move_up();
+
+                            cursor.column =
+                                (document.get_line_from_cursor_pos(cursor.row).len() + 1) as u32;
+
+                            cursor.update_pos();
+                        }
                     }
                 }
             }
