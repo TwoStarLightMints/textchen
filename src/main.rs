@@ -3,6 +3,7 @@ use std::fs::File;
 use std::io::{self, Read, Write};
 use textchen::cursor::*;
 use textchen::document::*;
+use textchen::gapbuf::*; // Used when editing text
 use textchen::term::*;
 
 // Every line is a String
@@ -48,6 +49,7 @@ const Q_LOWER: u8 = 113;
 const COLON: u8 = 58;
 const ESC: u8 = 27;
 const BCKSP: u8 = 127;
+const RETURN: u8 = 10;
 
 fn main() {
     let test = term_size();
@@ -76,22 +78,20 @@ fn main() {
 
         move_cursor_to(0, editor_top);
 
-        document = Document::new(buf.clone());
+        document = Document::new(file_name, buf.clone());
 
         println!("{document}");
 
         move_cursor_home();
-        print!("{file_name}");
+        print!("{}", &document.file_name);
     } else {
-        document = Document::new("".to_string());
+        document = Document::new("scratch".to_string(), "".to_string());
         move_cursor_home();
         print!("[ scratch ]");
     }
 
     move_cursor_to(0, mode_row);
     print!("NOR");
-    move_cursor_to(0, command_row);
-    print!("Command area");
 
     set_raw();
 
@@ -99,8 +99,11 @@ fn main() {
     let mut cursor = Cursor::new(2, 1);
     move_cursor_to(cursor.column, cursor.row);
 
-    let mut insert_point: usize = 0;
+    let mut gap_buf = GapBuf::new();
     buf.clear();
+
+    let mut cur_row_store: u32 = 0;
+    let mut cur_column_store: u32 = 0;
 
     loop {
         match get_char() as u8 {
@@ -144,50 +147,124 @@ fn main() {
             }
             I_LOWER if mode == Modes::Normal => {
                 change_mode(&mut mode, Modes::Insert, test.get_height() - 1, 0, &cursor);
-                insert_point = cursor.column as usize;
+                gap_buf = GapBuf::from_str(
+                    document.lines[(cursor.row - 2) as usize].clone(),
+                    (cursor.column - 1) as usize, // Needs to be decremented to make the space directly before the white block cursor the "target"
+                );
             }
             O_LOWER if mode == Modes::Normal => {
                 document.lines.push(String::new());
                 change_mode(&mut mode, Modes::Insert, test.get_height() - 1, 0, &cursor);
             }
-            ESC if mode == Modes::Insert => {
+            ESC if mode == Modes::Command => {
                 change_mode(&mut mode, Modes::Normal, test.get_height() - 1, 0, &cursor);
 
-                let original_line = document.lines[cursor.row as usize].clone();
-                let mut new_line = String::with_capacity(original_line.len() + buf.len() + 1);
+                move_cursor_to(0, test.get_height());
+                print!("{: >1$}", "", test.get_width() as usize);
 
-                new_line += &original_line;
-                new_line.insert_str(insert_point, &buf);
-
-                document.lines[cursor.row as usize] = new_line;
-                buf.clear();
-            }
-            Q_LOWER if mode == Modes::Normal => {
-                clear_screen();
-                move_cursor_home();
-                break;
+                cursor.row = cur_row_store;
+                cursor.column = cur_column_store;
+                cursor.update_pos();
             }
             BCKSP if mode == Modes::Insert => {
                 if cursor.column - 1 > 0 {
-                    cursor.move_left(); // Move the cursor on top of the character to be deleted
-                    print!(" "); // Print a space on top of whatever was there, effectively "deleting" it
-                    move_cursor_to(cursor.column, cursor.row); // The cursor was moved from the inteded position, move it back
-                    buf.pop();
+                    gap_buf.pop(); // Remove character from gap buffer
+                    cursor.move_left();
+
+                    let cursor_original_column = cursor.column; // Store the current column of the cursor to be able to move back to it after clean up
+
+                    move_cursor_to(0, cursor.row); // Move the cursor to the beginning of the row
+
+                    // Solution found from: https://stackoverflow.com/questions/35280798/printing-a-character-a-variable-number-of-times-with-println
+                    // Check if the original string or the gap buffer are longer, whichever is, use that size to print an appropriate amount of spaces to
+                    // "clear" the line and make it suitable to redraw
+                    if gap_buf.len() > document.lines[(cursor.row - 2) as usize].len() {
+                        print!("{: >1$}", "", gap_buf.len());
+                    } else {
+                        print!(
+                            "{: >1$}",
+                            "",
+                            document.lines[(cursor.row - 2) as usize].len()
+                        );
+                    }
+
+                    move_cursor_to(0, cursor.row);
+
+                    // Draw the updated string to the screen
+                    print!("{gap_buf}");
+
+                    move_cursor_to(cursor_original_column, cursor.row); // The cursor was moved from the inteded position, move it back
                 }
             }
             c if mode == Modes::Insert => {
                 if cursor.column + 1 < editor_right {
-                    print!("{}", c as char);
+                    gap_buf.insert(c as char);
                     cursor.move_right();
-                    buf.push(c as char);
+
+                    let original_cursor_column = cursor.column;
+
+                    move_cursor_to(0, cursor.row);
+
+                    if gap_buf.len() > document.lines[(cursor.row - 2) as usize].len() {
+                        print!("{: >1$}", "", gap_buf.len());
+                    } else {
+                        print!(
+                            "{: >1$}",
+                            "",
+                            document.lines[(cursor.row - 2) as usize].len()
+                        );
+                    }
+
+                    move_cursor_to(0, cursor.row);
+                    print!("{gap_buf}");
+
+                    move_cursor_to(original_cursor_column, cursor.row);
                 }
             }
             COLON if mode == Modes::Normal => {
                 change_mode(&mut mode, Modes::Command, test.get_height() - 1, 0, &cursor);
+                buf.clear();
+
+                cur_column_store = cursor.column;
+                cur_row_store = cursor.row;
+
+                cursor.row = test.get_height();
+                cursor.column = 1;
+
+                cursor.update_pos();
+
+                print_flush(":");
+
+                cursor.move_right();
             }
+            RETURN if mode == Modes::Command => match buf.as_str() {
+                "w" => {
+                    let mut out_file = File::create(&document.file_name).unwrap();
+
+                    out_file.write(document.to_string().as_bytes()).unwrap();
+
+                    move_cursor_to(0, test.get_height());
+                    print!("{: >1$}", "", test.get_width() as usize);
+
+                    change_mode(&mut mode, Modes::Normal, test.get_height() - 1, 0, &cursor);
+
+                    cursor.row = cur_row_store;
+                    cursor.column = cur_column_store;
+                    cursor.update_pos();
+                }
+                "q" => {
+                    clear_screen();
+                    move_cursor_home();
+                    break;
+                }
+                _ => (),
+            },
             c if mode == Modes::Command => {
-                todo!("Implement commands");
+                buf.push(c as char);
+                print_flush(&format!("{}", c as char));
+                cursor.move_right();
             }
+
             _ => (),
         }
     }
