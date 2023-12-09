@@ -13,6 +13,14 @@ impl Document {
         }
     }
 
+    pub fn get_line_from_cursor_pos(&self, cursor_row: u32) -> String {
+        self.lines[(cursor_row - 2) as usize].clone()
+    }
+
+    pub fn set_line_from_cursor_pos(&mut self, cursor_row: u32, new_line: String) {
+        self.lines[(cursor_row - 2) as usize] = new_line;
+    }
+
     pub fn to_string(&self) -> String {
         self.lines.join("\n")
     }
