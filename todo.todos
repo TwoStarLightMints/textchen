@@ -1,2 +1,4 @@
 0|Make text editable|[1|Be able to delete lines|%0|Add text wrap|%0|Make it so when a line is deleted with xd, if the deleted line was longer than the line below it, and those follwoing, the residual is cleaned|]
 0|Create command mode methods|[0|Make a map of strings and their relavent functions for each command instead of a hard coded match|]
+0|Add soft wrap for lines|
+0|If line is longer than editor width, wrap|
