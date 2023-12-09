@@ -1,2 +1,2 @@
-0|Make text editable|[1|Be able to delete lines|]
+0|Make text editable|[1|Be able to delete lines|%0|Add text wrap|]
 0|Create command mode methods|[0|Make a map of strings and their relavent functions for each command instead of a hard coded match|]
