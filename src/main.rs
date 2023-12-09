@@ -39,10 +39,19 @@ fn change_mode(
     move_cursor_to(cursor.column, cursor.row);
 }
 
+fn display_document(doc: &Document, editor_top: u32, cursor: &Cursor) {
+    move_cursor_to(0, editor_top);
+
+    println!("{doc}");
+
+    cursor.update_pos();
+}
+
 const J_LOWER: u8 = 106;
 const K_LOWER: u8 = 107;
 const L_LOWER: u8 = 108;
 const H_LOWER: u8 = 104;
+const X_LOWER: u8 = 120;
 const O_LOWER: u8 = 111;
 const I_LOWER: u8 = 105;
 const COLON: u8 = 58;
@@ -142,6 +151,21 @@ fn main() {
                 // Move left
                 if cursor.column - 1 > 0 {
                     cursor.move_left()
+                }
+            }
+            X_LOWER if mode == Modes::Normal => {
+                if get_char() == 'd' {
+                    document.lines.remove((cursor.row - 2) as usize);
+                    display_document(&document, editor_top, &cursor);
+
+                    move_cursor_to(0, (document.lines.len() + 2) as u32);
+                    print!(
+                        "{: <1$}",
+                        "",
+                        document.lines[document.lines.len() - 1].len()
+                    );
+
+                    cursor.update_pos();
                 }
             }
             I_LOWER if mode == Modes::Normal => {
@@ -261,6 +285,8 @@ fn main() {
                     cursor.row = cur_row_store;
                     cursor.column = cur_column_store;
                     cursor.update_pos();
+
+                    buf.clear();
                 }
                 "q" => {
                     clear_screen();
