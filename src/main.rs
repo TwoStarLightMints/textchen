@@ -45,7 +45,6 @@ const L_LOWER: u8 = 108;
 const H_LOWER: u8 = 104;
 const O_LOWER: u8 = 111;
 const I_LOWER: u8 = 105;
-const Q_LOWER: u8 = 113;
 const COLON: u8 = 58;
 const ESC: u8 = 27;
 const BCKSP: u8 = 127;
@@ -154,7 +153,18 @@ fn main() {
             }
             O_LOWER if mode == Modes::Normal => {
                 document.lines.push(String::new());
+
                 change_mode(&mut mode, Modes::Insert, test.get_height() - 1, 0, &cursor);
+
+                cursor.move_down();
+                cursor.move_to_left_border();
+
+                gap_buf = GapBuf::new();
+            }
+            ESC if mode == Modes::Insert => {
+                change_mode(&mut mode, Modes::Normal, test.get_height() - 1, 0, &cursor);
+
+                document.lines[(cursor.row - 2) as usize] = gap_buf.to_string();
             }
             ESC if mode == Modes::Command => {
                 change_mode(&mut mode, Modes::Normal, test.get_height() - 1, 0, &cursor);
@@ -228,7 +238,7 @@ fn main() {
                 cur_column_store = cursor.column;
                 cur_row_store = cursor.row;
 
-                cursor.row = test.get_height();
+                cursor.row = command_row;
                 cursor.column = 1;
 
                 cursor.update_pos();
@@ -243,7 +253,7 @@ fn main() {
 
                     out_file.write(document.to_string().as_bytes()).unwrap();
 
-                    move_cursor_to(0, test.get_height());
+                    move_cursor_to(0, command_row);
                     print!("{: >1$}", "", test.get_width() as usize);
 
                     change_mode(&mut mode, Modes::Normal, test.get_height() - 1, 0, &cursor);
