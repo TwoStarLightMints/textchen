@@ -135,10 +135,10 @@ fn main() {
                 }
             }
             K_LOWER if mode == Modes::Normal => {
-                // Move up
-                cursor.move_up();
-
                 if cursor.row - 1 >= editor_top {
+                    // Move up
+                    cursor.move_up();
+
                     if cursor.column > document.lines[(cursor.row - 2) as usize].len() as u32 {
                         // If moving the cursor down moves the cursor out of bounds of the next line
                         cursor.column =
@@ -228,6 +228,16 @@ fn main() {
                     print!("{gap_buf}");
 
                     move_cursor_to(cursor_original_column, cursor.row); // The cursor was moved from the inteded position, move it back
+                } else {
+                    if document.lines.len() > 1 {
+                        document.lines.remove((cursor.row - 2) as usize);
+                        cursor.move_up();
+
+                        cursor.column =
+                            (document.lines[(cursor.row - 2) as usize].len() + 1) as u32;
+
+                        cursor.update_pos();
+                    }
                 }
             }
             c if mode == Modes::Insert => {
