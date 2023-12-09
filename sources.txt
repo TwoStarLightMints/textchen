@@ -1,0 +1,2 @@
+Reference for Gap Buffer data structure:
+https://en.wikipedia.org/wiki/Gap_buffer
