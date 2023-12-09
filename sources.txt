@@ -1,2 +1,8 @@
 Reference for Gap Buffer data structure:
 https://en.wikipedia.org/wiki/Gap_buffer
+
+ASCII Codes:
+https://www.ascii-code.com/
+
+ANSI Escape Codes:
+https://gist.github.com/fnky/458719343aabd01cfb17a3a4f7296797
