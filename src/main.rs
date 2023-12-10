@@ -127,13 +127,16 @@ fn main() {
         match get_char() as u8 {
             J_LOWER if mode == Modes::Normal => {
                 // Move down
-                if cursor.row <= document.lines.len() as u32 {
-                    cursor.move_down();
-
+                if cursor.row <= document.num_rows() as u32 {
                     if cursor.column > document.get_line_at_cursor(cursor.row).len() as u32 {
+                        cursor.move_down();
                         // If moving the cursor down moves the cursor out of bounds of the next line
-                        cursor.column = (document.get_line_at_cursor(cursor.row).len() + 1) as u32;
-                        cursor.update_pos();
+                        cursor.move_to(
+                            cursor.row,
+                            (document.get_line_at_cursor(cursor.row).len() + 1) as u32,
+                        );
+                    } else {
+                        cursor.move_down();
                     }
                 }
             }
