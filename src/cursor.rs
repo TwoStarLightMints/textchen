@@ -1,3 +1,4 @@
+use crate::document::{Document, Line};
 use crate::term::move_cursor_to;
 
 pub struct Cursor {
@@ -23,6 +24,17 @@ impl Cursor {
 
     pub fn get_column_usize(&self) -> usize {
         self.column as usize
+    }
+
+    pub fn get_position_in_line(&self, document: &Document, width: usize) -> usize {
+        (document
+            .get_line_at_cursor(self.row)
+            .0
+            .iter()
+            .position(|i| *i == (self.get_row_usize() - 2))
+            .unwrap()
+            * width)
+            + self.get_column_usize()
     }
 
     pub fn move_to(&mut self, new_row: u32, new_col: u32) {
