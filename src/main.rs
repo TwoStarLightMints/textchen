@@ -154,7 +154,7 @@ fn main() {
 
                 if curr_line.0.len() == 1 {
                     if cursor.column <= curr_line.1.len() as u32 {
-                        cursor.move_right()
+                        cursor.move_right();
                     }
                 } else {
                     // (((document.get_str_at_cursor(cursor.row).len() as u32 / editor_right) - (cursor.row - 2)) * cursor.column) + cursor.column
@@ -167,26 +167,12 @@ fn main() {
                     // skip_amount + cursor.column
 
                     if cursor.column < editor_right
-                        && (document
-                            .get_line_at_cursor(cursor.row)
-                            .0
-                            .iter()
-                            .position(|i| *i == (cursor.get_row_usize() - 2))
-                            .unwrap()
-                            * editor_right as usize)
-                            + cursor.get_column_usize()
+                        && cursor.get_position_in_line(&document, editor_right as usize)
                             <= document.get_str_at_cursor(cursor.row).len()
                     {
                         cursor.move_right()
                     } else if curr_line.1 == document.get_str_at_cursor(cursor.row + 1)
-                        && (document
-                            .get_line_at_cursor(cursor.row)
-                            .0
-                            .iter()
-                            .position(|i| *i == (cursor.get_row_usize() - 2))
-                            .unwrap()
-                            * editor_right as usize)
-                            + cursor.get_column_usize()
+                        && cursor.get_position_in_line(&document, editor_right as usize)
                             <= document.get_str_at_cursor(cursor.row).len()
                     {
                         cursor.move_down();
