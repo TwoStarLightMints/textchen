@@ -177,8 +177,6 @@ fn main() {
                     {
                         cursor.move_down();
 
-                        log_file.write("HERE".as_bytes()).unwrap();
-
                         cursor.move_to_left_border();
                     }
                 }
@@ -280,10 +278,11 @@ fn main() {
                     cursor.revert_pos();
                 } else {
                     // cursor.column >= 0
+                    let curr_line = document.get_line_at_cursor(cursor.row);
+
                     if document.lines.len() > 1 {
                         if document.get_str_at_cursor(cursor.row).len() > 0 {
-                            let curr_line = document.get_str_at_cursor(cursor.row);
-
+                            // This is the branch handling moving the contents of a string which is not fully deleted into the line above it
                             document.lines.remove((cursor.row - 1) as usize);
 
                             cursor.move_up();
@@ -297,12 +296,13 @@ fn main() {
                             document.set_line_at_cursor(
                                 cursor.row,
                                 String::with_capacity(
-                                    document.get_str_at_cursor(cursor.row).len() + curr_line.len(),
+                                    document.get_str_at_cursor(cursor.row).len()
+                                        + curr_line.1.len(),
                                 ),
                             );
 
                             document.lines[(cursor.row - 2) as usize].1 += &new_line;
-                            document.lines[(cursor.row - 2) as usize].1 += &curr_line;
+                            document.lines[(cursor.row - 2) as usize].1 += &curr_line.1;
 
                             gap_buf = GapBuf::from_str(
                                 document.get_str_at_cursor(cursor.row),
@@ -317,13 +317,19 @@ fn main() {
 
                             cursor.revert_pos();
                         } else {
-                            document.lines.remove((cursor.row - 2) as usize);
-                            cursor.move_up();
+                            // This branch handles full deletion of a line
+                            if curr_line.0.len() > 1 {
+                                // If the line had spanned more than one line
+                                document.remove_index_from_line(cursor.get_row_usize());
+                            } else {
+                                document.lines.remove((cursor.row - 2) as usize);
+                                cursor.move_up();
 
-                            cursor.column =
-                                (document.get_str_at_cursor(cursor.row).len() + 1) as u32;
+                                cursor.column =
+                                    (document.get_str_at_cursor(cursor.row).len() + 1) as u32;
 
-                            cursor.update_pos();
+                                cursor.update_pos();
+                            }
                         }
                     }
                 }

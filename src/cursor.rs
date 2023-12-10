@@ -37,6 +37,16 @@ impl Cursor {
             + self.get_column_usize()
     }
 
+    pub fn move_to_end_line(&mut self, document: &Document, width: usize) {
+        let curr_line = document.get_line_at_cursor(self.row);
+
+        if let Some(last_line_ind) = curr_line.0.last() {
+            let len_last_row = curr_line.1.len() % width;
+
+            self.move_to(*last_line_ind as u32, len_last_row as u32);
+        }
+    }
+
     pub fn move_to(&mut self, new_row: u32, new_col: u32) {
         self.row = new_row;
         self.column = new_col;
