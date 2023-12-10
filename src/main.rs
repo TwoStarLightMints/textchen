@@ -95,7 +95,7 @@ fn main() {
 
         move_cursor_to(0, editor_top);
 
-        document = Document::new(file_name, buf.clone());
+        document = Document::new(file_name, buf.clone(), test.get_width());
 
         println!("{document}");
 
