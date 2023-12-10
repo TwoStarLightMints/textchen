@@ -1,10 +1,7 @@
 use std::env;
 use std::fs::File;
 use std::io::{self, Read, Write};
-use textchen::cursor::*;
-use textchen::document::*;
-use textchen::gapbuf::*; // Used when editing text
-use textchen::term::*;
+use textchen::{cursor::*, document::*, gapbuf::*, term::*};
 
 // Every line is a String
 // A file is a collection of lines with some whitespace
@@ -127,16 +124,27 @@ fn main() {
         match get_char() as u8 {
             J_LOWER if mode == Modes::Normal => {
                 // Move down
-                if cursor.row <= document.num_rows() as u32 {
-                    if cursor.column > document.get_line_at_cursor(cursor.row).len() as u32 {
+                if cursor.row <= document.get_number_lines() as u32 {
+                    let original = document.get_str_at_cursor(cursor.row);
+
+                    if cursor.column > document.get_str_at_cursor(cursor.row).len() as u32 {
                         cursor.move_down();
                         // If moving the cursor down moves the cursor out of bounds of the next line
                         cursor.move_to(
                             cursor.row,
-                            (document.get_line_at_cursor(cursor.row).len() + 1) as u32,
+                            (document.get_str_at_cursor(cursor.row).len() + 1) as u32,
                         );
                     } else {
                         cursor.move_down();
+                    }
+
+                    if original == document.get_str_at_cursor(cursor.row)
+                        && (cursor.row - 2) + 1 <= document.num_rows() as u32
+                    {
+                        let num_moves_to_go = document.get_line_at_cursor(cursor.row).0.len();
+                        for _ in 1..num_moves_to_go {
+                            cursor.move_down();
+                        }
                     }
                 }
             }
@@ -144,11 +152,49 @@ fn main() {
                 // Move right
                 let mut curr_line = document.get_line_at_cursor(cursor.row);
 
-                if curr_line.len() as u32 <= editor_right {
-                    if cursor.column <= curr_line.len() as u32 {
+                if curr_line.0.len() == 1 {
+                    if cursor.column <= curr_line.1.len() as u32 {
                         cursor.move_right()
                     }
                 } else {
+                    // (((document.get_str_at_cursor(cursor.row).len() as u32 / editor_right) - (cursor.row - 2)) * cursor.column) + cursor.column
+
+                    // document.get_str_at_cursor(cursor.row).len() as u32 / editor_right : takes into account whole string
+                    // cursor.row - 2 : doesn't take actual cursor position into full account
+                    // cursor.column : only gives where the cursor is inside of the line
+
+                    // document.get_line_at_cursor(cursor.row).0.iter().find(|i| *i == cursor.row - 2) * editor_right : skip x amount of lines, refer to this line as skip_amount
+                    // skip_amount + cursor.column
+
+                    if cursor.column < editor_right
+                        && (document
+                            .get_line_at_cursor(cursor.row)
+                            .0
+                            .iter()
+                            .position(|i| *i == (cursor.get_row_usize() - 2))
+                            .unwrap()
+                            * editor_right as usize)
+                            + cursor.get_column_usize()
+                            <= document.get_str_at_cursor(cursor.row).len()
+                    {
+                        cursor.move_right()
+                    } else if curr_line.1 == document.get_str_at_cursor(cursor.row + 1)
+                        && (document
+                            .get_line_at_cursor(cursor.row)
+                            .0
+                            .iter()
+                            .position(|i| *i == (cursor.get_row_usize() - 2))
+                            .unwrap()
+                            * editor_right as usize)
+                            + cursor.get_column_usize()
+                            <= document.get_str_at_cursor(cursor.row).len()
+                    {
+                        cursor.move_down();
+
+                        log_file.write("HERE".as_bytes()).unwrap();
+
+                        cursor.move_to_left_border();
+                    }
                 }
             }
             K_LOWER if mode == Modes::Normal => {
@@ -156,9 +202,17 @@ fn main() {
                     // Move up
                     cursor.move_up();
 
-                    if cursor.column > document.get_line_at_cursor(cursor.row).len() as u32 {
+                    if document.get_line_at_cursor(cursor.row).0.len() > 1 {
+                        let num_indices = document.get_line_at_cursor(cursor.row).0.len();
+
+                        for _ in 1..num_indices {
+                            cursor.move_up();
+                        }
+                    }
+
+                    if cursor.column > document.get_str_at_cursor(cursor.row).len() as u32 {
                         // If moving the cursor down moves the cursor out of bounds of the next line
-                        cursor.column = (document.get_line_at_cursor(cursor.row).len() + 1) as u32;
+                        cursor.column = (document.get_str_at_cursor(cursor.row).len() + 1) as u32;
                         cursor.update_pos();
                     }
                 }
@@ -187,7 +241,7 @@ fn main() {
                 change_mode(&mut mode, Modes::Insert, test.get_height() - 1, 0, &cursor);
 
                 gap_buf = GapBuf::from_str(
-                    document.get_line_at_cursor(cursor.row),
+                    document.get_str_at_cursor(cursor.row),
                     (cursor.column - 1) as usize, // Needs to be decremented to make the space directly before the white block cursor the "target"
                 );
             }
@@ -226,10 +280,10 @@ fn main() {
                     // Solution found from: https://stackoverflow.com/questions/35280798/printing-a-character-a-variable-number-of-times-with-println
                     // Check if the original string or the gap buffer are longer, whichever is, use that size to print an appropriate amount of spaces to
                     // "clear" the line and make it suitable to redraw
-                    if gap_buf.len() > document.get_line_at_cursor(cursor.row).len() {
+                    if gap_buf.len() > document.get_str_at_cursor(cursor.row).len() {
                         print!("{: >1$}", "", gap_buf.len());
                     } else {
-                        print!("{: >1$}", "", document.get_line_at_cursor(cursor.row).len());
+                        print!("{: >1$}", "", document.get_str_at_cursor(cursor.row).len());
                     }
 
                     cursor.move_to(cursor.row, 0);
@@ -241,23 +295,23 @@ fn main() {
                 } else {
                     // cursor.column >= 0
                     if document.lines.len() > 1 {
-                        if document.get_line_at_cursor(cursor.row).len() > 0 {
-                            let curr_line = document.get_line_at_cursor(cursor.row);
+                        if document.get_str_at_cursor(cursor.row).len() > 0 {
+                            let curr_line = document.get_str_at_cursor(cursor.row);
 
                             document.lines.remove((cursor.row - 1) as usize);
 
                             cursor.move_up();
                             cursor.move_to(
                                 cursor.row,
-                                (document.get_line_at_cursor(cursor.row).len() + 1) as u32,
+                                (document.get_str_at_cursor(cursor.row).len() + 1) as u32,
                             );
 
-                            let new_line = document.get_line_at_cursor(cursor.row);
+                            let new_line = document.get_str_at_cursor(cursor.row);
 
                             document.set_line_at_cursor(
                                 cursor.row,
                                 String::with_capacity(
-                                    document.get_line_at_cursor(cursor.row).len() + curr_line.len(),
+                                    document.get_str_at_cursor(cursor.row).len() + curr_line.len(),
                                 ),
                             );
 
@@ -265,7 +319,7 @@ fn main() {
                             document.lines[(cursor.row - 2) as usize].1 += &curr_line;
 
                             gap_buf = GapBuf::from_str(
-                                document.get_line_at_cursor(cursor.row),
+                                document.get_str_at_cursor(cursor.row),
                                 (cursor.column - 1) as usize,
                             );
 
@@ -281,7 +335,7 @@ fn main() {
                             cursor.move_up();
 
                             cursor.column =
-                                (document.get_line_at_cursor(cursor.row).len() + 1) as u32;
+                                (document.get_str_at_cursor(cursor.row).len() + 1) as u32;
 
                             cursor.update_pos();
                         }
@@ -297,10 +351,10 @@ fn main() {
 
                     move_cursor_to(0, cursor.row);
 
-                    if gap_buf.len() > document.get_line_at_cursor(cursor.row).len() {
+                    if gap_buf.len() > document.get_str_at_cursor(cursor.row).len() {
                         print!("{: >1$}", "", gap_buf.len());
                     } else {
-                        print!("{: >1$}", "", document.get_line_at_cursor(cursor.row).len());
+                        print!("{: >1$}", "", document.get_str_at_cursor(cursor.row).len());
                     }
 
                     move_cursor_to(0, cursor.row);
