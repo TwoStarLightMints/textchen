@@ -17,6 +17,14 @@ impl Cursor {
         }
     }
 
+    pub fn get_row_usize(&self) -> usize {
+        self.row as usize
+    }
+
+    pub fn get_column_usize(&self) -> usize {
+        self.column as usize
+    }
+
     pub fn move_to(&mut self, new_row: u32, new_col: u32) {
         self.row = new_row;
         self.column = new_col;
