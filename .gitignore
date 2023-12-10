@@ -2,3 +2,4 @@
 *.o
 *.a
 test.txt
+log.txt
