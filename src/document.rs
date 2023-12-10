@@ -1,5 +1,8 @@
 use std::fmt::Display;
+use std::fs::File;
+use std::io::Write;
 
+#[derive(Clone)]
 pub struct Line(pub Vec<usize>, pub String);
 
 impl Line {
@@ -39,6 +42,8 @@ impl Document {
                 }
 
                 curr_ind += overflow;
+
+                curr_ind += 1;
             }
 
             lines.push(new_line);
@@ -47,10 +52,20 @@ impl Document {
         Self { file_name, lines }
     }
 
-    pub fn get_line_at_cursor(&self, cursor_row: u32) -> String {
+    pub fn get_str_at_cursor(&self, cursor_row: u32) -> String {
         for line in self.lines.iter() {
             if line.0.contains(&((cursor_row - 2) as usize)) {
                 return line.1.clone();
+            }
+        }
+
+        panic!("Not found");
+    }
+
+    pub fn get_line_at_cursor(&self, cursor_row: u32) -> Line {
+        for line in self.lines.iter() {
+            if line.0.contains(&((cursor_row - 2) as usize)) {
+                return line.clone();
             }
         }
 
@@ -69,6 +84,24 @@ impl Document {
             .map(|e| e.1.clone())
             .collect::<Vec<String>>()
             .join("\n")
+    }
+
+    pub fn get_number_lines(&self) -> usize {
+        self.lines.len()
+    }
+
+    pub fn num_rows(&self) -> usize {
+        // Bare in mind, getting the indices allow is 0 indexed, so add 1 to get real number
+        match self.lines.last() {
+            Some(line) => {
+                if line.0.len() > 1 {
+                    line.0[line.0.len() - 1] + 1
+                } else {
+                    line.0[0] + 1
+                }
+            }
+            None => 0,
+        }
     }
 }
 
