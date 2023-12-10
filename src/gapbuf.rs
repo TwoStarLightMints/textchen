@@ -1,3 +1,4 @@
+use crate::document::Line;
 use std::fmt;
 
 pub struct GapBuf {
@@ -14,10 +15,21 @@ impl GapBuf {
     }
 
     // Here, ind refers to the index at which to split the source string
-    pub fn from_str(mut src: String, ind: usize) -> Self {
+    pub fn from_str(src: String, ind: usize) -> Self {
+        let (lhs, rhs) = src.split_at(ind);
+
         Self {
-            rhs: src.split_off(ind).chars().collect(),
-            lhs: src.chars().collect(),
+            lhs: lhs.chars().collect(),
+            rhs: rhs.chars().collect(),
+        }
+    }
+
+    pub fn from_line(src: Line, ind: usize) -> Self {
+        let (lhs, rhs) = src.1.split_at(ind);
+
+        Self {
+            lhs: lhs.chars().collect(),
+            rhs: rhs.chars().collect(),
         }
     }
 
