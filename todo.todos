@@ -1,3 +1,4 @@
 0|Make text editable|[1|Be able to delete lines|%0|Add text wrap|%0|Make it so when a line is deleted with xd, if the deleted line was longer than the line below it, and those follwoing, the residual is cleaned|]
 0|Create command mode methods|[0|Make a map of strings and their relavent functions for each command instead of a hard coded match|]
 0|Make cursor react appropriately to lines larger than the editor screen|[0|When moving right on a long line, cursor moves to the beginning of the next part of the string|%0|When moving up and down through a list of lines where at least one line is very big, just skip the wrapped part of the string|]
+0|Implement moving upward and skipping up when the line is multiple rows|
