@@ -1,4 +1,4 @@
-use crate::document::{Document, Line};
+use crate::document::Document;
 use crate::term::move_cursor_to;
 
 pub struct Cursor {
@@ -27,6 +27,13 @@ impl Cursor {
     }
 
     pub fn get_position_in_line(&self, document: &Document, width: usize) -> usize {
+        // document.get_str_at_cursor(cursor.row).len() as u32 / editor_right : takes into account whole string
+        // cursor.row - 2 : doesn't take actual cursor position into full account
+        // cursor.column : only gives where the cursor is inside of the line
+
+        // document.get_line_at_cursor(cursor.row).0.iter().find(|i| *i == cursor.row - 2) * editor_right : skip x amount of lines, refer to this line as skip_amount
+        // skip_amount + cursor.column
+
         (document
             .get_line_at_cursor(self.row)
             .0
