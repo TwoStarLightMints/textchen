@@ -91,20 +91,30 @@ fn main() {
 
         in_file.read_to_string(&mut buf).unwrap();
 
+        // Move cursor to editor home
         move_cursor_to(0, editor_top);
 
+        // Create document struct instance from file and editor width
         document = Document::new(file_name, buf.clone(), test.get_width());
 
+        // Display document
         println!("{document}");
 
+        // Move cursor to home to print file name
         move_cursor_home();
         print!("{}", &document.file_name);
     } else {
+        // No file name provided
+        todo!("Implement scratch buffer");
+        // Create new empty document with default name scratch
         document = Document::new("scratch".to_string(), "".to_string(), test.get_width());
+
+        // Print scratch to screen instead of file name
         move_cursor_home();
         print!("[ scratch ]");
     }
 
+    // Print the mode to the screen, in this case, the default is normal
     move_cursor_to(0, mode_row);
     print!("NOR");
 
@@ -114,16 +124,16 @@ fn main() {
     let mut cursor = Cursor::new(2, 1);
     move_cursor_to(cursor.column, cursor.row);
 
+    // Initialize the gap buffer, it will be replaced later when editing actual text
     let mut gap_buf = GapBuf::new();
+    // Clear the buffer
     buf.clear();
-
-    let mut cur_row_store: u32 = 0;
-    let mut cur_column_store: u32 = 0;
 
     loop {
         match get_char() as u8 {
             J_LOWER if mode == Modes::Normal => {
                 // Move down
+                // TODO: CHECK IF THIS WOULD NOT BE MORE APPROPRIATE AS DOCUMENT.GET_NUM_ROWS()
                 if cursor.row <= document.get_number_lines() as u32 {
                     let original = document.get_str_at_cursor(cursor.row);
 
@@ -157,15 +167,6 @@ fn main() {
                         cursor.move_right();
                     }
                 } else {
-                    // (((document.get_str_at_cursor(cursor.row).len() as u32 / editor_right) - (cursor.row - 2)) * cursor.column) + cursor.column
-
-                    // document.get_str_at_cursor(cursor.row).len() as u32 / editor_right : takes into account whole string
-                    // cursor.row - 2 : doesn't take actual cursor position into full account
-                    // cursor.column : only gives where the cursor is inside of the line
-
-                    // document.get_line_at_cursor(cursor.row).0.iter().find(|i| *i == cursor.row - 2) * editor_right : skip x amount of lines, refer to this line as skip_amount
-                    // skip_amount + cursor.column
-
                     if cursor.column < editor_right
                         && cursor.get_position_in_line(&document, editor_right as usize)
                             <= document.get_str_at_cursor(cursor.row).len()
@@ -200,57 +201,87 @@ fn main() {
                         cursor.update_pos();
                     }
                 }
+
+                todo!("Implement moving up in a multiline Line");
             }
             H_LOWER if mode == Modes::Normal => {
                 // Move left
                 if cursor.column - 1 > 0 {
                     cursor.move_left()
                 }
+                todo!("Implement moving left in a multiline Line");
             }
             X_LOWER if mode == Modes::Normal => {
                 if get_char() == 'd' {
-                    document.lines.remove((cursor.row - 2) as usize);
+                    // The key combination xd will delete a line
+                    // Remove the line from the document
+                    document.remove_index_from_line(cursor.get_row_usize());
 
+                    // Save current position
                     cursor.save_current_pos();
 
+                    // Clear the editor area
                     clear_editor_window(test.get_height(), &mut cursor);
 
+                    // Display the document again
                     display_document(&document, editor_top, &cursor);
 
+                    // Return to previous position
                     cursor.revert_pos();
+                    // Move to left edge of editor
                     cursor.move_to_left_border();
                 }
             }
             I_LOWER if mode == Modes::Normal => {
+                // Change mode to insert
                 change_mode(&mut mode, Modes::Insert, test.get_height() - 1, 0, &cursor);
 
+                todo!(
+                    "Switch to use the get position in line function for creating new gap buffers"
+                );
+                // Create a new gap buffer from the string at the current cursor position
                 gap_buf = GapBuf::from_str(
                     document.get_str_at_cursor(cursor.row),
                     (cursor.column - 1) as usize, // Needs to be decremented to make the space directly before the white block cursor the "target"
                 );
             }
             O_LOWER if mode == Modes::Normal => {
+                // Create a new empty line
                 document.lines.push(Line::new());
 
+                // Change mode to insert
                 change_mode(&mut mode, Modes::Insert, test.get_height() - 1, 0, &cursor);
 
+                // Move down to the new row
                 cursor.move_down();
+                // Move to the left edge of the editor
                 cursor.move_to_left_border();
 
+                // Crate an empty gap buffer
                 gap_buf = GapBuf::new();
             }
             ESC if mode == Modes::Insert => {
+                // Change mode to normal
                 change_mode(&mut mode, Modes::Normal, test.get_height() - 1, 0, &cursor);
 
+                // Make the edits persist in memory
                 document.set_line_at_cursor(cursor.row, gap_buf.to_string());
             }
             ESC if mode == Modes::Command => {
+                // Change mode to normal
                 change_mode(&mut mode, Modes::Normal, test.get_height() - 1, 0, &cursor);
 
+                // Move cursor to the command line row
                 cursor.move_to(test.get_height(), 0);
+
+                // Visually delete the contents of the row
                 print!("{: >1$}", "", test.get_width() as usize);
 
+                // The cursor position was saved when switching to command mode, so revert to that position
                 cursor.revert_pos();
+
+                // Clear the buffer
+                buf.clear();
             }
             BCKSP if mode == Modes::Insert => {
                 if cursor.column - 1 > 0 {
@@ -357,16 +388,20 @@ fn main() {
             }
             COLON if mode == Modes::Normal => {
                 change_mode(&mut mode, Modes::Command, test.get_height() - 1, 0, &cursor);
+
+                // Clear the buffer to ensure the new command will be empty
                 buf.clear();
 
-                cur_column_store = cursor.column;
-                cur_row_store = cursor.row;
+                // Save cursor position to come back to
                 cursor.save_current_pos();
 
+                // Move cursor to command row
                 cursor.move_to(command_row, 1);
 
+                // Print a colon
                 print_flush(":");
 
+                // Move the cursor to align with the colon
                 cursor.move_right();
             }
             RETURN if mode == Modes::Command => match buf.as_str() {
