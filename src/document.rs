@@ -105,11 +105,6 @@ impl Document {
     }
 
     pub fn remove_index_from_line(&mut self, cursor_row: usize) {
-        let mut f = File::create("log.txt").unwrap();
-
-        f.write(format!("Cursor: {}", cursor_row - 2).as_bytes())
-            .unwrap();
-
         for line in self.lines.iter_mut() {
             if line.0.contains(&(cursor_row - 2)) {
                 line.0.remove(cursor_row - 2);
