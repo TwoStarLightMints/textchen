@@ -3,3 +3,4 @@
 0|Make cursor react appropriately to lines larger than the editor screen|[1|When moving right on a long line, cursor moves to the beginning of the next part of the string|%0|When moving up and down through a list of lines where at least one line is very big, just skip the wrapped part of the string|]
 0|Fix moving cursor down for multiline Lines|
 0|Fix reprinting gap buffer for multiline Lines|
+0|Add a blank "nonline" to end of the editor so you don't need to use 'o' to insert a new line at the very end, and to add a new line for when writing to the file|
