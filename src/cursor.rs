@@ -2,28 +2,20 @@ use crate::document::Document;
 use crate::term::move_cursor_to;
 
 pub struct Cursor {
-    pub row: u32,
-    pub column: u32,
-    pub prev_row: u32,
-    pub prev_col: u32,
+    pub row: usize,
+    pub column: usize,
+    pub prev_row: usize,
+    pub prev_col: usize,
 }
 
 impl Cursor {
-    pub fn new(row: u32, column: u32) -> Self {
+    pub fn new(row: usize, column: usize) -> Self {
         Self {
             row,
             column,
             prev_row: 0, // Both initialized to 0 so there's no need for options
             prev_col: 0,
         }
-    }
-
-    pub fn get_row_usize(&self) -> usize {
-        self.row as usize
-    }
-
-    pub fn get_column_usize(&self) -> usize {
-        self.column as usize
     }
 
     pub fn get_position_in_line(&self, document: &Document, width: usize) -> usize {
@@ -38,10 +30,10 @@ impl Cursor {
             .get_line_at_cursor(self.row)
             .0
             .iter()
-            .position(|i| *i == (self.get_row_usize() - 2))
+            .position(|i| *i == (self.row - 2))
             .unwrap()
             * width)
-            + self.get_column_usize()
+            + self.column
     }
 
     pub fn move_to_end_line(&mut self, document: &Document, width: usize) {
@@ -50,11 +42,11 @@ impl Cursor {
         if let Some(last_line_ind) = curr_line.0.last() {
             let len_last_row = curr_line.1.len() % width;
 
-            self.move_to(*last_line_ind as u32, len_last_row as u32);
+            self.move_to(*last_line_ind + 2, len_last_row + 1);
         }
     }
 
-    pub fn move_to(&mut self, new_row: u32, new_col: u32) {
+    pub fn move_to(&mut self, new_row: usize, new_col: usize) {
         self.row = new_row;
         self.column = new_col;
         self.update_pos()
