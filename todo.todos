@@ -4,3 +4,5 @@
 0|Fix moving cursor down for multiline Lines|
 0|Fix reprinting gap buffer for multiline Lines|
 0|Add a blank "nonline" to end of the editor so you don't need to use 'o' to insert a new line at the very end, and to add a new line for when writing to the file|
+0|Make entering a new line in gap buffer create two separate Lines|
+0|Make deleting a line and then appending that line to the previous line capable of make it one big line with more indices|
