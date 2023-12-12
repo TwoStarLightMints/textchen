@@ -5,13 +5,26 @@ use std::io::{self, Write};
 #[allow(dead_code)]
 use std::ffi::{c_char, c_uint};
 
-#[repr(C)]
 pub struct Wh {
+    pub width: usize,
+    pub height: usize,
+}
+
+impl Wh {
+    pub fn from_c(c_vals: WidthHeight) -> Self {
+        let width = c_vals.width as usize;
+        let height = c_vals.height as usize;
+        Self { width, height }
+    }
+}
+
+#[repr(C)]
+pub struct WidthHeight {
     width: c_uint,
     height: c_uint,
 }
 
-impl Wh {
+impl WidthHeight {
     pub fn get_width(&self) -> u32 {
         self.width as u32
     }
@@ -25,7 +38,7 @@ extern "C" {
     fn set_raw_term();
     fn set_cooked_term();
     fn get_ch() -> c_char;
-    fn get_term_size() -> Wh;
+    fn get_term_size() -> WidthHeight;
 }
 
 pub fn set_raw() {
@@ -45,7 +58,9 @@ pub fn get_char() -> char {
 }
 
 pub fn term_size() -> Wh {
-    unsafe { get_term_size() }
+    let from_c = unsafe { get_term_size() };
+
+    Wh::from_c(from_c)
 }
 
 pub fn move_cursor_home() {
@@ -59,7 +74,7 @@ pub fn clear_screen() {
     io::stdout().flush().unwrap();
 }
 
-pub fn move_cursor_to(column: u32, row: u32) {
+pub fn move_cursor_to(column: usize, row: usize) {
     print!("\u{001b}[{};{}H", row, column);
     io::stdout().flush().unwrap();
 }
