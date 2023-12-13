@@ -55,10 +55,15 @@ fn display_document(doc: &Document, editor_width: usize, cursor: &mut Cursor) {
     }
 }
 
-fn clear_editor_window(editor_width: usize, editor_win_height: usize, cursor: &mut Cursor) {
+fn clear_editor_window(
+    editor_width: usize,
+    editor_win_height: usize,
+    document: &Document,
+    cursor: &mut Cursor,
+) {
     cursor.move_to(2, 1);
 
-    for _ in 2..(editor_win_height - 1) {
+    for _ in 2..document.num_rows() {
         // print!("\u{001b}[2K");
         print!("{: >1$}", "", editor_width);
         cursor.move_down();
@@ -71,7 +76,7 @@ fn reset_editor_view(
     editor_height: usize,
     cursor: &mut Cursor,
 ) {
-    clear_editor_window(editor_width, editor_height, cursor);
+    clear_editor_window(editor_width, editor_height, doc, cursor);
 
     display_document(doc, editor_width, cursor);
 }
@@ -325,11 +330,7 @@ fn main() {
                     // Save current position
                     cursor.save_current_pos();
 
-                    // Clear the editor area
-                    clear_editor_window(editor_width, dimensions.height, &mut cursor);
-
-                    // Display the document again
-                    display_document(&document, editor_width, &mut cursor);
+                    reset_editor_view(&document, editor_width, editor_bottom, &mut cursor);
 
                     // Return to previous position
                     cursor.revert_pos();
@@ -371,8 +372,7 @@ fn main() {
 
                 cursor.save_current_pos();
 
-                clear_editor_window(editor_width, dimensions.height, &mut cursor);
-                display_document(&document, editor_width, &mut cursor);
+                reset_editor_view(&document, editor_width, editor_bottom, &mut cursor);
 
                 cursor.revert_pos();
             }
@@ -491,12 +491,12 @@ fn main() {
 
                                 cursor.save_current_pos();
 
-                                clear_editor_window(editor_width, dimensions.height, &mut cursor);
-
-                                cursor.move_to(cursor.row, 0);
-
-                                // Draw the updated string to the screen
-                                display_document(&document, editor_width, &mut cursor);
+                                reset_editor_view(
+                                    &document,
+                                    editor_width,
+                                    editor_bottom,
+                                    &mut cursor,
+                                );
 
                                 cursor.revert_pos();
 
