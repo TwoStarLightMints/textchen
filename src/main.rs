@@ -63,7 +63,7 @@ fn clear_editor_window(
 ) {
     cursor.move_to(2, 1);
 
-    for _ in 2..document.num_rows() {
+    for _ in 0..document.num_rows() {
         // print!("\u{001b}[2K");
         print!("{: >1$}", "", editor_width);
         cursor.move_down();
@@ -199,6 +199,10 @@ fn main() {
 
     // Stores the state of the mode for the program
     let mut mode = Modes::Normal;
+
+    log_file
+        .write(format!("Number of rows{:?}", 2..document.num_rows()).as_bytes())
+        .unwrap();
 
     loop {
         match get_char() as u8 {
