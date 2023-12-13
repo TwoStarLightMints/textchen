@@ -2,8 +2,8 @@ use crate::document::Line;
 use std::fmt;
 
 pub struct GapBuf {
-    lhs: Vec<char>,
-    rhs: Vec<char>,
+    pub lhs: Vec<char>,
+    pub rhs: Vec<char>,
 }
 
 impl GapBuf {
