@@ -40,9 +40,13 @@ impl Cursor {
         let curr_line = document.get_line_at_cursor(self.row);
 
         if let Some(last_line_ind) = curr_line.0.last() {
-            let len_last_row = curr_line.1.len() % width;
+            if curr_line.1.len() % width == 0 && curr_line.1.len() != 0 {
+                self.move_to(*last_line_ind + 2, width);
+            } else {
+                let len_last_row = curr_line.1.len() % width;
 
-            self.move_to(*last_line_ind + 2, len_last_row + 1);
+                self.move_to(*last_line_ind + 2, len_last_row + 1);
+            }
         }
     }
 
