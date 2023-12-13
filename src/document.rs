@@ -2,7 +2,7 @@ use std::fmt::Display;
 use std::fs::File;
 use std::io::Write;
 
-#[derive(Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Line(pub Vec<usize>, pub String);
 
 impl Line {
@@ -187,7 +187,7 @@ impl Document {
         let mut ind_to_remove = 0;
 
         for line in self.lines.iter() {
-            if line.0.contains(&(&cursor_row - 2)) {
+            if line.0.contains(&(cursor_row - 2)) {
                 break;
             }
 
