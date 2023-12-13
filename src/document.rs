@@ -73,14 +73,6 @@ impl Document {
     }
 
     fn find_line_from_index(&self, ind: usize) -> Line {
-        let mut thing = File::create("thing.txt").unwrap();
-
-        self.lines.iter().for_each(|l| {
-            thing
-                .write(format!("Line indices: {:?}, String content: {}\n", l.0, l.1).as_bytes())
-                .unwrap();
-        });
-
         for line in self.lines.iter() {
             if line.0.contains(&ind) {
                 return line.clone();
