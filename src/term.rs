@@ -35,18 +35,22 @@ impl WidthHeight {
 }
 
 extern "C" {
+    #[cfg(target_os = "linux")]
     fn set_raw_term();
+    #[cfg(target_os = "linux")]
     fn set_cooked_term();
     fn get_ch() -> c_char;
     fn get_term_size() -> WidthHeight;
 }
 
+#[cfg(target_os = "linux")]
 pub fn set_raw() {
     unsafe {
         set_raw_term();
     }
 }
 
+#[cfg(target_os = "linux")]
 pub fn set_cooked() {
     unsafe {
         set_cooked_term();
@@ -64,7 +68,6 @@ pub fn term_size() -> Wh {
 }
 
 pub fn move_cursor_home() {
-    // print!("\u{001b}[H");
     print!("\u{001b}[H");
     io::stdout().flush().unwrap();
 }
