@@ -188,7 +188,7 @@ impl Document {
 
         let line_removed = self.lines.remove(ind_to_remove);
 
-        if ind_to_remove != self.lines.len() - 1 {
+        if ind_to_remove != self.lines.len() {
             // If the changed index is not the end of the lines vector
             if line_removed.0[line_removed.0.len() - 1] + 1 != self.lines[ind_to_remove + 1].0[0] {
                 // If the last index of the changed line incremented by 1 is not equal to the first index of the line after it, recalculate the indices
