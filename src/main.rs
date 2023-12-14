@@ -430,8 +430,6 @@ fn main() {
                         cursor.move_up();
                         cursor.move_to_end_line(&document, editor_width);
 
-                        debug_log_document(&document, &mut log_file);
-
                         cursor.save_current_pos();
 
                         reset_editor_view(&document, editor_width, &mut cursor);
@@ -446,17 +444,24 @@ fn main() {
                     if document.lines.len() > 1 && cursor.row != editor_top {
                         // There is more than one line remaining in the document, therefore after deleting this line there is one to take its place, and it cannot be the top line
 
-                        document.remove_line_from_doc(cursor.row);
+                        if curr_line.1.len() == 0 {
+                            document.remove_line_from_doc(cursor.row);
 
-                        cursor.move_up();
+                            cursor.move_up();
 
-                        cursor.save_current_pos();
+                            cursor.save_current_pos();
 
-                        reset_editor_view(&document, editor_width, &mut cursor);
+                            reset_editor_view(&document, editor_width, &mut cursor);
 
-                        cursor.revert_pos();
+                            cursor.revert_pos();
 
-                        cursor.move_to_end_line(&document, editor_width);
+                            cursor.move_to_end_line(&document, editor_width);
+
+                            gap_buf = GapBuf::from_line(
+                                document.get_line_at_cursor(cursor.row),
+                                cursor.get_position_in_line(&document, editor_width) - 1,
+                            );
+                        }
                     }
                 }
             }
