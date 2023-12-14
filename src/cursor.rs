@@ -41,7 +41,7 @@ impl Cursor {
 
         if let Some(last_line_ind) = curr_line.0.last() {
             if curr_line.1.len() % width == 0 && curr_line.1.len() != 0 {
-                self.move_to(*last_line_ind + 2, width);
+                self.move_to(*last_line_ind + 2, width + 1);
             } else {
                 let len_last_row = curr_line.1.len() % width;
 
