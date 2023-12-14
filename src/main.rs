@@ -457,6 +457,7 @@ fn main() {
 
                             cursor.move_to_end_line(&document, editor_width);
 
+                            // If the gap buffer is not reset here, the program will thing that each consecutive new line is also a blank line and delete it immaturely
                             gap_buf = GapBuf::from_line(
                                 document.get_line_at_cursor(cursor.row),
                                 cursor.get_position_in_line(&document, editor_width) - 1,
