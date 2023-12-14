@@ -132,7 +132,10 @@ const G_LOWER: u8 = 103;
 const COLON: u8 = 58;
 const ESC: u8 = 27;
 const BCKSP: u8 = 127;
+#[cfg(target_os = "linux")]
 const RETURN: u8 = 10;
+#[cfg(target_os = "windows")]
+const RETURN: u8 = 13;
 
 fn main() {
     #[allow(unused_variables, unused_mut)]
@@ -186,6 +189,7 @@ fn main() {
     move_cursor_to(0, mode_row);
     print!("NOR");
 
+    #[cfg(target_os = "linux")]
     set_raw();
 
     // Here, cursor_x is initially set to 1 as setting it to 0 would require the user to press l multiple times to move away from the left barrier
@@ -620,5 +624,6 @@ fn main() {
         }
     }
 
+    #[cfg(target_os = "linux")]
     set_cooked();
 }
