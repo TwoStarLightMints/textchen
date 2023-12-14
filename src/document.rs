@@ -186,7 +186,38 @@ impl Document {
             ind_to_remove += 1;
         }
 
-        self.lines.remove(ind_to_remove);
+        let line_removed = self.lines.remove(ind_to_remove);
+
+        if ind_to_remove != self.lines.len() - 1 {
+            // If the changed index is not the end of the lines vector
+            if !(line_removed.0[line_removed.0.len() - 1] + 1 == self.lines[ind_to_remove + 1].0[0])
+            {
+                // If the last index of the changed line incremented by 1 is not equal to the first index of the line after it, recalculate the indices
+                // the first index should equal the previous line's last index decremented by 1 as it was directly copied from the original Line
+                if line_removed.0[line_removed.0.len() - 1] > self.lines[ind_to_remove + 1].0[0] {
+                    // If the last index of the changed line is greater than the next Line's first index
+                    let difference = line_removed.0[line_removed.0.len() - 1]
+                        - (self.lines[ind_to_remove + 1].0[0] + 1);
+
+                    for i in (ind_to_remove + 1)..self.lines.len() {
+                        self.lines[i].0 = self.lines[i].0.iter().map(|l| *l + difference).collect();
+                    }
+                } else if line_removed.0[line_removed.0.len() - 1]
+                    < self.lines[ind_to_remove + 1].0[0]
+                {
+                    let difference = self.lines[ind_to_remove + 1].0[0]
+                        - (line_removed.0[line_removed.0.len() - 1] + 1);
+
+                    for i in (ind_to_remove + 1)..self.lines.len() {
+                        self.lines[i].0 = self.lines[i].0.iter().map(|l| *l - difference).collect();
+                    }
+                } else {
+                    for i in (ind_to_remove + 1)..self.lines.len() {
+                        self.lines[i].0 = self.lines[i].0.iter().map(|l| *l + 1).collect();
+                    }
+                }
+            }
+        }
     }
 
     pub fn add_line_at_row(&mut self, new_line: Line, cursor_row: usize) {
