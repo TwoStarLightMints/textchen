@@ -34,10 +34,15 @@ impl Line {
         new
     }
 
-    pub fn from_existing(original: Line, width: usize) -> Line {
+    pub fn from_existing(original: Line, width: usize, cursor_row: usize) -> Line {
+        /// cursor_row is provided if the "original" line has not yet received any indices
         let mut new = Self(Vec::new(), original.1.clone());
 
-        let ind_counter = *original.0.first().unwrap();
+        let mut ind_counter = cursor_row;
+
+        if let Some(index) = original.0.first() {
+            ind_counter = *index;
+        }
 
         if original.1.len() <= width {
             new.0 = vec![ind_counter];
@@ -94,7 +99,7 @@ impl Document {
         let mut dest = self.get_line_at_cursor(cursor_row); // The line to be re-set
         dest.1 = new_line;
 
-        let changed_line = Line::from_existing(dest, width);
+        let changed_line = Line::from_existing(dest, width, cursor_row);
 
         let mut ind_to_change = 0;
 
@@ -110,8 +115,7 @@ impl Document {
 
         if ind_to_change != self.lines.len() - 1 {
             // If the changed index is not the end of the lines vector
-            if !(changed_line.0[changed_line.0.len() - 1] + 1 == self.lines[ind_to_change + 1].0[0])
-            {
+            if changed_line.0[changed_line.0.len() - 1] + 1 != self.lines[ind_to_change + 1].0[0] {
                 // If the last index of the changed line incremented by 1 is not equal to the first index of the line after it, recalculate the indices
                 // the first index should equal the previous line's last index decremented by 1 as it was directly copied from the original Line
                 if changed_line.0[changed_line.0.len() - 1] > self.lines[ind_to_change + 1].0[0] {
@@ -190,7 +194,7 @@ impl Document {
 
         if ind_to_remove != self.lines.len() {
             // If the changed index is not the end of the lines vector
-            if line_removed.0[line_removed.0.len() - 1] + 1 != self.lines[ind_to_remove + 1].0[0] {
+            if line_removed.0[line_removed.0.len() - 1] + 1 != self.lines[ind_to_remove].0[0] {
                 // If the last index of the changed line incremented by 1 is not equal to the first index of the line after it, recalculate the indices
                 // the first index should equal the previous line's last index decremented by 1 as it was directly copied from the original Line
                 if line_removed.0[line_removed.0.len() - 1] > self.lines[ind_to_remove + 1].0[0] {
