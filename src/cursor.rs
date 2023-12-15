@@ -22,7 +22,7 @@ impl Cursor {
         &self,
         document: &Document,
         editor_left_edge: usize,
-        width: usize,
+        editor_width: usize,
     ) -> usize {
         // document.get_str_at_cursor(cursor.row).len() as u32 / editor_right : takes into account whole string
         // cursor.row - 2 : doesn't take actual cursor position into full account
@@ -37,7 +37,7 @@ impl Cursor {
             .iter()
             .position(|i| *i == (self.row - 2))
             .unwrap()
-            * width)
+            * editor_width)
             + self.get_column_in_editor(editor_left_edge)
     }
 
@@ -88,7 +88,7 @@ impl Cursor {
         self.move_to(self.row, editor_left_edge);
     }
 
-    pub fn update_pos(&self) {
+    fn update_pos(&self) {
         move_cursor_to(self.column, self.row)
     }
 
