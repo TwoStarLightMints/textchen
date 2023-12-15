@@ -10,17 +10,17 @@ impl Line {
         Self(Vec::new(), "".to_string())
     }
 
-    pub fn from_str(src: String, ind_counter: &mut usize, width: usize) -> Self {
-        // src is assumed to be a single line string, not containing any new line characters, creation of multiple Lines is to be done outside of this function
-        // so will to the insertion of indices
+    pub fn from_str(src: String, ind_counter: &mut usize, editor_width: usize) -> Self {
+        //! src is assumed to be a single line string, not containing any new line characters, creation of multiple Lines is to be done outside of this function
+        //! so will to the insertion of indices
         let mut new = Self(Vec::new(), src.clone());
 
-        if src.len() <= width as usize {
+        if src.len() <= editor_width as usize {
             new.0 = vec![*ind_counter];
 
             *ind_counter += 1;
         } else {
-            let overflow = src.len() / width;
+            let overflow = src.len() / editor_width;
 
             for i in 0..=overflow {
                 new.0.push(*ind_counter + i);
@@ -35,7 +35,7 @@ impl Line {
     }
 
     pub fn from_existing(original: Line, width: usize, cursor_row: usize) -> Line {
-        /// cursor_row is provided if the "original" line has not yet received any indices
+        //! cursor_row is provided if the "original" line has not yet received any indices
         let mut new = Self(Vec::new(), original.1.clone());
 
         let mut ind_counter = cursor_row;
@@ -64,12 +64,12 @@ pub struct Document {
 }
 
 impl Document {
-    pub fn new(file_name: String, content: String, width: usize) -> Self {
+    pub fn new(file_name: String, content: String, editor_width: usize) -> Self {
         let mut curr_ind: usize = 0;
         let mut lines: Vec<Line> = Vec::new();
 
         for line in content.lines() {
-            let new_line = Line::from_str(line.to_string(), &mut curr_ind, width);
+            let new_line = Line::from_str(line.to_string(), &mut curr_ind, editor_width);
 
             lines.push(new_line);
         }
@@ -97,6 +97,12 @@ impl Document {
 
     pub fn set_line_at_cursor(&mut self, cursor_row: usize, new_line: String, width: usize) {
         let mut dest = self.get_line_at_cursor(cursor_row); // The line to be re-set
+
+        let mut f = File::create("thing.txt").unwrap();
+
+        f.write(format!("dest: {:?}\ncursor row: {}\n", dest, cursor_row).as_bytes())
+            .unwrap();
+
         dest.1 = new_line;
 
         let changed_line = Line::from_existing(dest, width, cursor_row);
@@ -157,6 +163,11 @@ impl Document {
     }
 
     pub fn num_rows(&self) -> usize {
+        //! Get the number of rows in the current document
+        //!
+        //! Every document is a collection of Lines, and a Line is a collection of rows and a string.
+        //! So, the number of rows will be the total number of rows that the document spans in the
+        //! editor.
         // Bare in mind, getting the indices allow is 0 indexed, so add 1 to get real number
         match self.lines.last() {
             Some(line) => {
