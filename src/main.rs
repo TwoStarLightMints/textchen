@@ -1,5 +1,4 @@
 use std::env;
-use std::f32::consts::LOG10_2;
 use std::fs::File;
 use std::io::{self, Read, Write};
 use textchen::{cursor::*, document::*, gapbuf::*, term::*};
@@ -20,6 +19,9 @@ fn change_mode(curr: &mut Modes, new_mode: Modes, mode_row: usize, cursor: &mut 
     //! new_mode - The new mode which will be stored in the state of the application
     //! mode_row - The row at which the mode will be printed
     //! cursor - Get control of cursor
+    //!
+    //! Changes the current mode of the editor to a new target mode, handles changing state and drawing to screen
+
     *curr = new_mode;
 
     // This is used here instead of save position as it messes with something outside of this scope
@@ -41,16 +43,25 @@ fn change_mode(curr: &mut Modes, new_mode: Modes, mode_row: usize, cursor: &mut 
 }
 
 fn display_document(
-    doc: &Document,
+    document: &Document,
     editor_left_edge: usize,
     editor_width: usize,
     cursor: &mut Cursor,
 ) {
-    cursor.save_current_pos();
+    //! document - Document being edited
+    //! editor_left_edge - This is the offset from the left side of the terminal
+    //! editor_width - Size of the editor screen, calculated from the left side offset and the right side offset, pass this calculated result to the function
+    //! cursor - Get control of cursor
+    //!
+    //! Displays the document that is currently being edited to the screen, handles drawing within given bounds
+
+    // This is used here instead of save position as it messes with something outside of this scope
+    let curr_row = cursor.row;
+    let curr_col = cursor.column;
 
     cursor.move_to(2, editor_left_edge);
 
-    for line in doc.lines.iter() {
+    for line in document.lines.iter() {
         for (ind, char) in line.1.chars().enumerate() {
             print_flush(format!("{char}").as_str());
 
@@ -64,11 +75,19 @@ fn display_document(
         cursor.move_to_editor_left(editor_left_edge);
     }
 
-    cursor.revert_pos();
+    cursor.move_to(curr_row, curr_col);
 }
 
 fn clear_editor_window(editor_right_edge: usize, document: &Document, cursor: &mut Cursor) {
-    cursor.save_current_pos();
+    //! editor_right_edge - This is the offset from the right side of the terminal
+    //! document - Document being edited
+    //! cursor - Get control of cursor
+    //!
+    //! Visually clears the contents of the editor window, the rest of the screen is untouched
+
+    // This is used here instead of save position as it messes with something outside of this scope
+    let curr_row = cursor.row;
+    let curr_col = cursor.column;
 
     cursor.move_to(2, 1);
 
@@ -78,7 +97,7 @@ fn clear_editor_window(editor_right_edge: usize, document: &Document, cursor: &m
         cursor.move_down();
     }
 
-    cursor.revert_pos();
+    cursor.move_to(curr_row, curr_col);
 }
 
 fn reset_editor_view(
@@ -87,6 +106,13 @@ fn reset_editor_view(
     editor_right_edge: usize,
     cursor: &mut Cursor,
 ) {
+    //! editor_right_edge - This is the offset from the right side of the terminal
+    //! editor_left_edge - This is the offset from the left side of the terminal
+    //! document - Document being edited
+    //! cursor - Get control of cursor
+    //!
+    //! Clears the editor screen and redraws the document provided, tends to be used as to refresh the screen after an edit has occurred
+
     clear_editor_window(editor_right_edge, doc, cursor);
 
     display_document(
@@ -141,6 +167,7 @@ fn debug_log_gapbuffer(gap_buf: &GapBuf, log_file: &mut File) {
         .unwrap();
 }
 
+// ==== ASCII KEY CODE VALUES ====
 const J_LOWER: u8 = 106;
 const K_LOWER: u8 = 107;
 const L_LOWER: u8 = 108;
@@ -156,41 +183,93 @@ const BCKSP: u8 = 127;
 const RETURN: u8 = 10;
 #[cfg(target_os = "windows")]
 const RETURN: u8 = 13;
+// ==== ASCII KEY CODE VALUES ====
 
 fn main() {
+    // Used to log debug info to
     #[allow(unused_variables, unused_mut)]
     let mut log_file = File::create("log.txt").unwrap();
 
+    // Dimensions for the terminal screen
+    // Wh.width - The width of the terminal as a whole
+    // Wh.height - The height of the terminal as a whole
     let dimensions = term_size();
 
-    // Title row is the home row, so no variable is used for this value
-    let mode_row = dimensions.height - 1; // Second to last line, where mode is shown
-    let command_row = dimensions.height; // Last line, where commands will be written to
-    let editor_top = 2 as usize; // The second from first line, where the editor screen starts
-    let editor_right_edge = dimensions.width - 2;
-    let editor_left_edge = 2;
-    let editor_width = editor_right_edge - editor_left_edge; // The width of the editor (from the left side of the terminal to at most this value), minus 2 to give space for cursor with multiline Lines
+    // Title row is the home row
+    // row: 0, column: 0
 
-    let editor_home: (usize, usize) = (2, editor_left_edge);
+    // The second from the first line is the first line of the editor screen
+
+    let editor_top = 2;
+
+    // This variable defines where to start the editor's left edge, 1 is the minimum value
+    // for this
+
+    let editor_left_edge = 2;
+
+    // This variable defines where to end the editor's screen, while using the full value
+    // of dimensions.width, I reccomend decreasing this value
+
+    let editor_right_edge = dimensions.width - 2;
+
+    // This variable holds the length that the editor screen spans, calculated from the
+    // editor_left_edge and editor_right_edge variables
+    // The width of the editor (from the left side of the terminal to at most this value), minus 2 to give space for cursor with multiline Lines
+
+    let editor_width = editor_right_edge - editor_left_edge;
+
+    // This variable defines the row at which the mode will be displayed to the user,
+    // conventionally this is the second to last row of the terminal which is dimension.height - 1
+    // Second to last line, where mode is shown
+
+    let mode_row = dimensions.height - 1;
+
+    // This variable is simply a label for the full height of the terminal, it is dimensions.height
+    // Last line, where commands will be written to
+
+    let command_row = dimensions.height;
+
+    // This variable holds a tuple containing the coordinates of the editor's home,
+    // this is a wrapper
+
+    let editor_home: (usize, usize) = (editor_top, editor_left_edge);
+
+    // Get the command line arguments to the program
 
     let mut args = env::args();
-    args.next(); // Skip unnecessary arg
 
-    let mut buf = String::new(); // This buffer is used to read the document in, but then later to act as a buffer for user input
-    let mut document: Document; // This is the variable that will hold this document to be edited
+    // Skip the first argument, this is unnecessary to the program
 
-    clear_screen(); // Clear screen for the editor
+    args.next();
 
-    let mut cursor = Cursor::new(editor_home.0, editor_home.1); // The cursor that will be used for all drawing, start at column = 1 because otherwise it will not move correctly
+    // This is the buffer which will hold the document's raw string content and user commands
+
+    let mut buf = String::new();
+
+    // This variable is like a more structured buffer for the whole document
+
+    let mut document: Document;
+
+    // Prep the screen to draw the editor and the document to the screen
+
+    clear_screen();
+
+    // This cursor will be the cursor used throughout the document to draw and access elements from the
+    // document
+
+    let mut cursor = Cursor::new(editor_home.0, editor_home.1);
 
     if let Some(file_name) = args.next() {
         // If a file has been provided through command line
+
+        // Open the file
         let mut in_file = File::open(&file_name).unwrap();
 
+        // Read the file contents into the buffer
         in_file.read_to_string(&mut buf).unwrap();
 
-        // Create document struct instance from file and editor width
-        document = Document::new(file_name, buf.clone(), editor_right_edge);
+        // Create document struct instance from file contents and editor width
+        document = Document::new(file_name, buf.clone(), editor_width);
 
         // Move cursor to home to print file name
         move_cursor_home();
@@ -200,10 +279,13 @@ fn main() {
         display_document(&document, editor_left_edge, editor_width, &mut cursor);
     } else {
         // No file name provided
+
         // Create new empty document with default name scratch
         document = Document::new("scratch".to_string(), "".to_string(), editor_right_edge);
 
+        // Move cursor to home to print file name
         move_cursor_home();
+
         // Print scratch to screen instead of file name
         print!("[ scratch ]");
 
@@ -214,10 +296,11 @@ fn main() {
     move_cursor_to(0, mode_row);
     print!("NOR");
 
+    // Set the terminal to raw input mode, this is only possible and needed on linux systems
     #[cfg(target_os = "linux")]
     set_raw();
 
-    // Here, cursor_x is initially set to 1 as setting it to 0 would require the user to press l multiple times to move away from the left barrier
+    // Move the cursor to the editor home
     cursor.move_to(editor_home.0, editor_home.1);
 
     // Initialize the gap buffer, it will be replaced later when editing actual text
@@ -226,19 +309,25 @@ fn main() {
     // Clear the buffer
     buf.clear();
 
-    // Stores the state of the mode for the program
+    // Stores the state of the mode for the program, starts with Modes::Normal
     let mut mode = Modes::Normal;
 
+    // Main loop for program
     loop {
+        // Get a character and match it aginst some cases as a u8
         match get_char() as u8 {
+            // Move down
             J_LOWER if mode == Modes::Normal => {
-                // Move down
-                // Check that the cursor's row field is less than or equal to the number of *rows* not *Lines* in the document
                 if cursor.row <= document.num_rows() {
+                    // If the cursor's row is at most equal to the number of rows in the document, see docs for differnce between rows and Lines
+
                     // Store the original line that the cursor is at now
                     let original = document.get_line_at_cursor(cursor.row);
 
-                    if cursor.column > original.1.len() {
+                    todo!("Continue documentation");
+                    if cursor.get_position_in_line(&document, editor_left_edge, editor_width)
+                        > original.1.len()
+                    {
                         // If the cursor's column field is at the very end of the current line, move the cursor down and to the end of the next line
                         cursor.move_down();
 
@@ -324,8 +413,8 @@ fn main() {
 
                     if cursor.column > document.get_str_at_cursor(cursor.row).len() {
                         // If moving the cursor down moves the cursor out of bounds of the next line
-                        cursor.column = document.get_str_at_cursor(cursor.row).len() + 1;
-                        cursor.update_pos();
+                        cursor
+                            .move_to(cursor.row, document.get_str_at_cursor(cursor.row).len() + 1);
                     }
                 }
             }
@@ -529,7 +618,6 @@ fn main() {
                     // Move the cursor to where it would be normally after inserting a character
                     cursor.move_right();
                     // Save position to return back to
-
                     cursor.save_current_pos();
 
                     document.set_line_at_cursor(cursor.row, gap_buf.to_string(), editor_right_edge);
@@ -561,30 +649,49 @@ fn main() {
             c if mode == Modes::Insert && c as char == '\n' => {
                 let (lhs, rhs) = gap_buf.collect_to_pieces();
 
-                document.set_line_at_cursor(cursor.row, lhs, editor_width);
+                debug_log_document(&document, &mut log_file);
+
+                document.set_line_at_cursor(cursor.row, lhs, editor_right_edge);
 
                 let newly_made_at_row_inds = document.get_line_at_cursor(cursor.row).0;
 
                 // newly_made_at_row_inds stores the amount of rows spanned by the lhs after inserting it properly into the document therefore to insert
                 // the rhs after this newly made row, simply move the cursor down 0 to the length of the newly_made_at_row_inds vector
-                for _ in 0..newly_made_at_row_inds.len() {
+
+                debug_log_cursor(&cursor, &mut log_file);
+
+                for _ in
+                    0..=(cursor.get_position_in_line(&document, editor_left_edge, editor_width)
+                        / editor_width)
+                {
                     cursor.move_down();
                 }
+
+                debug_log_cursor(&cursor, &mut log_file);
 
                 let mut new_line = Line::new();
                 new_line
                     .0
-                    .push(newly_made_at_row_inds[newly_made_at_row_inds.len() - 1] + 1);
+                    .push(newly_made_at_row_inds[newly_made_at_row_inds.len() - 1]);
+
+                log_file
+                    .write(format!("New line: {:?}\n", new_line).as_bytes())
+                    .unwrap();
 
                 document.lines.insert(cursor.row - 2, new_line);
 
                 cursor.move_to_editor_left(editor_left_edge);
 
-                document.set_line_at_cursor(cursor.row, rhs, editor_width);
+                debug_log_document(&document, &mut log_file);
+                debug_log_cursor(&cursor, &mut log_file);
+
+                document.set_line_at_cursor(cursor.row, rhs, editor_right_edge);
 
                 gap_buf = GapBuf::from_line(document.get_line_at_cursor(cursor.row), 0);
 
                 reset_editor_view(&document, editor_left_edge, editor_right_edge, &mut cursor);
+
+                debug_log_document(&document, &mut log_file);
             }
             COLON if mode == Modes::Normal => {
                 change_mode(&mut mode, Modes::Command, mode_row, &mut cursor);
