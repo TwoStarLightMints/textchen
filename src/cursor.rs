@@ -18,7 +18,12 @@ impl Cursor {
         }
     }
 
-    pub fn get_position_in_line(&self, document: &Document, width: usize) -> usize {
+    pub fn get_position_in_line(
+        &self,
+        document: &Document,
+        editor_left_edge: usize,
+        width: usize,
+    ) -> usize {
         // document.get_str_at_cursor(cursor.row).len() as u32 / editor_right : takes into account whole string
         // cursor.row - 2 : doesn't take actual cursor position into full account
         // cursor.column : only gives where the cursor is inside of the line
@@ -33,19 +38,20 @@ impl Cursor {
             .position(|i| *i == (self.row - 2))
             .unwrap()
             * width)
-            + self.column
+            + self.get_column_in_editor(editor_left_edge)
     }
 
-    pub fn move_to_end_line(&mut self, document: &Document, width: usize) {
+    pub fn move_to_end_line(&mut self, document: &Document, column_offset: usize, width: usize) {
+        //! column_offset - Usually will be the editor_left_edge value
         let curr_line = document.get_line_at_cursor(self.row);
 
         if let Some(last_line_ind) = curr_line.0.last() {
             if curr_line.1.len() % width == 0 && curr_line.1.len() != 0 {
-                self.move_to(*last_line_ind + 2, width + 1);
+                self.move_to(*last_line_ind + 2, width + column_offset);
             } else {
                 let len_last_row = curr_line.1.len() % width;
 
-                self.move_to(*last_line_ind + 2, len_last_row + 1);
+                self.move_to(*last_line_ind + 2, len_last_row + column_offset);
             }
         }
     }
@@ -78,6 +84,10 @@ impl Cursor {
         self.update_pos();
     }
 
+    pub fn move_to_editor_left(&mut self, editor_left_edge: usize) {
+        self.move_to(self.row, editor_left_edge);
+    }
+
     pub fn update_pos(&self) {
         move_cursor_to(self.column, self.row)
     }
@@ -91,5 +101,10 @@ impl Cursor {
         self.row = self.prev_row;
         self.column = self.prev_col;
         move_cursor_to(self.column, self.row);
+    }
+
+    pub fn get_column_in_editor(&self, editor_left_edge: usize) -> usize {
+        //! Used to get column with respect to the editor's left edge (take away the amount that the left edge adds)
+        self.column - editor_left_edge
     }
 }
