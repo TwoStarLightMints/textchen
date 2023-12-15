@@ -331,9 +331,8 @@ fn main() {
                         // If the cursor's column field is at the very end of the current line, move the cursor down and to the end of the next line
                         cursor.move_down();
 
-                        // Move the cursor to the end of the line
-                        cursor
-                            .move_to(cursor.row, document.get_str_at_cursor(cursor.row).len() + 1);
+                        // Move the cursor to the end of the next line
+                        cursor.move_to_end_line(&document, editor_left_edge, editor_width);
                     } else if document.get_str_at_cursor(cursor.row + 1).len() < cursor.column {
                         // If the cursor is within the original line but outside of the next line
                         cursor.move_down();
