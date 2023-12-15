@@ -46,8 +46,14 @@ impl GapBuf {
         self.lhs.iter().chain(self.rhs.iter()).count()
     }
 
-    pub fn collect_to_string(self) -> String {
-        self.lhs.into_iter().chain(self.rhs.into_iter()).collect()
+    pub fn collect_to_string(&self) -> String {
+        self.lhs.iter().chain(self.rhs.iter()).collect()
+    }
+
+    pub fn collect_to_pieces(&self) -> (String, String) {
+        let lhs = self.lhs.iter().collect::<String>();
+        let rhs = self.rhs.iter().collect::<String>();
+        (lhs, rhs)
     }
 }
 
