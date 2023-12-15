@@ -24,16 +24,6 @@ pub struct WidthHeight {
     height: c_uint,
 }
 
-impl WidthHeight {
-    pub fn get_width(&self) -> u32 {
-        self.width as u32
-    }
-
-    pub fn get_height(&self) -> u32 {
-        self.height as u32
-    }
-}
-
 extern "C" {
     #[cfg(target_os = "linux")]
     fn set_raw_term();
