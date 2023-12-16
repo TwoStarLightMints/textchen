@@ -616,10 +616,15 @@ fn main() {
                 let cursor_pos =
                     cursor.get_position_in_line(&document, editor_left_edge, editor_width);
 
-                todo!("Continue reimplementing deleting characters");
+                todo!("Continue reimplementing deleting characters and check formatting");
 
                 if cursor.get_column_in_editor(editor_left_edge) > 1 || cursor_pos == 1 {
+                    // If the cursor is one space away from being on top of the first column of characters (i.e. the cursor is within the line)
+
+                    // Remove the next character in the gap buffer
                     gap_buf.pop();
+
+                    // Only move the cursor to the left
                     cursor.move_left();
 
                     document.set_line_at_cursor(cursor.row, gap_buf.to_string(), editor_width);
