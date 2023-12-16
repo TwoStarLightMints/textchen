@@ -41,19 +41,60 @@ impl Cursor {
             + self.get_column_in_editor(editor_left_edge)
     }
 
-    pub fn move_to_end_line(&mut self, document: &Document, column_offset: usize, width: usize) {
-        //! column_offset - Usually will be the editor_left_edge value
+    pub fn move_to_end_line(
+        &mut self,
+        document: &Document,
+        editor_left_edge: usize,
+        editor_width: usize,
+    ) {
         let curr_line = document.get_line_at_cursor(self.row);
 
         if let Some(last_line_ind) = curr_line.0.last() {
-            if curr_line.1.len() % width == 0 && curr_line.1.len() != 0 {
-                self.move_to(*last_line_ind + 2, width + column_offset);
+            if curr_line.1.len() % editor_width == 0 && curr_line.1.len() != 0 {
+                self.move_to(*last_line_ind + 2, editor_width + editor_left_edge);
             } else {
-                let len_last_row = curr_line.1.len() % width;
+                let len_last_row = curr_line.1.len() % editor_width;
 
-                self.move_to(*last_line_ind + 2, len_last_row + column_offset);
+                self.move_to(*last_line_ind + 2, len_last_row + editor_left_edge);
             }
         }
+    }
+
+    pub fn move_to_pos_in_line(
+        &mut self,
+        document: &Document,
+        editor_left_edge: usize,
+        editor_width: usize,
+        new_pos: usize,
+    ) {
+        //! new_pos - An index value of where in the line the cursor should visually appear
+        //! Assumed to be the current line the cursor is inside of
+        let curr_line = document.get_line_at_cursor(self.row);
+
+        // Based on the index given, these will be the coordinates to move to within the line
+        let row_index = new_pos / editor_width;
+        // Add editor_left_edge to account for the blank space between the edge and the terminal left edge
+        let column = (new_pos % editor_width) + editor_left_edge;
+
+        // row_index simply gives the row within the line where the actual overall index is given, and because the rows are only in realtion to the beginning of
+        // the document, add 2 to get the actual position in the terminal to place the cursor visually
+        let row = curr_line.0[row_index] + 2;
+
+        if new_pos <= curr_line.1.len() {
+            // If the new position is within the line's string content
+
+            // Move to that position
+            self.move_to(row, column);
+        } else {
+            // If the new position is outside the bounds of the line
+            self.move_to_end_line(&document, editor_left_edge, editor_width);
+        }
+    }
+
+    pub fn move_to_start_line(&mut self, document: &Document, editor_left_edge: usize) {
+        self.move_to_editor_left(editor_left_edge);
+
+        self.move_to(document.get_line_at_cursor(self.row).0[0], self.column);
     }
 
     pub fn move_to(&mut self, new_row: usize, new_col: usize) {
