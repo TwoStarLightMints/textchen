@@ -88,14 +88,16 @@ impl Document {
     }
 
     pub fn get_str_at_cursor(&self, cursor_row: usize) -> String {
+        //! Auto offsets cursor_row value by the distance from the top of the terminal to the actual start of the editor
         self.find_line_from_index(cursor_row - 2).1.clone()
     }
 
     pub fn get_line_at_cursor(&self, cursor_row: usize) -> Line {
+        //! Auto offsets cursor_row value by the distance from the top of the terminal to the actual start of the editor
         self.find_line_from_index(cursor_row - 2)
     }
 
-    pub fn set_line_at_cursor(&mut self, cursor_row: usize, new_line: String, width: usize) {
+    pub fn set_line_at_cursor(&mut self, cursor_row: usize, new_line: String, editor_width: usize) {
         let mut dest = self.get_line_at_cursor(cursor_row); // The line to be re-set
 
         let mut f = File::create("thing.txt").unwrap();
@@ -105,7 +107,7 @@ impl Document {
 
         dest.1 = new_line;
 
-        let changed_line = Line::from_existing(dest, width, cursor_row);
+        let changed_line = Line::from_existing(dest, editor_width, cursor_row);
 
         let mut ind_to_change = 0;
 
