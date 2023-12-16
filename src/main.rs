@@ -629,7 +629,7 @@ fn main() {
 
                     document.set_line_at_cursor(cursor.row, gap_buf.to_string(), editor_width);
 
-                    reset_line_view(editor_left_edge, editor_width, &document, &mut cursor);
+                    reset_editor_view(&document, editor_left_edge, editor_right_edge, &mut cursor);
                 } else if cursor_pos / editor_width != 0 && cursor_pos != 0 {
                     gap_buf.pop();
                     cursor.move_up();
