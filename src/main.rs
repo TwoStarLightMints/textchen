@@ -1,5 +1,5 @@
 use std::env;
-use std::fs::File;
+use std::fs::{self, File};
 use std::io::{self, Read, Write};
 use textchen::{cursor::*, document::*, gapbuf::*, term::*};
 
@@ -315,8 +315,9 @@ fn main() {
 
     let mut document: Document;
 
-    // Prep the screen to draw the editor and the document to the screen
+    // Prep the screen to draw the editor and the document to the screen, switching to alt buffer to not erase entire screen
 
+    switch_to_alt_buf();
     clear_screen();
 
     // This cursor will be the cursor used throughout the document to draw and access elements from the
@@ -784,46 +785,79 @@ fn main() {
                 cursor.move_right();
             }
             // Execute command while in command mdoe
-            RETURN if mode == Modes::Command => match buf.as_str() {
-                "w" => {
-                    let mut out_file = File::create(&document.file_name).unwrap();
+            RETURN if mode == Modes::Command => {
+                let mut input = buf
+                    .as_str()
+                    .split_whitespace()
+                    .collect::<Vec<&str>>()
+                    .into_iter();
 
-                    out_file.write(document.to_string().as_bytes()).unwrap();
+                if let Some(command) = input.next() {
+                    match command {
+                        "w" => {
+                            if let Some(file_name) = input.next() {
+                                fs::rename(&document.file_name, file_name).unwrap();
 
-                    cursor.move_to(command_row, 0);
-                    print!("{: >1$}", "", dimensions.width);
+                                let mut out_file = File::create(file_name).unwrap();
 
-                    change_mode(&mut mode, Modes::Normal, mode_row, &mut cursor);
+                                out_file.write(document.to_string().as_bytes()).unwrap();
 
-                    cursor.revert_pos();
+                                document.file_name = file_name.to_string();
 
-                    buf.clear();
+                                cursor.move_to(0, 0);
+
+                                let curr_row = cursor.row;
+                                let curr_col = cursor.column;
+
+                                print!("{: >1$}", "", dimensions.width);
+
+                                cursor.move_to(0, 0);
+
+                                print!("{}", document.file_name);
+
+                                cursor.move_to(curr_row, curr_col);
+                            } else {
+                                let mut out_file = File::create(&document.file_name).unwrap();
+
+                                out_file.write(document.to_string().as_bytes()).unwrap();
+                            }
+
+                            cursor.move_to(command_row, 0);
+                            print!("{: >1$}", "", dimensions.width);
+
+                            change_mode(&mut mode, Modes::Normal, mode_row, &mut cursor);
+
+                            cursor.revert_pos();
+
+                            buf.clear();
+                        }
+                        "q" => {
+                            clear_screen();
+                            move_cursor_home();
+                            break;
+                        }
+                        "wq" => {
+                            let mut out_file = File::create(&document.file_name).unwrap();
+
+                            out_file.write(document.to_string().as_bytes()).unwrap();
+
+                            clear_screen();
+                            move_cursor_home();
+                            break;
+                        }
+                        _ => {
+                            move_cursor_to(0, command_row);
+                            print!("{: <1$}", "invalid command", dimensions.width);
+
+                            change_mode(&mut mode, Modes::Normal, mode_row, &mut cursor);
+
+                            cursor.revert_pos();
+
+                            buf.clear();
+                        }
+                    }
                 }
-                "q" => {
-                    clear_screen();
-                    move_cursor_home();
-                    break;
-                }
-                "wq" => {
-                    let mut out_file = File::create(&document.file_name).unwrap();
-
-                    out_file.write(document.to_string().as_bytes()).unwrap();
-
-                    clear_screen();
-                    move_cursor_home();
-                    break;
-                }
-                _ => {
-                    move_cursor_to(0, command_row);
-                    print!("{: <1$}", "invalid command", dimensions.width);
-
-                    change_mode(&mut mode, Modes::Normal, mode_row, &mut cursor);
-
-                    cursor.revert_pos();
-
-                    buf.clear();
-                }
-            },
+            }
             // Insert character while in command mode
             c if mode == Modes::Command => {
                 // Push the pressed character to the buffer
@@ -842,4 +876,6 @@ fn main() {
     // Similar to set_raw, only used/needed on linux
     #[cfg(target_os = "linux")]
     set_cooked();
+
+    return_to_normal_buf();
 }
