@@ -58,6 +58,7 @@ impl Line {
     }
 }
 
+#[derive(Debug)]
 pub struct Document {
     pub file_name: String,
     pub lines: Vec<Line>,
@@ -65,6 +66,17 @@ pub struct Document {
 
 impl Document {
     pub fn new(file_name: String, content: String, editor_width: usize) -> Self {
+        if content.len() == 0 {
+            let mut line = Line::new();
+
+            line.0.push(0);
+
+            return Self {
+                file_name,
+                lines: vec![line],
+            };
+        }
+
         let mut curr_ind: usize = 0;
         let mut lines: Vec<Line> = Vec::new();
 
