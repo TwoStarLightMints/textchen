@@ -4,8 +4,8 @@ use crate::term::move_cursor_to;
 pub struct Cursor {
     pub row: usize,
     pub column: usize,
-    pub prev_row: usize,
-    pub prev_col: usize,
+    pub prev_row: Vec<usize>,
+    pub prev_col: Vec<usize>,
 }
 
 impl Cursor {
@@ -13,8 +13,8 @@ impl Cursor {
         Self {
             row,
             column,
-            prev_row: 0, // Both initialized to 0 so there's no need for options
-            prev_col: 0,
+            prev_row: Vec::new(), // Both initialized to 0 so there's no need for options
+            prev_col: Vec::new(),
         }
     }
 
@@ -134,18 +134,16 @@ impl Cursor {
     }
 
     fn update_pos(&self) {
-        move_cursor_to(self.column, self.row)
+        move_cursor_to(self.row, self.column)
     }
 
     pub fn save_current_pos(&mut self) {
-        self.prev_row = self.row;
-        self.prev_col = self.column;
+        self.prev_row.push(self.row);
+        self.prev_col.push(self.column);
     }
 
     pub fn revert_pos(&mut self) {
-        self.row = self.prev_row;
-        self.column = self.prev_col;
-        move_cursor_to(self.column, self.row);
+        move_cursor_to(self.prev_row.remove(0), self.prev_col.remove(0));
     }
 
     pub fn get_column_in_editor(&self, editor_left_edge: usize) -> usize {
