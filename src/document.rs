@@ -1,6 +1,4 @@
 use std::fmt::Display;
-use std::fs::File;
-use std::io::Write;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Line(pub Vec<usize>, pub String);
