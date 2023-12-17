@@ -62,6 +62,16 @@ pub fn move_cursor_home() {
     io::stdout().flush().unwrap();
 }
 
+pub fn switch_to_alt_buf() {
+    print!("\u{001b}[?1049h");
+    io::stdout().flush().unwrap();
+}
+
+pub fn return_to_normal_buf() {
+    print!("\u{001b}[?1049l");
+    io::stdout().flush().unwrap();
+}
+
 pub fn clear_screen() {
     print!("\u{001b}[2J");
     io::stdout().flush().unwrap();
