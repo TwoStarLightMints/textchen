@@ -466,7 +466,8 @@ fn main() {
                 }
             }
             // Insert a new line character to break line while in insert mode
-            c if mode == Modes::Insert && c != RETURN => {
+            c if mode == Modes::Insert && (c as char == ' ' || !(c as char).is_whitespace()) => {
+                // Here, c can only be a non whitespace character except for space
                 if cursor.get_column_in_editor(editor_left_edge) < editor_width {
                     // If adding a new character on the current row will not move past the editor's right edge
 
@@ -504,7 +505,7 @@ fn main() {
                 }
             }
             // Insert a character while in insert mode
-            c if mode == Modes::Insert && c as char == '\n' => {
+            c if mode == Modes::Insert && c == RETURN => {
                 // Collect the two sides of the gap buffer
                 let (lhs, rhs) = gap_buf.collect_to_pieces();
 
@@ -529,6 +530,18 @@ fn main() {
                     document.get_line_at_cursor(cursor.row),
                     cursor.get_position_in_line(&document, editor_left_edge, editor_width),
                 );
+
+                reset_editor_view(&document, editor_left_edge, editor_right_edge, &mut cursor);
+            }
+            c if mode == Modes::Insert && c as char == '\t' => {
+                // For now, a tab is represented as four spaces
+                for _ in 0..4 {
+                    gap_buf.insert(' ');
+                }
+
+                document.set_line_at_cursor(cursor.row, gap_buf.to_string(), editor_width);
+
+                cursor.move_to_end_line(&document, editor_left_edge, editor_width, editor_top);
 
                 reset_editor_view(&document, editor_left_edge, editor_right_edge, &mut cursor);
             }
