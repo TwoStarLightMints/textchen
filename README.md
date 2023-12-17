@@ -11,5 +11,9 @@ Note: while I have put some work into making this program crossplatorm it has be
 ## Install
 You will need to have rust installed on your machine
 
-`git clone https://github.com/TwoStarLightMints/textchen.git`
-`cargo install --path ./textchen`
+```
+$ git clone https://github.com/TwoStarLightMints/textchen.git
+```
+```
+$ cargo install --path ./textchen
+```
