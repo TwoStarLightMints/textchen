@@ -7,9 +7,9 @@ use textchen::{cursor::*, debug::*, document::*, editor::*, gapbuf::*, term::*};
 const J_LOWER: u8 = 106;
 const K_LOWER: u8 = 107;
 const L_LOWER: u8 = 108;
-const H_LOWER: u8 = 104;
 const X_LOWER: u8 = 120;
 const O_LOWER: u8 = 111;
+const H_LOWER: u8 = 104;
 const G_LOWER: u8 = 103;
 const I_LOWER: u8 = 105;
 const COLON: u8 = 58;
@@ -29,7 +29,7 @@ fn main() {
     // Dimensions for the terminal screen
     // Wh.width - The width of the terminal as a whole
     // Wh.height - The height of the terminal as a whole
-    let dimensions = term_size();
+    let mut dimensions = term_size();
 
     // Title row is the home row
     // row: 0, column: 0
@@ -46,29 +46,29 @@ fn main() {
     // This variable defines where to end the editor's screen, while using the full value
     // of dimensions.width, I reccomend decreasing this value
 
-    let editor_right_edge = dimensions.width - 2;
+    let mut editor_right_edge = dimensions.width - 2;
 
     // This variable holds the length that the editor screen spans, calculated from the
     // editor_left_edge and editor_right_edge variables
     // The width of the editor (from the left side of the terminal to at most this value), minus 2 to give space for cursor with multiline Lines
 
-    let editor_width = editor_right_edge - editor_left_edge;
+    let mut editor_width = editor_right_edge - editor_left_edge;
 
     // This variable defines the row at which the mode will be displayed to the user,
     // conventionally this is the second to last row of the terminal which is dimension.height - 1
     // Second to last line, where mode is shown
 
-    let mode_row = dimensions.height - 1;
+    let mut mode_row = dimensions.height - 1;
 
     // This variable is simply a label for the full height of the terminal, it is dimensions.height
     // Last line, where commands will be written to
 
-    let command_row = dimensions.height;
+    let mut command_row = dimensions.height;
 
     // This variable holds a tuple containing the coordinates of the editor's home,
     // this is a wrapper
 
-    let editor_home: (usize, usize) = (editor_top, editor_left_edge);
+    let mut editor_home: (usize, usize) = (editor_top, editor_left_edge);
 
     // Get the command line arguments to the program
 
@@ -154,6 +154,26 @@ fn main() {
 
     // Main loop for program
     loop {
+        if dimensions.check_term_resize() {
+            debug_log_message("CHANGED\n".to_string(), &mut log_file);
+
+            redraw_screen(
+                &dimensions,
+                &mut mode,
+                &mut document,
+                editor_top,
+                editor_left_edge,
+                &mut editor_right_edge,
+                &mut editor_width,
+                &mut mode_row,
+                &mut command_row,
+                &mut editor_home,
+                &mut cursor,
+            );
+
+            debug_log_message("DID IT\n".to_string(), &mut log_file);
+        }
+
         // Get a character and match it aginst some cases as a u8
         match get_char() as u8 {
             // Move down
