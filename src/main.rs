@@ -837,12 +837,33 @@ fn main() {
                             break;
                         }
                         "wq" => {
-                            let mut out_file = File::create(&document.file_name).unwrap();
+                            if let Some(file_name) = input.next() {
+                                fs::rename(&document.file_name, file_name).unwrap();
 
-                            out_file.write(document.to_string().as_bytes()).unwrap();
+                                let mut out_file = File::create(file_name).unwrap();
 
-                            clear_screen();
-                            move_cursor_home();
+                                out_file.write(document.to_string().as_bytes()).unwrap();
+
+                                document.file_name = file_name.to_string();
+
+                                cursor.move_to(0, 0);
+
+                                let curr_row = cursor.row;
+                                let curr_col = cursor.column;
+
+                                print!("{: >1$}", "", dimensions.width);
+
+                                cursor.move_to(0, 0);
+
+                                print!("{}", document.file_name);
+
+                                cursor.move_to(curr_row, curr_col);
+                            } else {
+                                let mut out_file = File::create(&document.file_name).unwrap();
+
+                                out_file.write(document.to_string().as_bytes()).unwrap();
+                            }
+
                             break;
                         }
                         _ => {
@@ -856,6 +877,30 @@ fn main() {
                             buf.clear();
                         }
                     }
+                }
+            }
+            // Delete character while in command mode
+            BCKSP if mode == Modes::Command => {
+                if buf.len() > 0 {
+                    // If the buffer is not empty
+
+                    // Remove the last character of the command buffer
+                    buf.pop();
+
+                    // Move to the bottom row of the terminal and just after the colon
+                    cursor.move_to(dimensions.height, 2);
+
+                    // Visually blank out the bottom row
+                    print!("{: >1$}", "", dimensions.width - 1);
+
+                    // Move the cursor to just after the colon
+                    cursor.move_to(dimensions.height, 2);
+
+                    // Reprint the buffer
+                    print!("{buf}");
+
+                    // Move cursor to just after the original buffer minus the last character
+                    cursor.move_to(dimensions.height, editor_left_edge + buf.len());
                 }
             }
             // Insert character while in command mode
