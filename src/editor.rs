@@ -17,8 +17,7 @@ pub fn display_line(
     document: &Document,
     cursor: &mut Cursor,
 ) {
-    let curr_row = cursor.row;
-    let curr_col = cursor.column;
+    cursor.save_current_pos();
 
     let line = document.get_line_at_cursor(cursor.row);
 
@@ -33,7 +32,7 @@ pub fn display_line(
         }
     }
 
-    cursor.move_to(curr_row, curr_col);
+    cursor.revert_pos();
 }
 
 pub fn display_document(
@@ -49,9 +48,7 @@ pub fn display_document(
     //!
     //! Displays the document that is currently being edited to the screen, handles drawing within given bounds
 
-    // This is used here instead of save position as it messes with something outside of this scope
-    let curr_row = cursor.row;
-    let curr_col = cursor.column;
+    cursor.save_current_pos();
 
     cursor.move_to(2, editor_left_edge);
 
@@ -69,7 +66,7 @@ pub fn display_document(
         cursor.move_to_editor_left(editor_left_edge);
     }
 
-    cursor.move_to(curr_row, curr_col);
+    cursor.revert_pos();
 }
 
 pub fn clear_line(
@@ -78,8 +75,7 @@ pub fn clear_line(
     document: &Document,
     cursor: &mut Cursor,
 ) {
-    let curr_row = cursor.row;
-    let curr_col = cursor.column;
+    cursor.save_current_pos();
 
     cursor.move_to_start_line(document, editor_left_edge);
 
@@ -87,7 +83,7 @@ pub fn clear_line(
         print!("{: <1$}", "", editor_width);
     }
 
-    cursor.move_to(curr_row, curr_col);
+    cursor.revert_pos();
 }
 
 pub fn clear_editor_window(editor_right_edge: usize, document: &Document, cursor: &mut Cursor) {
@@ -97,9 +93,7 @@ pub fn clear_editor_window(editor_right_edge: usize, document: &Document, cursor
     //!
     //! Visually clears the contents of the editor window, the rest of the screen is untouched
 
-    // This is used here instead of save position as it messes with something outside of this scope
-    let curr_row = cursor.row;
-    let curr_col = cursor.column;
+    cursor.save_current_pos();
 
     cursor.move_to(2, 1);
 
@@ -109,7 +103,7 @@ pub fn clear_editor_window(editor_right_edge: usize, document: &Document, cursor
         cursor.move_down();
     }
 
-    cursor.move_to(curr_row, curr_col);
+    cursor.revert_pos();
 }
 
 pub fn reset_line_view(
@@ -118,14 +112,13 @@ pub fn reset_line_view(
     document: &Document,
     cursor: &mut Cursor,
 ) {
-    let curr_row = cursor.row;
-    let curr_col = cursor.column;
+    cursor.save_current_pos();
 
     clear_line(editor_left_edge, editor_width, document, cursor);
 
     display_line(editor_left_edge, editor_width, document, cursor);
 
-    cursor.move_to(curr_row, curr_col);
+    cursor.revert_pos();
 }
 
 pub fn reset_editor_view(
@@ -161,9 +154,7 @@ pub fn change_mode(curr: &mut Modes, new_mode: Modes, mode_row: usize, cursor: &
 
     *curr = new_mode;
 
-    // This is used here instead of save position as it messes with something outside of this scope
-    let curr_row = cursor.row;
-    let curr_col = cursor.column;
+    cursor.save_current_pos();
 
     cursor.move_to(mode_row, 0);
 
@@ -176,5 +167,5 @@ pub fn change_mode(curr: &mut Modes, new_mode: Modes, mode_row: usize, cursor: &
 
     io::stdout().flush().unwrap();
 
-    cursor.move_to(curr_row, curr_col);
+    cursor.revert_pos();
 }

@@ -1,7 +1,7 @@
 use std::env;
 use std::fs::{self, File};
-use std::io::{self, Read, Write};
-use textchen::{cursor::*, document::*, editor::*, gapbuf::*, term::*};
+use std::io::{Read, Write};
+use textchen::{cursor::*, debug::*, document::*, editor::*, gapbuf::*, term::*};
 
 // ==== ASCII KEY CODE VALUES ====
 const J_LOWER: u8 = 106;
@@ -477,6 +477,9 @@ fn main() {
                     // Move the cursor to the right
                     cursor.move_right();
 
+                    debug_log_message("HERER".to_string(), &mut log_file);
+                    debug_log_cursor(&cursor, &mut log_file);
+
                     // Set the current line's string content to the gap buffer
                     document.set_line_at_cursor(cursor.row, gap_buf.to_string(), editor_width);
 
@@ -595,8 +598,7 @@ fn main() {
 
                                 cursor.move_to(0, 0);
 
-                                let curr_row = cursor.row;
-                                let curr_col = cursor.column;
+                                cursor.save_current_pos();
 
                                 print!("{: >1$}", "", dimensions.width);
 
@@ -604,7 +606,7 @@ fn main() {
 
                                 print!("{}", document.file_name);
 
-                                cursor.move_to(curr_row, curr_col);
+                                cursor.revert_pos();
                             } else {
                                 let mut out_file = File::create(&document.file_name).unwrap();
 
@@ -639,8 +641,7 @@ fn main() {
 
                                 cursor.move_to(0, 0);
 
-                                let curr_row = cursor.row;
-                                let curr_col = cursor.column;
+                                cursor.save_current_pos();
 
                                 print!("{: >1$}", "", dimensions.width);
 
@@ -648,7 +649,7 @@ fn main() {
 
                                 print!("{}", document.file_name);
 
-                                cursor.move_to(curr_row, curr_col);
+                                cursor.revert_pos();
                             } else {
                                 let mut out_file = File::create(&document.file_name).unwrap();
 
