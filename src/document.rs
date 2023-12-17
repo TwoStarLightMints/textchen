@@ -1,4 +1,5 @@
 use std::fmt::Display;
+use std::io::Write;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Line(pub Vec<usize>, pub String);
@@ -25,7 +26,6 @@ impl Line {
             }
 
             *ind_counter += overflow;
-
             *ind_counter += 1;
         }
 
@@ -259,6 +259,31 @@ impl Document {
         // insert_ind will now be the position that the new line was inserted, so to iterate over the elements after it, add 1
         for i in (insert_ind + 1)..self.lines.len() {
             self.lines[i].0 = self.lines[i].0.iter().map(|inds| inds + 1).collect();
+        }
+    }
+
+    pub fn recalculate_indices(&mut self, editor_width: usize) {
+        let mut ind_counter = 0;
+
+        for i in 0..self.lines.len() {
+            if self.lines[i].1.len() <= editor_width {
+                self.lines[i].0 = vec![ind_counter];
+
+                ind_counter += 1;
+            } else {
+                let overflow = self.lines[i].1.len();
+
+                let mut new_inds = Vec::new();
+
+                for j in 0..=overflow {
+                    new_inds.push(ind_counter + j);
+                }
+
+                self.lines[i].0 = new_inds;
+
+                ind_counter += overflow;
+                ind_counter += 1;
+            }
         }
     }
 }
