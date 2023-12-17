@@ -155,8 +155,6 @@ fn main() {
     // Main loop for program
     loop {
         if dimensions.check_term_resize() {
-            debug_log_message("CHANGED\n".to_string(), &mut log_file);
-
             redraw_screen(
                 &dimensions,
                 &mut mode,
@@ -170,8 +168,6 @@ fn main() {
                 &mut editor_home,
                 &mut cursor,
             );
-
-            debug_log_message("DID IT\n".to_string(), &mut log_file);
         }
 
         // Get a character and match it aginst some cases as a u8
