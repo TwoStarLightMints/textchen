@@ -17,3 +17,6 @@ $ git clone https://github.com/TwoStarLightMints/textchen.git
 ```
 $ cargo install --path ./textchen
 ```
+
+## Todos
+See todo.todos for current plans
