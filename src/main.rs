@@ -133,7 +133,7 @@ fn main() {
     }
 
     // Print the mode to the screen, in this case, the default is normal
-    move_cursor_to(0, mode_row);
+    move_cursor_to(mode_row, 0);
     print!("NOR");
 
     // Set the terminal to raw input mode, this is only possible and needed on linux systems
@@ -658,7 +658,7 @@ fn main() {
                             break;
                         }
                         _ => {
-                            move_cursor_to(0, command_row);
+                            move_cursor_to(command_row, 0);
                             print!("{: <1$}", "invalid command", dimensions.width);
 
                             change_mode(&mut mode, Modes::Normal, mode_row, &mut cursor);
