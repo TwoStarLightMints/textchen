@@ -349,6 +349,11 @@ fn main() {
         // Create new empty document with default name scratch
         document = Document::new("scratch".to_string(), "".to_string(), editor_right_edge);
 
+        debug_log_document(&document, &mut log_file);
+        log_file
+            .write(format!("{:?}", document).as_bytes())
+            .unwrap();
+
         // Move cursor to home to print file name
         move_cursor_home();
 
@@ -794,7 +799,9 @@ fn main() {
                     match command {
                         "w" => {
                             if let Some(file_name) = input.next() {
-                                fs::rename(&document.file_name, file_name).unwrap();
+                                match fs::rename(&document.file_name, file_name) {
+                                    _ => (),
+                                }
 
                                 let mut out_file = File::create(file_name).unwrap();
 
@@ -836,7 +843,9 @@ fn main() {
                         }
                         "wq" => {
                             if let Some(file_name) = input.next() {
-                                fs::rename(&document.file_name, file_name).unwrap();
+                                match fs::rename(&document.file_name, file_name) {
+                                    _ => (),
+                                }
 
                                 let mut out_file = File::create(file_name).unwrap();
 
