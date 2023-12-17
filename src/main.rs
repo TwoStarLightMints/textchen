@@ -133,7 +133,7 @@ fn main() {
     }
 
     // Print the mode to the screen, in this case, the default is normal
-    move_cursor_to(mode_row, 0);
+    cursor.move_to(mode_row, 0);
     print!("NOR");
 
     // Set the terminal to raw input mode, this is only possible and needed on linux systems
