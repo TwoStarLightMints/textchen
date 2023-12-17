@@ -1,7 +1,5 @@
 use std::io::{self, Write};
 
-// Examples of ANSI escape codes from: https://gist.github.com/fnky/458719343aabd01cfb17a3a4f7296797
-
 #[allow(dead_code)]
 use std::ffi::{c_char, c_uint};
 
@@ -15,6 +13,19 @@ impl Wh {
         let width = c_vals.width as usize;
         let height = c_vals.height as usize;
         Self { width, height }
+    }
+
+    pub fn check_term_resize(&mut self) -> bool {
+        let checker = term_size();
+
+        if checker.width != self.width || checker.height != self.height {
+            self.width = checker.width;
+            self.height = checker.height;
+
+            return true;
+        }
+
+        false
     }
 }
 
