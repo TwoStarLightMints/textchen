@@ -1,2 +1,4 @@
 0|Render alternative whitespace characters beyond just spaces and effectively new line characters|
 0|Add scrolling|[0|When adding new lines, check for reaching the end of the editor screen|]
+0|Add registers|[0|Add in editor register|%0|Add ability to paste in system clipboard|]
+0|Add selections|
