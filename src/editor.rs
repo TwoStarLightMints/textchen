@@ -216,7 +216,12 @@ pub fn redraw_screen(
     // Return to the previous cursor position
     cursor.revert_pos();
 
-    // Move to somewhere within the line
+    // Because it is possible that the line at which the cursor was has moved, using the cursor's current row minus two, you can
+    // get the index of the line at which the cursor should be, then get the first index of that line's index list and move to
+    // that row along with keeping in mind the editor's left edge
+    cursor.move_to(document.lines[cursor.row - 2].0[0] + 2, editor_left_edge);
+
+    // Move to the original position of the cursor within the line
     cursor.move_to_pos_in_line(
         document,
         editor_left_edge,
