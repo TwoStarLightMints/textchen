@@ -46,18 +46,22 @@ impl Cursor {
         document: &Document,
         editor_left_edge: usize,
         editor_width: usize,
+        editor_top: usize,
     ) {
         let curr_line = document.get_line_at_cursor(self.row);
+        let cursor_pos = self.get_position_in_line(document, editor_left_edge, editor_width);
 
-        if let Some(last_line_ind) = curr_line.0.last() {
-            if curr_line.1.len() % editor_width == 0 && curr_line.1.len() != 0 {
-                self.move_to(*last_line_ind + 2, editor_width + editor_left_edge);
-            } else {
-                let len_last_row = curr_line.1.len() % editor_width;
+        // The cursor's position mod the editor width is the distance from the left edge, adding the left
+        // edge to the result gets the distance from the terminal's left edge
+        // (curr_line.1.len() % editor_width) + editor_left_edge;
 
-                self.move_to(*last_line_ind + 2, len_last_row + editor_left_edge);
-            }
-        }
+        // Last row index of the line, index from the top of the EDITOR not the terminal, so add editor_top as offset
+        // curr_line.0[curr_line.0.len() - 1] + editor_top;
+
+        self.move_to(
+            curr_line.0[curr_line.0.len() - 1] + editor_top,
+            (curr_line.1.len() % editor_width) + editor_left_edge,
+        );
     }
 
     pub fn move_to_pos_in_line(
@@ -65,6 +69,7 @@ impl Cursor {
         document: &Document,
         editor_left_edge: usize,
         editor_width: usize,
+        editor_top: usize,
         new_pos: usize,
     ) {
         //! new_pos - An index value of where in the line the cursor should visually appear
@@ -87,7 +92,7 @@ impl Cursor {
             self.move_to(row, column);
         } else {
             // If the new position is outside the bounds of the line
-            self.move_to_end_line(&document, editor_left_edge, editor_width);
+            self.move_to_end_line(&document, editor_left_edge, editor_width, editor_top);
         }
     }
 
@@ -120,13 +125,12 @@ impl Cursor {
         self.update_pos();
     }
 
-    pub fn move_to_left_border(&mut self) {
-        self.column = 1;
-        self.update_pos();
-    }
-
     pub fn move_to_editor_left(&mut self, editor_left_edge: usize) {
         self.move_to(self.row, editor_left_edge);
+    }
+
+    pub fn move_to_editor_right(&mut self, editor_right_edge: usize) {
+        self.move_to(self.row, editor_right_edge);
     }
 
     fn update_pos(&self) {

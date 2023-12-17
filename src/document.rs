@@ -15,7 +15,7 @@ impl Line {
         //! so will to the insertion of indices
         let mut new = Self(Vec::new(), src.clone());
 
-        if src.len() <= editor_width as usize {
+        if src.len() <= editor_width {
             new.0 = vec![*ind_counter];
 
             *ind_counter += 1;
@@ -34,7 +34,7 @@ impl Line {
         new
     }
 
-    pub fn from_existing(original: Line, width: usize, cursor_row: usize) -> Line {
+    pub fn from_existing(original: Line, editor_width: usize, cursor_row: usize) -> Line {
         //! cursor_row is provided if the "original" line has not yet received any indices
         let mut new = Self(Vec::new(), original.1.clone());
 
@@ -44,10 +44,10 @@ impl Line {
             ind_counter = *index;
         }
 
-        if original.1.len() <= width {
+        if original.1.len() <= editor_width {
             new.0 = vec![ind_counter];
         } else {
-            let overflow = original.1.len() / width;
+            let overflow = original.1.len() / editor_width;
 
             for i in 0..=overflow {
                 new.0.push(ind_counter + i);
@@ -98,12 +98,9 @@ impl Document {
     }
 
     pub fn set_line_at_cursor(&mut self, cursor_row: usize, new_line: String, editor_width: usize) {
+        //! Sets the line's string value at cursor_row to new_line and recalculates the line's indices
+        //! as well as the following lines according to the editor_width
         let mut dest = self.get_line_at_cursor(cursor_row); // The line to be re-set
-
-        let mut f = File::create("thing.txt").unwrap();
-
-        f.write(format!("dest: {:?}\ncursor row: {}\n", dest, cursor_row).as_bytes())
-            .unwrap();
 
         dest.1 = new_line;
 
