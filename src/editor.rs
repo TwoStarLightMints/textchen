@@ -1,9 +1,12 @@
 use crate::cursor::*;
 use crate::document::*;
+use crate::term::clear_screen;
 use crate::term::print_flush;
+use crate::term::Wh;
+use std::fs::File;
 use std::io::{self, Write};
 
-#[derive(PartialEq, Eq)]
+#[derive(Clone, Copy, PartialEq, Eq)]
 pub enum Modes {
     Normal,
     Insert,
@@ -168,4 +171,41 @@ pub fn change_mode(curr: &mut Modes, new_mode: Modes, mode_row: usize, cursor: &
     io::stdout().flush().unwrap();
 
     cursor.revert_pos();
+}
+
+pub fn redraw_screen(
+    dimensions: &Wh,
+    curr_mode: &mut Modes,
+    document: &mut Document,
+    editor_top: usize,
+    editor_left_edge: usize,
+    editor_right_edge: &mut usize,
+    editor_width: &mut usize,
+    mode_row: &mut usize,
+    command_row: &mut usize,
+    editor_home: &mut (usize, usize),
+    cursor: &mut Cursor,
+) {
+    *editor_right_edge = dimensions.width - 2;
+    *editor_width = *editor_right_edge - editor_left_edge;
+    *mode_row = dimensions.height - 1;
+    *command_row = dimensions.height;
+    *editor_home = (editor_top, editor_left_edge);
+
+    // Clear the screen, blank canvas
+    clear_screen();
+
+    // Redraw document title
+    cursor.move_to(0, 0);
+    print!("{}", document.file_name);
+
+    document.recalculate_indices(*editor_width);
+
+    // Redraw document
+    reset_editor_view(document, editor_left_edge, *editor_right_edge, cursor);
+
+    // Redraw mode
+    change_mode(curr_mode, *curr_mode, *mode_row, cursor);
+
+    cursor.move_to(editor_home.0, editor_home.1);
 }
