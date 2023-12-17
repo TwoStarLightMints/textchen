@@ -186,6 +186,12 @@ pub fn redraw_screen(
     editor_home: &mut (usize, usize),
     cursor: &mut Cursor,
 ) {
+    // Used to return back
+    let cursor_pos = cursor.get_position_in_line(&document, editor_left_edge, *editor_width);
+
+    // Save to see if it will be at least within the right line or an adjacent one instead of only going to the start of the editor
+    cursor.save_current_pos();
+
     *editor_right_edge = dimensions.width - 2;
     *editor_width = *editor_right_edge - editor_left_edge;
     *mode_row = dimensions.height - 1;
@@ -207,5 +213,15 @@ pub fn redraw_screen(
     // Redraw mode
     change_mode(curr_mode, *curr_mode, *mode_row, cursor);
 
-    cursor.move_to(editor_home.0, editor_home.1);
+    // Return to the previous cursor position
+    cursor.revert_pos();
+
+    // Move to somewhere within the line
+    cursor.move_to_pos_in_line(
+        document,
+        editor_left_edge,
+        *editor_width,
+        editor_top,
+        cursor_pos,
+    );
 }
