@@ -353,9 +353,7 @@ fn main() {
         move_cursor_home();
 
         // Print scratch to screen instead of file name
-        print!("[ scratch ]");
-
-        todo!("Implement scratch buffer");
+        print!("scratch");
     }
 
     // Print the mode to the screen, in this case, the default is normal
