@@ -65,6 +65,10 @@ fn main() {
 
     let mut command_row = dimensions.height;
 
+    // This variable is the height of the editor view, so the number of possible rows that the document can be displayed on, it is calculated
+    // by subtracting 2 from the terminal's height
+    let mut editor_height = dimensions.height - 2;
+
     // This variable holds a tuple containing the coordinates of the editor's home,
     // this is a wrapper
 
@@ -151,6 +155,8 @@ fn main() {
 
     // Stores the state of the mode for the program, starts with Modes::Normal
     let mut mode = Modes::Normal;
+
+    debug_log_cursor(&cursor, &mut log_file);
 
     // Main loop for program
     loop {
