@@ -328,14 +328,19 @@ fn main() {
     if let Some(file_name) = args.next() {
         // If a file has been provided through command line
 
-        // Open the file
-        let mut in_file = File::open(&file_name).unwrap();
+        // Attempt to open the file provided
+        match File::open(&file_name) {
+            Ok(mut in_file) => {
+                // Read the file contents into the buffer
+                in_file.read_to_string(&mut buf).unwrap();
 
-        // Read the file contents into the buffer
-        in_file.read_to_string(&mut buf).unwrap();
-
-        // Create document struct instance from file contents and editor width
-        document = Document::new(file_name, buf.clone(), editor_width);
+                // Create document struct instance from file contents and editor width
+                document = Document::new(file_name, buf.clone(), editor_width);
+            }
+            Err(_) => {
+                document = Document::new(file_name, "".to_string(), editor_width);
+            }
+        }
 
         // Move cursor to home to print file name
         move_cursor_home();
