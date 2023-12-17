@@ -142,16 +142,10 @@ impl Cursor {
     }
 
     pub fn revert_pos(&mut self) {
-        // Retrieve the last row and column values stored
-        let row = self.prev_row.pop().unwrap();
-        let column = self.prev_col.pop().unwrap();
+        let old_row = self.prev_row.pop().unwrap();
+        let old_col = self.prev_col.pop().unwrap();
 
-        // Set the cursor's row and column fields to these values
-        self.row = row;
-        self.column = column;
-
-        // Visually move the cursor to the old position
-        self.update_pos();
+        self.move_to(old_row, old_col);
     }
 
     pub fn get_column_in_editor(&self, editor_left_edge: usize) -> usize {
