@@ -49,7 +49,6 @@ impl Cursor {
         editor_top: usize,
     ) {
         let curr_line = document.get_line_at_cursor(self.row);
-        let cursor_pos = self.get_position_in_line(document, editor_left_edge, editor_width);
 
         // The cursor's position mod the editor width is the distance from the left edge, adding the left
         // edge to the result gets the distance from the terminal's left edge
