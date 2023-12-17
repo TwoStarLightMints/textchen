@@ -271,7 +271,7 @@ impl Document {
 
                 ind_counter += 1;
             } else {
-                let overflow = self.lines[i].1.len();
+                let overflow = self.lines[i].1.len() / editor_width;
 
                 let mut new_inds = Vec::new();
 
