@@ -77,7 +77,7 @@ pub fn clear_screen() {
     io::stdout().flush().unwrap();
 }
 
-pub fn move_cursor_to(column: usize, row: usize) {
+pub fn move_cursor_to(row: usize, column: usize) {
     print!("\u{001b}[{};{}H", row, column);
     io::stdout().flush().unwrap();
 }
