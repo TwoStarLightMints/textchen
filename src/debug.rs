@@ -5,14 +5,6 @@ use crate::term::Wh;
 use std::fs::File;
 use std::io::Write;
 
-#[derive(PartialEq, Eq)]
-pub enum Modes {
-    Normal,
-    Insert,
-    Command,
-    MoveTo,
-}
-
 #[allow(dead_code)]
 pub fn debug_log_message(message: String, log_file: &mut File) {
     log_file.write(message.as_bytes()).unwrap();
