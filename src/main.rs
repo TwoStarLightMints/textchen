@@ -156,7 +156,7 @@ fn main() {
     // Stores the state of the mode for the program, starts with Modes::Normal
     let mut mode = Modes::Normal;
 
-    let (kill_sender, char_channel) = spawn_char_channel();
+    let (thread, killer, char_channel) = spawn_char_channel();
 
     // Main loop for program
     loop {
@@ -838,7 +838,7 @@ fn main() {
         }
     }
 
-    kill_sender.send('q').unwrap();
+    killer.send('q').unwrap();
 
     // Similar to set_raw, only used/needed on linux
     #[cfg(target_os = "linux")]
