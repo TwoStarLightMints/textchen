@@ -152,6 +152,8 @@ fn main() {
     // Stores the state of the mode for the program, starts with Modes::Normal
     let mut mode = Modes::Normal;
 
+    let (kill_sender, char_channel) = spawn_char_channel();
+
     // Main loop for program
     loop {
         if dimensions.check_term_resize() {
@@ -170,569 +172,677 @@ fn main() {
                 &mut editor_home,
                 &mut cursor,
             );
-
-            debug_log_message("DID IT\n".to_string(), &mut log_file);
         }
 
-        // Get a character and match it aginst some cases as a u8
-        match get_char() as u8 {
-            // Move down
-            J_LOWER if mode == Modes::Normal => {
-                if cursor.row <= document.num_rows() {
-                    // If the cursor's row is at most equal to the number of rows in the document, see docs for differnce between rows and Lines
+        match char_channel.try_recv() {
+            Ok(c) => {
+                // Get a character and match it aginst some cases as a u8
+                match c as u8 {
+                    // Move down
+                    J_LOWER if mode == Modes::Normal => {
+                        if cursor.row <= document.num_rows() {
+                            // If the cursor's row is at most equal to the number of rows in the document, see docs for differnce between rows and Lines
 
-                    // Store the position of the cursor in the original line, save on method calls
-                    let cursor_pos =
-                        cursor.get_position_in_line(&document, editor_left_edge, editor_width);
+                            // Store the position of the cursor in the original line, save on method calls
+                            let cursor_pos = cursor.get_position_in_line(
+                                &document,
+                                editor_left_edge,
+                                editor_width,
+                            );
 
-                    let curr_line = document.get_line_at_cursor(cursor.row);
+                            let curr_line = document.get_line_at_cursor(cursor.row);
 
-                    if cursor_pos > document.get_str_at_cursor(cursor.row + 1).len() {
-                        // If the current position of the cursor is greater than the length of the next line
+                            if cursor_pos > document.get_str_at_cursor(cursor.row + 1).len() {
+                                // If the current position of the cursor is greater than the length of the next line
 
-                        // Move the cursor down
-                        cursor.move_down();
+                                // Move the cursor down
+                                cursor.move_down();
 
-                        // Move to the end of the line
+                                // Move to the end of the line
+                                cursor.move_to_end_line(
+                                    &document,
+                                    editor_left_edge,
+                                    editor_width,
+                                    editor_top,
+                                );
+                            } else if curr_line.0.len() > 1
+                                && cursor_pos / editor_width != curr_line.0[curr_line.0.len() - 1]
+                            {
+                                // If the current line's number of contained indices is greater than 1 and the cursor's position divided by the editor's width (which yields the index of the current row of the cursor in the document)
+                                // is not equal to the last index within the line's indices vector
+
+                                for _ in 0..(curr_line.0.len() - (cursor_pos / editor_width)) {
+                                    cursor.move_down();
+                                }
+
+                                // Move to the equivalent of the current position in the next line, check method definition for explaination of the logic
+                                cursor.move_to_pos_in_line(
+                                    &document,
+                                    editor_left_edge,
+                                    editor_width,
+                                    editor_top,
+                                    cursor_pos,
+                                );
+                            } else {
+                                // If the current position of the cursor is within the length of the next line
+
+                                // Move to the next line
+                                cursor.move_down();
+
+                                // Move to the equivalent of the current position in the next line, check method definition for explaination of the logic
+                                cursor.move_to_pos_in_line(
+                                    &document,
+                                    editor_left_edge,
+                                    editor_width,
+                                    editor_top,
+                                    cursor_pos,
+                                );
+                            }
+                        }
+                    }
+                    // Move right
+                    L_LOWER if mode == Modes::Normal => {
+                        // Get the current line where the cursor is at
+                        let curr_line = document.get_line_at_cursor(cursor.row);
+                        let cursor_pos =
+                            cursor.get_position_in_line(&document, editor_left_edge, editor_width);
+
+                        if cursor_pos < curr_line.1.len()
+                            && (cursor_pos % editor_width != 0 || cursor_pos == 0)
+                        {
+                            // If the cursor's position in the current line is less than the length of the total line and either the cursor's position mod the editor's width is not 0
+                            // and the cursor's position is 0
+
+                            cursor.move_right();
+                        } else if cursor_pos < curr_line.1.len()
+                            && cursor_pos / editor_width < curr_line.0.len()
+                        {
+                            // If the cursor's position in the current line is less than the length of the total line and the cursor's position vertically within the line is not the
+                            // last possible row in the line (cursor_pos / editor_width will give the index of the current row of the cursor, therefore the length of the indices of
+                            // the current line can be used as the non-inclusive max)
+
+                            // Move down to the next row
+                            cursor.move_down();
+
+                            // Move to the left edge of the editor
+                            cursor.move_to_editor_left(editor_left_edge);
+
+                            // Because the end of the previous line is included within the conditions of the previous if clause, move the cursor to the right of the immediate next
+                            // chracter in the line
+                            cursor.move_right();
+                        }
+                    }
+                    // Move up
+                    K_LOWER if mode == Modes::Normal => {
+                        if cursor.row - 1 >= editor_top
+                            && document.get_line_at_cursor(cursor.row).0[0] != 0
+                        {
+                            // If moving the cursor up 1 is at most the editor's top line and (if the line is a multiline) the first index in the line's row indices is not 0 (i.e. the
+                            // line is not the very first line)
+
+                            // Get the current position of the cursor
+                            let cursor_pos = cursor.get_position_in_line(
+                                &document,
+                                editor_left_edge,
+                                editor_width,
+                            );
+
+                            // Since the cursor's position divided by the editor width is the index of the row at which the cursor lies within the line, the cursor must move at least
+                            // that many times to move out of the current line upwards, yet since the vector is 0 indexed, one must add 1 to the result
+                            for _ in 0..((cursor_pos / editor_width) + 1) {
+                                cursor.move_up();
+                            }
+
+                            cursor.move_to_pos_in_line(
+                                &document,
+                                editor_left_edge,
+                                editor_width,
+                                editor_top,
+                                cursor_pos,
+                            );
+                        }
+                    }
+                    // Move left
+                    H_LOWER if mode == Modes::Normal => {
+                        let cursor_pos =
+                            cursor.get_position_in_line(&document, editor_left_edge, editor_width);
+
+                        if cursor.get_column_in_editor(editor_left_edge) > 1 || cursor_pos == 1 {
+                            // If moving the cursor left does not reach the first column of the editor's field (i.e. the cursor will not be moved to the first possible column where characters can be printed to)
+                            // or the cursor is at the second position of the line
+
+                            cursor.move_left()
+                        } else if cursor_pos / editor_width != 0 && cursor_pos != 0 {
+                            // If the row in the line where the cursor is is not the first row of the line and the cursor is not at the first position of the line
+
+                            cursor.move_up();
+                            cursor.move_to(cursor.row, editor_right_edge);
+                        }
+                    }
+                    G_LOWER if mode == Modes::Normal => {
+                        change_mode(&mut mode, Modes::MoveTo, mode_row, &mut cursor);
+
+                        let new_c = get_char();
+
+                        if new_c == 'l' {
+                            cursor.move_to_end_line(
+                                &document,
+                                editor_left_edge,
+                                editor_width,
+                                editor_top,
+                            );
+
+                            change_mode(&mut mode, Modes::Normal, mode_row, &mut cursor);
+                        } else if new_c == 'g' {
+                            cursor.move_to(editor_home.0, editor_home.1);
+
+                            change_mode(&mut mode, Modes::Normal, mode_row, &mut cursor);
+                        } else if new_c == 'e' {
+                            cursor.move_to(
+                                document.lines.last().unwrap().0.last().unwrap() + 2,
+                                editor_left_edge,
+                            );
+
+                            change_mode(&mut mode, Modes::Normal, mode_row, &mut cursor);
+                        } else {
+                            change_mode(&mut mode, Modes::Normal, mode_row, &mut cursor);
+                        }
+                    }
+                    X_LOWER if mode == Modes::Normal => {
+                        if get_char() == 'd' {
+                            // The key combination xd will delete a line
+                            // Remove the line from the document
+                            document.remove_index_from_line(cursor.row);
+
+                            // Save current position
+                            cursor.save_current_pos();
+
+                            reset_editor_view(
+                                &document,
+                                editor_left_edge,
+                                editor_right_edge,
+                                &mut cursor,
+                            );
+
+                            // Return to previous position
+                            cursor.revert_pos();
+                            // Move to left edge of editor
+                            cursor.move_to_editor_left(editor_left_edge);
+                        }
+
+                        todo!("Check over deleting a full line from document");
+                    }
+                    // Enter insert mode
+                    I_LOWER if mode == Modes::Normal => {
+                        // Change mode to insert
+                        change_mode(&mut mode, Modes::Insert, mode_row, &mut cursor);
+
+                        // Create a new gap buffer from the string at the current cursor position
+                        gap_buf = GapBuf::from_str(
+                            document.get_str_at_cursor(cursor.row),
+                            cursor.get_position_in_line(&document, editor_left_edge, editor_width),
+                        );
+                    }
+                    O_LOWER if mode == Modes::Normal => {
+                        // Create a new empty line
+                        let mut new_line = Line::new();
+
+                        // Collect the current line's indices
+                        let curr_line_inds = document.get_line_at_cursor(cursor.row).0;
+
+                        // Change mode to insert
+                        change_mode(&mut mode, Modes::Insert, mode_row, &mut cursor);
+
+                        // Add the last index of the current line incremented to the new line's index list
+                        new_line
+                            .0
+                            .push(curr_line_inds[curr_line_inds.len() - 1] + 1);
+
+                        // Move to the beginning of the next possible line
                         cursor.move_to_end_line(
                             &document,
                             editor_left_edge,
                             editor_width,
                             editor_top,
                         );
-                    } else if curr_line.0.len() > 1
-                        && cursor_pos / editor_width != curr_line.0[curr_line.0.len() - 1]
-                    {
-                        // If the current line's number of contained indices is greater than 1 and the cursor's position divided by the editor's width (which yields the index of the current row of the cursor in the document)
-                        // is not equal to the last index within the line's indices vector
-
-                        for _ in 0..(curr_line.0.len() - (cursor_pos / editor_width)) {
-                            cursor.move_down();
-                        }
-
-                        // Move to the equivalent of the current position in the next line, check method definition for explaination of the logic
-                        cursor.move_to_pos_in_line(
-                            &document,
-                            editor_left_edge,
-                            editor_width,
-                            editor_top,
-                            cursor_pos,
-                        );
-                    } else {
-                        // If the current position of the cursor is within the length of the next line
-
-                        // Move to the next line
                         cursor.move_down();
+                        cursor.move_to_editor_left(editor_left_edge);
 
-                        // Move to the equivalent of the current position in the next line, check method definition for explaination of the logic
-                        cursor.move_to_pos_in_line(
+                        // Add the new line to the document
+                        document.add_line_at_row(new_line, cursor.row);
+
+                        // Crate an empty gap buffer since the line will be empty guaranteed
+                        gap_buf = GapBuf::new();
+
+                        // Reset view
+                        reset_editor_view(
+                            &document,
+                            editor_left_edge,
+                            editor_right_edge,
+                            &mut cursor,
+                        );
+                    }
+                    // Exit insert mode
+                    ESC if mode == Modes::Insert => {
+                        // Change mode to normal
+                        change_mode(&mut mode, Modes::Normal, mode_row, &mut cursor);
+
+                        // Set the the to the string representation of the current gap buffer, reculculating the row indices for the line
+                        document.set_line_at_cursor(cursor.row, gap_buf.to_string(), editor_width);
+                    }
+                    // Cancel entering a command
+                    ESC if mode == Modes::Command => {
+                        // Change mode to normal
+                        change_mode(&mut mode, Modes::Normal, mode_row, &mut cursor);
+
+                        // Move cursor to the command line row
+                        cursor.move_to(dimensions.height, 0);
+
+                        // Visually delete the contents of the row
+                        print!("{: >1$}", "", dimensions.width);
+
+                        // The cursor position was saved when switching to command mode, so revert to that position
+                        cursor.revert_pos();
+
+                        // Clear the buffer
+                        buf.clear();
+                    }
+                    // Delete a character while in insert mode
+                    BCKSP if mode == Modes::Insert => {
+                        let cursor_pos =
+                            cursor.get_position_in_line(&document, editor_left_edge, editor_width);
+
+                        // todo!("Continue reimplementing deleting characters and check formatting");
+
+                        if cursor.get_column_in_editor(editor_left_edge) > 1 || cursor_pos == 1 {
+                            // If the cursor is one space away from being on top of the first column of characters (i.e. the cursor is within the line)
+
+                            // Remove the next character in the gap buffer
+                            gap_buf.pop();
+
+                            // Only move the cursor to the left
+                            cursor.move_left();
+
+                            document.set_line_at_cursor(
+                                cursor.row,
+                                gap_buf.to_string(),
+                                editor_width,
+                            );
+
+                            reset_editor_view(
+                                &document,
+                                editor_left_edge,
+                                editor_right_edge,
+                                &mut cursor,
+                            );
+                        } else if cursor_pos / editor_width != 0 {
+                            // If the cursor is not in the first row of the line
+
+                            // Remove the next character in the gap buffer
+                            gap_buf.pop();
+
+                            // Move the cursor to the previous row
+                            cursor.move_up();
+
+                            // Move the cursor to the end of the previous row
+                            cursor.move_to_editor_right(editor_right_edge);
+
+                            document.set_line_at_cursor(
+                                cursor.row,
+                                gap_buf.to_string(),
+                                editor_width,
+                            );
+
+                            // Reset the view
+                            reset_editor_view(
+                                &document,
+                                editor_left_edge,
+                                editor_right_edge,
+                                &mut cursor,
+                            );
+                        } else if cursor_pos == 0 && cursor.row != editor_top {
+                            // If the cursor is at the first positon of the line and it is not in the first line of the document (note: the cursor's row field is not subtracted by 2 during checking because editor_top starts at the same index that cursor's row starts at)
+
+                            // Get the current line's string
+                            let curr_str = document.get_str_at_cursor(cursor.row);
+
+                            // Remove the current line from the document
+                            document.remove_line_from_doc(cursor.row);
+
+                            // Move to the previous line
+                            cursor.move_up();
+
+                            // Move to the end of the previous line
+                            cursor.move_to_end_line(
+                                &document,
+                                editor_left_edge,
+                                editor_width,
+                                editor_top,
+                            );
+
+                            // Set the previous line's string value to its current string appended with the contents of the current line string
+                            document.set_line_at_cursor(
+                                cursor.row,
+                                document.get_str_at_cursor(cursor.row) + &curr_str,
+                                editor_width,
+                            );
+
+                            // Create a new gap buffer based on the new string at the cursor position
+                            gap_buf = GapBuf::from_str(
+                                document.get_str_at_cursor(cursor.row),
+                                cursor.get_position_in_line(
+                                    &document,
+                                    editor_left_edge,
+                                    editor_width,
+                                ),
+                            );
+
+                            // Reset the view
+                            reset_editor_view(
+                                &document,
+                                editor_left_edge,
+                                editor_right_edge,
+                                &mut cursor,
+                            );
+                        }
+                    }
+                    // Insert a new line character to break line while in insert mode
+                    c if mode == Modes::Insert
+                        && (c as char == ' ' || !(c as char).is_whitespace()) =>
+                    {
+                        // Here, c can only be a non whitespace character except for space
+                        if cursor.get_column_in_editor(editor_left_edge) < editor_width {
+                            // If adding a new character on the current row will not move past the editor's right edge
+
+                            // Add the character
+                            gap_buf.insert(c as char);
+
+                            // Move the cursor to the right
+                            cursor.move_right();
+
+                            debug_log_message("HERER".to_string(), &mut log_file);
+                            debug_log_cursor(&cursor, &mut log_file);
+
+                            // Set the current line's string content to the gap buffer
+                            document.set_line_at_cursor(
+                                cursor.row,
+                                gap_buf.to_string(),
+                                editor_width,
+                            );
+
+                            // Reset the view
+                            reset_editor_view(
+                                &document,
+                                editor_left_edge,
+                                editor_right_edge,
+                                &mut cursor,
+                            );
+                        } else {
+                            // If inserting a character will go beyond the editor's right edge (i.e. if the character should begin a new row)
+
+                            // Insert the character into the gap buffer
+                            gap_buf.insert(c as char);
+
+                            // Set the current line's string content to the gap buffer
+                            document.set_line_at_cursor(
+                                cursor.row,
+                                gap_buf.to_string(),
+                                editor_width,
+                            );
+
+                            // Move the cursor to the new row
+                            cursor.move_down();
+
+                            // Move the cursor to the left edge of the editor
+                            cursor.move_to_editor_left(editor_left_edge);
+
+                            // Move the cursor to the right to provide space for the character that was inserted
+                            cursor.move_right();
+
+                            // Reset the view
+                            reset_editor_view(
+                                &document,
+                                editor_left_edge,
+                                editor_right_edge,
+                                &mut cursor,
+                            );
+                        }
+                    }
+                    // Insert a character while in insert mode
+                    c if mode == Modes::Insert && c == RETURN => {
+                        // Collect the two sides of the gap buffer
+                        let (lhs, rhs) = gap_buf.collect_to_pieces();
+
+                        // Set the current line to the left hand side of the gap buffer
+                        document.set_line_at_cursor(cursor.row, lhs, editor_right_edge);
+
+                        // Move to the start of the new line to be created from the right hand side of the gap buffer
+                        cursor.move_to_end_line(
                             &document,
                             editor_left_edge,
                             editor_width,
                             editor_top,
-                            cursor_pos,
+                        );
+                        cursor.move_down();
+                        cursor.move_to_editor_left(editor_left_edge);
+
+                        // This ind_counter variable is created in such a way as to conform with the Line struct's from_str method requiring a mutable reference to a usize variable
+                        // this will be addressed later
+                        #[allow(unused_mut)]
+                        let mut ind_counter = cursor.row - 2;
+
+                        let new_line = Line::from_str(rhs, &mut ind_counter, editor_width);
+
+                        document.add_line_at_row(new_line, cursor.row);
+
+                        gap_buf = GapBuf::from_line(
+                            document.get_line_at_cursor(cursor.row),
+                            cursor.get_position_in_line(&document, editor_left_edge, editor_width),
+                        );
+
+                        reset_editor_view(
+                            &document,
+                            editor_left_edge,
+                            editor_right_edge,
+                            &mut cursor,
                         );
                     }
-                }
-            }
-            // Move right
-            L_LOWER if mode == Modes::Normal => {
-                // Get the current line where the cursor is at
-                let curr_line = document.get_line_at_cursor(cursor.row);
-                let cursor_pos =
-                    cursor.get_position_in_line(&document, editor_left_edge, editor_width);
+                    c if mode == Modes::Insert && c as char == '\t' => {
+                        // For now, a tab is represented as four spaces
+                        for _ in 0..4 {
+                            gap_buf.insert(' ');
+                        }
 
-                if cursor_pos < curr_line.1.len()
-                    && (cursor_pos % editor_width != 0 || cursor_pos == 0)
-                {
-                    // If the cursor's position in the current line is less than the length of the total line and either the cursor's position mod the editor's width is not 0
-                    // and the cursor's position is 0
+                        document.set_line_at_cursor(cursor.row, gap_buf.to_string(), editor_width);
 
-                    cursor.move_right();
-                } else if cursor_pos < curr_line.1.len()
-                    && cursor_pos / editor_width < curr_line.0.len()
-                {
-                    // If the cursor's position in the current line is less than the length of the total line and the cursor's position vertically within the line is not the
-                    // last possible row in the line (cursor_pos / editor_width will give the index of the current row of the cursor, therefore the length of the indices of
-                    // the current line can be used as the non-inclusive max)
+                        cursor.move_to_end_line(
+                            &document,
+                            editor_left_edge,
+                            editor_width,
+                            editor_top,
+                        );
 
-                    // Move down to the next row
-                    cursor.move_down();
-
-                    // Move to the left edge of the editor
-                    cursor.move_to_editor_left(editor_left_edge);
-
-                    // Because the end of the previous line is included within the conditions of the previous if clause, move the cursor to the right of the immediate next
-                    // chracter in the line
-                    cursor.move_right();
-                }
-            }
-            // Move up
-            K_LOWER if mode == Modes::Normal => {
-                if cursor.row - 1 >= editor_top && document.get_line_at_cursor(cursor.row).0[0] != 0
-                {
-                    // If moving the cursor up 1 is at most the editor's top line and (if the line is a multiline) the first index in the line's row indices is not 0 (i.e. the
-                    // line is not the very first line)
-
-                    // Get the current position of the cursor
-                    let cursor_pos =
-                        cursor.get_position_in_line(&document, editor_left_edge, editor_width);
-
-                    // Since the cursor's position divided by the editor width is the index of the row at which the cursor lies within the line, the cursor must move at least
-                    // that many times to move out of the current line upwards, yet since the vector is 0 indexed, one must add 1 to the result
-                    for _ in 0..((cursor_pos / editor_width) + 1) {
-                        cursor.move_up();
+                        reset_editor_view(
+                            &document,
+                            editor_left_edge,
+                            editor_right_edge,
+                            &mut cursor,
+                        );
                     }
+                    // Enter command mode
+                    COLON if mode == Modes::Normal => {
+                        // Change to command mode
+                        change_mode(&mut mode, Modes::Command, mode_row, &mut cursor);
 
-                    cursor.move_to_pos_in_line(
-                        &document,
-                        editor_left_edge,
-                        editor_width,
-                        editor_top,
-                        cursor_pos,
-                    );
-                }
-            }
-            // Move left
-            H_LOWER if mode == Modes::Normal => {
-                let cursor_pos =
-                    cursor.get_position_in_line(&document, editor_left_edge, editor_width);
-
-                if cursor.get_column_in_editor(editor_left_edge) > 1 || cursor_pos == 1 {
-                    // If moving the cursor left does not reach the first column of the editor's field (i.e. the cursor will not be moved to the first possible column where characters can be printed to)
-                    // or the cursor is at the second position of the line
-
-                    cursor.move_left()
-                } else if cursor_pos / editor_width != 0 && cursor_pos != 0 {
-                    // If the row in the line where the cursor is is not the first row of the line and the cursor is not at the first position of the line
-
-                    cursor.move_up();
-                    cursor.move_to(cursor.row, editor_right_edge);
-                }
-            }
-            G_LOWER if mode == Modes::Normal => {
-                change_mode(&mut mode, Modes::MoveTo, mode_row, &mut cursor);
-
-                let new_c = get_char();
-
-                if new_c == 'l' {
-                    cursor.move_to_end_line(&document, editor_left_edge, editor_width, editor_top);
-
-                    change_mode(&mut mode, Modes::Normal, mode_row, &mut cursor);
-                } else if new_c == 'g' {
-                    cursor.move_to(editor_home.0, editor_home.1);
-
-                    change_mode(&mut mode, Modes::Normal, mode_row, &mut cursor);
-                } else if new_c == 'e' {
-                    cursor.move_to(
-                        document.lines.last().unwrap().0.last().unwrap() + 2,
-                        editor_left_edge,
-                    );
-
-                    change_mode(&mut mode, Modes::Normal, mode_row, &mut cursor);
-                } else {
-                    change_mode(&mut mode, Modes::Normal, mode_row, &mut cursor);
-                }
-            }
-            X_LOWER if mode == Modes::Normal => {
-                if get_char() == 'd' {
-                    // The key combination xd will delete a line
-                    // Remove the line from the document
-                    document.remove_index_from_line(cursor.row);
-
-                    // Save current position
-                    cursor.save_current_pos();
-
-                    reset_editor_view(&document, editor_left_edge, editor_right_edge, &mut cursor);
-
-                    // Return to previous position
-                    cursor.revert_pos();
-                    // Move to left edge of editor
-                    cursor.move_to_editor_left(editor_left_edge);
-                }
-
-                todo!("Check over deleting a full line from document");
-            }
-            // Enter insert mode
-            I_LOWER if mode == Modes::Normal => {
-                // Change mode to insert
-                change_mode(&mut mode, Modes::Insert, mode_row, &mut cursor);
-
-                // Create a new gap buffer from the string at the current cursor position
-                gap_buf = GapBuf::from_str(
-                    document.get_str_at_cursor(cursor.row),
-                    cursor.get_position_in_line(&document, editor_left_edge, editor_width),
-                );
-            }
-            O_LOWER if mode == Modes::Normal => {
-                // Create a new empty line
-                let mut new_line = Line::new();
-
-                // Collect the current line's indices
-                let curr_line_inds = document.get_line_at_cursor(cursor.row).0;
-
-                // Change mode to insert
-                change_mode(&mut mode, Modes::Insert, mode_row, &mut cursor);
-
-                // Add the last index of the current line incremented to the new line's index list
-                new_line
-                    .0
-                    .push(curr_line_inds[curr_line_inds.len() - 1] + 1);
-
-                // Move to the beginning of the next possible line
-                cursor.move_to_end_line(&document, editor_left_edge, editor_width, editor_top);
-                cursor.move_down();
-                cursor.move_to_editor_left(editor_left_edge);
-
-                // Add the new line to the document
-                document.add_line_at_row(new_line, cursor.row);
+                        // Clear the buffer to ensure the new command will be empty
+                        buf.clear();
 
-                // Crate an empty gap buffer since the line will be empty guaranteed
-                gap_buf = GapBuf::new();
-
-                // Reset view
-                reset_editor_view(&document, editor_left_edge, editor_right_edge, &mut cursor);
-            }
-            // Exit insert mode
-            ESC if mode == Modes::Insert => {
-                // Change mode to normal
-                change_mode(&mut mode, Modes::Normal, mode_row, &mut cursor);
+                        // Save cursor position to come back to
+                        cursor.save_current_pos();
 
-                // Set the the to the string representation of the current gap buffer, reculculating the row indices for the line
-                document.set_line_at_cursor(cursor.row, gap_buf.to_string(), editor_width);
-            }
-            // Cancel entering a command
-            ESC if mode == Modes::Command => {
-                // Change mode to normal
-                change_mode(&mut mode, Modes::Normal, mode_row, &mut cursor);
+                        // Move cursor to command row
+                        cursor.move_to(command_row, 1);
 
-                // Move cursor to the command line row
-                cursor.move_to(dimensions.height, 0);
+                        // Clear the line if something was already printed there
+                        print!("{: >1$}", "", dimensions.width);
 
-                // Visually delete the contents of the row
-                print!("{: >1$}", "", dimensions.width);
+                        // Move cursor to command row
+                        cursor.move_to(command_row, 1);
 
-                // The cursor position was saved when switching to command mode, so revert to that position
-                cursor.revert_pos();
+                        // Print a colon
+                        print_flush(":");
 
-                // Clear the buffer
-                buf.clear();
-            }
-            // Delete a character while in insert mode
-            BCKSP if mode == Modes::Insert => {
-                let cursor_pos =
-                    cursor.get_position_in_line(&document, editor_left_edge, editor_width);
+                        // Move the cursor to align with the colon
+                        cursor.move_right();
+                    }
+                    // Execute command while in command mdoe
+                    RETURN if mode == Modes::Command => {
+                        let mut input = buf
+                            .as_str()
+                            .split_whitespace()
+                            .collect::<Vec<&str>>()
+                            .into_iter();
 
-                // todo!("Continue reimplementing deleting characters and check formatting");
+                        if let Some(command) = input.next() {
+                            match command {
+                                "w" => {
+                                    if let Some(file_name) = input.next() {
+                                        match fs::rename(&document.file_name, file_name) {
+                                            _ => (),
+                                        }
 
-                if cursor.get_column_in_editor(editor_left_edge) > 1 || cursor_pos == 1 {
-                    // If the cursor is one space away from being on top of the first column of characters (i.e. the cursor is within the line)
+                                        let mut out_file = File::create(file_name).unwrap();
 
-                    // Remove the next character in the gap buffer
-                    gap_buf.pop();
+                                        out_file.write(document.to_string().as_bytes()).unwrap();
 
-                    // Only move the cursor to the left
-                    cursor.move_left();
+                                        document.file_name = file_name.to_string();
 
-                    document.set_line_at_cursor(cursor.row, gap_buf.to_string(), editor_width);
+                                        cursor.move_to(0, 0);
 
-                    reset_editor_view(&document, editor_left_edge, editor_right_edge, &mut cursor);
-                } else if cursor_pos / editor_width != 0 {
-                    // If the cursor is not in the first row of the line
+                                        cursor.save_current_pos();
 
-                    // Remove the next character in the gap buffer
-                    gap_buf.pop();
+                                        print!("{: >1$}", "", dimensions.width);
 
-                    // Move the cursor to the previous row
-                    cursor.move_up();
+                                        cursor.move_to(0, 0);
 
-                    // Move the cursor to the end of the previous row
-                    cursor.move_to_editor_right(editor_right_edge);
+                                        print!("{}", document.file_name);
 
-                    document.set_line_at_cursor(cursor.row, gap_buf.to_string(), editor_width);
+                                        cursor.revert_pos();
+                                    } else {
+                                        let mut out_file =
+                                            File::create(&document.file_name).unwrap();
 
-                    // Reset the view
-                    reset_editor_view(&document, editor_left_edge, editor_right_edge, &mut cursor);
-                } else if cursor_pos == 0 && cursor.row != editor_top {
-                    // If the cursor is at the first positon of the line and it is not in the first line of the document (note: the cursor's row field is not subtracted by 2 during checking because editor_top starts at the same index that cursor's row starts at)
+                                        out_file.write(document.to_string().as_bytes()).unwrap();
+                                    }
 
-                    // Get the current line's string
-                    let curr_str = document.get_str_at_cursor(cursor.row);
+                                    cursor.move_to(command_row, 0);
+                                    print!("{: >1$}", "", dimensions.width);
 
-                    // Remove the current line from the document
-                    document.remove_line_from_doc(cursor.row);
-
-                    // Move to the previous line
-                    cursor.move_up();
+                                    change_mode(&mut mode, Modes::Normal, mode_row, &mut cursor);
 
-                    // Move to the end of the previous line
-                    cursor.move_to_end_line(&document, editor_left_edge, editor_width, editor_top);
+                                    cursor.revert_pos();
 
-                    // Set the previous line's string value to its current string appended with the contents of the current line string
-                    document.set_line_at_cursor(
-                        cursor.row,
-                        document.get_str_at_cursor(cursor.row) + &curr_str,
-                        editor_width,
-                    );
-
-                    // Create a new gap buffer based on the new string at the cursor position
-                    gap_buf = GapBuf::from_str(
-                        document.get_str_at_cursor(cursor.row),
-                        cursor.get_position_in_line(&document, editor_left_edge, editor_width),
-                    );
-
-                    // Reset the view
-                    reset_editor_view(&document, editor_left_edge, editor_right_edge, &mut cursor);
-                }
-            }
-            // Insert a new line character to break line while in insert mode
-            c if mode == Modes::Insert && (c as char == ' ' || !(c as char).is_whitespace()) => {
-                // Here, c can only be a non whitespace character except for space
-                if cursor.get_column_in_editor(editor_left_edge) < editor_width {
-                    // If adding a new character on the current row will not move past the editor's right edge
-
-                    // Add the character
-                    gap_buf.insert(c as char);
-
-                    // Move the cursor to the right
-                    cursor.move_right();
-
-                    debug_log_message("HERER".to_string(), &mut log_file);
-                    debug_log_cursor(&cursor, &mut log_file);
-
-                    // Set the current line's string content to the gap buffer
-                    document.set_line_at_cursor(cursor.row, gap_buf.to_string(), editor_width);
-
-                    // Reset the view
-                    reset_editor_view(&document, editor_left_edge, editor_right_edge, &mut cursor);
-                } else {
-                    // If inserting a character will go beyond the editor's right edge (i.e. if the character should begin a new row)
-
-                    // Insert the character into the gap buffer
-                    gap_buf.insert(c as char);
-
-                    // Set the current line's string content to the gap buffer
-                    document.set_line_at_cursor(cursor.row, gap_buf.to_string(), editor_width);
-
-                    // Move the cursor to the new row
-                    cursor.move_down();
-
-                    // Move the cursor to the left edge of the editor
-                    cursor.move_to_editor_left(editor_left_edge);
-
-                    // Move the cursor to the right to provide space for the character that was inserted
-                    cursor.move_right();
-
-                    // Reset the view
-                    reset_editor_view(&document, editor_left_edge, editor_right_edge, &mut cursor);
-                }
-            }
-            // Insert a character while in insert mode
-            c if mode == Modes::Insert && c == RETURN => {
-                // Collect the two sides of the gap buffer
-                let (lhs, rhs) = gap_buf.collect_to_pieces();
-
-                // Set the current line to the left hand side of the gap buffer
-                document.set_line_at_cursor(cursor.row, lhs, editor_right_edge);
-
-                // Move to the start of the new line to be created from the right hand side of the gap buffer
-                cursor.move_to_end_line(&document, editor_left_edge, editor_width, editor_top);
-                cursor.move_down();
-                cursor.move_to_editor_left(editor_left_edge);
-
-                // This ind_counter variable is created in such a way as to conform with the Line struct's from_str method requiring a mutable reference to a usize variable
-                // this will be addressed later
-                #[allow(unused_mut)]
-                let mut ind_counter = cursor.row - 2;
-
-                let new_line = Line::from_str(rhs, &mut ind_counter, editor_width);
-
-                document.add_line_at_row(new_line, cursor.row);
-
-                gap_buf = GapBuf::from_line(
-                    document.get_line_at_cursor(cursor.row),
-                    cursor.get_position_in_line(&document, editor_left_edge, editor_width),
-                );
-
-                reset_editor_view(&document, editor_left_edge, editor_right_edge, &mut cursor);
-            }
-            c if mode == Modes::Insert && c as char == '\t' => {
-                // For now, a tab is represented as four spaces
-                for _ in 0..4 {
-                    gap_buf.insert(' ');
-                }
-
-                document.set_line_at_cursor(cursor.row, gap_buf.to_string(), editor_width);
-
-                cursor.move_to_end_line(&document, editor_left_edge, editor_width, editor_top);
-
-                reset_editor_view(&document, editor_left_edge, editor_right_edge, &mut cursor);
-            }
-            // Enter command mode
-            COLON if mode == Modes::Normal => {
-                // Change to command mode
-                change_mode(&mut mode, Modes::Command, mode_row, &mut cursor);
-
-                // Clear the buffer to ensure the new command will be empty
-                buf.clear();
-
-                // Save cursor position to come back to
-                cursor.save_current_pos();
-
-                // Move cursor to command row
-                cursor.move_to(command_row, 1);
-
-                // Clear the line if something was already printed there
-                print!("{: >1$}", "", dimensions.width);
-
-                // Move cursor to command row
-                cursor.move_to(command_row, 1);
-
-                // Print a colon
-                print_flush(":");
-
-                // Move the cursor to align with the colon
-                cursor.move_right();
-            }
-            // Execute command while in command mdoe
-            RETURN if mode == Modes::Command => {
-                let mut input = buf
-                    .as_str()
-                    .split_whitespace()
-                    .collect::<Vec<&str>>()
-                    .into_iter();
-
-                if let Some(command) = input.next() {
-                    match command {
-                        "w" => {
-                            if let Some(file_name) = input.next() {
-                                match fs::rename(&document.file_name, file_name) {
-                                    _ => (),
+                                    buf.clear();
                                 }
-
-                                let mut out_file = File::create(file_name).unwrap();
-
-                                out_file.write(document.to_string().as_bytes()).unwrap();
-
-                                document.file_name = file_name.to_string();
-
-                                cursor.move_to(0, 0);
-
-                                cursor.save_current_pos();
-
-                                print!("{: >1$}", "", dimensions.width);
-
-                                cursor.move_to(0, 0);
-
-                                print!("{}", document.file_name);
-
-                                cursor.revert_pos();
-                            } else {
-                                let mut out_file = File::create(&document.file_name).unwrap();
-
-                                out_file.write(document.to_string().as_bytes()).unwrap();
-                            }
-
-                            cursor.move_to(command_row, 0);
-                            print!("{: >1$}", "", dimensions.width);
-
-                            change_mode(&mut mode, Modes::Normal, mode_row, &mut cursor);
-
-                            cursor.revert_pos();
-
-                            buf.clear();
-                        }
-                        "q" => {
-                            clear_screen();
-                            move_cursor_home();
-                            break;
-                        }
-                        "wq" => {
-                            if let Some(file_name) = input.next() {
-                                match fs::rename(&document.file_name, file_name) {
-                                    _ => (),
+                                "q" => {
+                                    clear_screen();
+                                    move_cursor_home();
+                                    break;
                                 }
+                                "wq" => {
+                                    if let Some(file_name) = input.next() {
+                                        match fs::rename(&document.file_name, file_name) {
+                                            _ => (),
+                                        }
 
-                                let mut out_file = File::create(file_name).unwrap();
+                                        let mut out_file = File::create(file_name).unwrap();
 
-                                out_file.write(document.to_string().as_bytes()).unwrap();
+                                        out_file.write(document.to_string().as_bytes()).unwrap();
 
-                                document.file_name = file_name.to_string();
+                                        document.file_name = file_name.to_string();
 
-                                cursor.move_to(0, 0);
+                                        cursor.move_to(0, 0);
 
-                                cursor.save_current_pos();
+                                        cursor.save_current_pos();
 
-                                print!("{: >1$}", "", dimensions.width);
+                                        print!("{: >1$}", "", dimensions.width);
 
-                                cursor.move_to(0, 0);
+                                        cursor.move_to(0, 0);
 
-                                print!("{}", document.file_name);
+                                        print!("{}", document.file_name);
 
-                                cursor.revert_pos();
-                            } else {
-                                let mut out_file = File::create(&document.file_name).unwrap();
+                                        cursor.revert_pos();
+                                    } else {
+                                        let mut out_file =
+                                            File::create(&document.file_name).unwrap();
 
-                                out_file.write(document.to_string().as_bytes()).unwrap();
+                                        out_file.write(document.to_string().as_bytes()).unwrap();
+                                    }
+
+                                    break;
+                                }
+                                _ => {
+                                    move_cursor_to(command_row, 0);
+                                    print!("{: <1$}", "invalid command", dimensions.width);
+
+                                    change_mode(&mut mode, Modes::Normal, mode_row, &mut cursor);
+
+                                    cursor.revert_pos();
+
+                                    buf.clear();
+                                }
                             }
-
-                            break;
-                        }
-                        _ => {
-                            move_cursor_to(command_row, 0);
-                            print!("{: <1$}", "invalid command", dimensions.width);
-
-                            change_mode(&mut mode, Modes::Normal, mode_row, &mut cursor);
-
-                            cursor.revert_pos();
-
-                            buf.clear();
                         }
                     }
+                    // Delete character while in command mode
+                    BCKSP if mode == Modes::Command => {
+                        if buf.len() > 0 {
+                            // If the buffer is not empty
+
+                            // Remove the last character of the command buffer
+                            buf.pop();
+
+                            // Move to the bottom row of the terminal and just after the colon
+                            cursor.move_to(dimensions.height, 2);
+
+                            // Visually blank out the bottom row
+                            print!("{: >1$}", "", dimensions.width - 1);
+
+                            // Move the cursor to just after the colon
+                            cursor.move_to(dimensions.height, 2);
+
+                            // Reprint the buffer
+                            print!("{buf}");
+
+                            // Move cursor to just after the original buffer minus the last character
+                            cursor.move_to(dimensions.height, editor_left_edge + buf.len());
+                        }
+                    }
+                    // Insert character while in command mode
+                    c if mode == Modes::Command => {
+                        // Push the pressed character to the buffer
+                        buf.push(c as char);
+
+                        // Display the character to the screen, stdout will be flush on cursor move
+                        print!("{}", c as char);
+
+                        cursor.move_right();
+                    }
+
+                    _ => (),
                 }
             }
-            // Delete character while in command mode
-            BCKSP if mode == Modes::Command => {
-                if buf.len() > 0 {
-                    // If the buffer is not empty
-
-                    // Remove the last character of the command buffer
-                    buf.pop();
-
-                    // Move to the bottom row of the terminal and just after the colon
-                    cursor.move_to(dimensions.height, 2);
-
-                    // Visually blank out the bottom row
-                    print!("{: >1$}", "", dimensions.width - 1);
-
-                    // Move the cursor to just after the colon
-                    cursor.move_to(dimensions.height, 2);
-
-                    // Reprint the buffer
-                    print!("{buf}");
-
-                    // Move cursor to just after the original buffer minus the last character
-                    cursor.move_to(dimensions.height, editor_left_edge + buf.len());
-                }
-            }
-            // Insert character while in command mode
-            c if mode == Modes::Command => {
-                // Push the pressed character to the buffer
-                buf.push(c as char);
-
-                // Display the character to the screen, stdout will be flush on cursor move
-                print!("{}", c as char);
-
-                cursor.move_right();
-            }
-
             _ => (),
         }
     }
+
+    kill_sender.send('q').unwrap();
 
     // Similar to set_raw, only used/needed on linux
     #[cfg(target_os = "linux")]
     set_cooked();
 
     return_to_normal_buf();
+
+    println!("Closed");
 }
