@@ -9,6 +9,7 @@ use std::sync::mpsc;
 use std::sync::mpsc::TryRecvError;
 use std::sync::mpsc::{Receiver, Sender};
 use std::thread;
+use std::thread::JoinHandle;
 
 #[derive(Clone, Copy, PartialEq, Eq)]
 pub enum Modes {
@@ -235,18 +236,37 @@ pub fn redraw_screen(
     );
 }
 
-pub fn spawn_char_channel() -> (Sender<char>, Receiver<char>) {
+pub fn spawn_char_channel() -> (JoinHandle<()>, Sender<char>, Receiver<char>) {
     //! (kill sender, the receiver for the character)
 
     let (from_thread, to_use) = mpsc::channel::<char>();
     let (killer, kill_receiver) = mpsc::channel::<char>();
 
-    thread::spawn(move || loop {
-        match kill_receiver.try_recv() {
-            Ok(_) | Err(TryRecvError::Disconnected) => break,
-            Err(TryRecvError::Empty) => from_thread.send(get_char()).unwrap(),
+    let to_thread = from_thread.clone();
+
+    let thread = thread::spawn(move || {
+        while !kill_receiver.try_recv().is_ok() {
+            match from_thread.send(get_char()) {
+                Ok(_) => (),
+                Err(_) => break,
+            }
         }
     });
 
-    (killer, to_use)
+    // let thread = thread::spawn(move || loop {
+    //     match kill_receiver.try_recv() {
+    //         Ok(_) => {
+    //             println!("stopped");
+    //             break;
+    //         }
+    //         Err(_) => (),
+    //     }
+
+    //     match from_thread.send(get_char()) {
+    //         Ok(_) => (),
+    //         Err(_) => break,
+    //     }
+    // });
+
+    (thread, killer, to_use)
 }
