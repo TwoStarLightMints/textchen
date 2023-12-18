@@ -845,6 +845,4 @@ fn main() {
     set_cooked();
 
     return_to_normal_buf();
-
-    println!("Closed");
 }
