@@ -59,12 +59,38 @@ impl Line {
 
 pub struct Rows {
     rows: Vec<(usize, String)>,
+    curr: Option<(usize, String)>,
+    next: Option<(usize, String)>,
 }
 
 impl Rows {
     pub fn new(rows: Vec<(usize, String)>) -> Self {
-        Self { rows }
+        if rows.len() == 0 {
+            Self {
+                rows: Vec::new(),
+                curr: None,
+                next: None,
+            }
+        } else if rows.len() == 1 {
+            Self {
+                rows,
+                curr: Some(rows[0]),
+                next: None,
+            }
+        } else {
+            Self {
+                rows,
+                curr: Some(rows[0]),
+                next: Some(rows[1]),
+            }
+        }
     }
+}
+
+impl Iterator for Rows {
+    type Item = (usize, String);
+
+    pub fn next(&self) -> Option<Self::Item> {}
 }
 
 #[derive(Debug)]
@@ -325,7 +351,11 @@ impl Document {
                 sub_rows.push(next_row_content);
             }
 
-            line.0.iter().zip(sub_rows.iter()).map(|e| (*e.0, e.1.clone())).for_each(|e| rows.push(e));
+            line.0
+                .iter()
+                .zip(sub_rows.iter())
+                .map(|e| (*e.0, e.1.clone()))
+                .for_each(|e| rows.push(e));
         }
 
         Rows::new(rows)
