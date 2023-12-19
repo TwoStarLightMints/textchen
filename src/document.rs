@@ -1,5 +1,6 @@
 use crate::editor::Editor;
 use std::fmt::Display;
+use std::iter::Iterator;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Line(pub Vec<usize>, pub String);
@@ -53,6 +54,16 @@ impl Line {
         }
 
         new
+    }
+}
+
+pub struct Rows {
+    rows: Vec<(usize, String)>,
+}
+
+impl Rows {
+    pub fn new(rows: Vec<(usize, String)>) -> Self {
+        Self { rows }
     }
 }
 
@@ -299,6 +310,25 @@ impl Document {
                 ind_counter += 1;
             }
         }
+    }
+
+    fn rows(&self, editor_width: usize) -> Rows {
+        let mut rows: Vec<_> = Vec::new();
+
+        for line in self.lines.iter() {
+            let mut chars = line.1.chars().peekable();
+
+            let mut sub_rows: Vec<_> = Vec::new();
+
+            while let Some(_) = chars.by_ref().peek() {
+                let next_row_content = chars.by_ref().take(editor_width).collect::<String>();
+                sub_rows.push(next_row_content);
+            }
+
+            line.0.iter().zip(sub_rows.iter()).map(|e| (*e.0, e.1.clone())).for_each(|e| rows.push(e));
+        }
+
+        Rows::new(rows)
     }
 }
 
