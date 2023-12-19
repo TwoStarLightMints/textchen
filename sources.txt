@@ -18,3 +18,6 @@ https://stackoverflow.com/a/59537177
 
 Replacement for kbhit from conio for linux:
 https://stackoverflow.com/a/45067593
+
+Implementing Iterator trait:
+https://dev.to/wrongbyte/implementing-iterator-and-intoiterator-in-rust-3nio
