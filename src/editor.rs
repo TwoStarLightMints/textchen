@@ -2,8 +2,8 @@ use crate::cursor::*;
 use crate::document::*;
 use crate::term::clear_screen;
 use crate::term::get_char;
-use crate::term::print_flush;
 use crate::term::{kbhit, Wh};
+use std::fs::File;
 use std::io::{self, Write};
 use std::sync::mpsc;
 use std::sync::mpsc::Receiver;
@@ -43,30 +43,6 @@ impl Editor {
     }
 }
 
-pub fn display_line(
-    editor_left_edge: usize,
-    editor_width: usize,
-    document: &Document,
-    cursor: &mut Cursor,
-) {
-    cursor.save_current_pos();
-
-    let line = document.get_line_at_cursor(cursor.row);
-
-    cursor.move_to_start_line(document, editor_left_edge);
-
-    for (ind, char) in line.1.chars().enumerate() {
-        print_flush(format!("{char}").as_str());
-
-        if ind != 0 && (ind + 1) % editor_width == 0 && ind != line.1.len() - 1 {
-            cursor.move_down();
-            cursor.move_to_editor_left(editor_left_edge);
-        }
-    }
-
-    cursor.revert_pos();
-}
-
 pub fn display_document(document: &Document, editor_dim: &Editor, cursor: &mut Cursor) {
     //! document - Document being edited
     //! editor_left_edge - This is the offset from the left side of the terminal
@@ -79,19 +55,31 @@ pub fn display_document(document: &Document, editor_dim: &Editor, cursor: &mut C
 
     cursor.move_to(2, editor_dim.editor_left_edge);
 
-    for row in document
-        .rows(editor_dim.editor_width)
-        .skip(document.visible_lines.0)
-    {
-        print!("{}", row.1);
-        cursor.move_down();
-        cursor.move_to_editor_left(editor_dim.editor_left_edge);
+    if document.visible_rows.0 == 0 {
+        for row in document
+            .rows(editor_dim.editor_width)
+            .take(document.visible_rows.1)
+        {
+            print!("{}", row.1);
+            cursor.move_down();
+            cursor.move_to_editor_left(editor_dim.editor_left_edge);
+        }
+    } else {
+        for row in document
+            .rows(editor_dim.editor_width)
+            .skip(document.visible_rows.0 - 1)
+            .take(document.visible_rows.1 - document.visible_rows.0)
+        {
+            print!("{}", row.1);
+            cursor.move_down();
+            cursor.move_to_editor_left(editor_dim.editor_left_edge);
+        }
     }
 
     cursor.revert_pos();
 }
 
-pub fn clear_editor_window(editor_right_edge: usize, document: &Document, cursor: &mut Cursor) {
+pub fn clear_editor_window(editor_dim: &Editor, cursor: &mut Cursor) {
     //! editor_right_edge - This is the offset from the right side of the terminal
     //! document - Document being edited
     //! cursor - Get control of cursor
@@ -102,9 +90,29 @@ pub fn clear_editor_window(editor_right_edge: usize, document: &Document, cursor
 
     cursor.move_to(2, 1);
 
-    for _ in 0..=document.num_rows() {
-        // print!("\u{001b}[2K");
-        print!("{: >1$}", "", editor_right_edge);
+    let mut f = File::create("log.txt").unwrap();
+
+    for _ in 0..editor_dim.editor_height {
+        f.write(
+            format!(
+                "Cursor before print - Curosr row: {}, Cursor column: {}",
+                cursor.row, cursor.column
+            )
+            .as_bytes(),
+        )
+        .unwrap();
+
+        print!("{: >1$}", "", editor_dim.editor_right_edge);
+
+        f.write(
+            format!(
+                "Cursor after print - Curosr row: {}, Cursor column: {}",
+                cursor.row, cursor.column
+            )
+            .as_bytes(),
+        )
+        .unwrap();
+
         cursor.move_down();
     }
 
@@ -119,7 +127,7 @@ pub fn reset_editor_view(document: &Document, editor_dim: &Editor, cursor: &mut 
     //!
     //! Clears the editor screen and redraws the document provided, tends to be used as to refresh the screen after an edit has occurred
 
-    clear_editor_window(editor_dim.editor_right_edge, document, cursor);
+    clear_editor_window(editor_dim, cursor);
 
     display_document(document, editor_dim, cursor);
 }
