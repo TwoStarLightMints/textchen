@@ -20,7 +20,7 @@ pub fn debug_log_document(document: &Document, log_file: &mut File) {
     });
 
     log_file
-        .write(format!("Visible lines: {:?}\n", document.visible_lines).as_bytes())
+        .write(format!("Visible lines: {:?}\n", document.visible_rows).as_bytes())
         .unwrap();
 }
 
@@ -42,10 +42,11 @@ pub fn debug_log_cursor(cursor: &Cursor, log_file: &mut File) {
     log_file
         .write(
             format!(
-                "Cursor row: {}, Cursor row relative to document: {}, Cursor column: {}\n",
+                "Cursor row: {}, Cursor column: {}\nCursor row in doc: {}, Cursor column in doc: {}\n",
                 cursor.row,
-                cursor.row - 2,
-                cursor.column
+                cursor.column,
+                cursor.doc_row,
+                cursor.doc_column,
             )
             .as_bytes(),
         )
