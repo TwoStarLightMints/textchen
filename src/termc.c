@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <stdbool.h>
 #include "termc.h"
 
 #ifdef __linux__
@@ -68,6 +69,15 @@ char get_ch() {
   #endif
 
   return c;
+}
+
+// Check if keyboard key was hit
+unsigned int l_kbhit() {
+  int waiting;
+
+  ioctl(STDIN_FILENO, FIONREAD, &waiting);
+
+  return waiting > 0;
 }
 
 struct wh get_term_size() {
