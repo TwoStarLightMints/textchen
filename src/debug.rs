@@ -17,7 +17,11 @@ pub fn debug_log_document(document: &Document, log_file: &mut File) {
         log_file
             .write(format!("Line indices: {:?}, String content: {}\n", l.0, l.1).as_bytes())
             .unwrap();
-    })
+    });
+
+    log_file
+        .write(format!("Visible lines: {:?}\n", document.visible_lines).as_bytes())
+        .unwrap();
 }
 
 #[allow(dead_code)]
@@ -25,7 +29,7 @@ pub fn debug_log_dimensions(dimensions: &Wh, editor_dim: &Editor, log_file: &mut
     log_file
         .write(
             format!(
-                "Terminal width: {}, Terminal height: {}\nEditor bottom: {}, Editor width: {}, Editor height: {}, Mode row: {}, Command row: {}",
+                "Terminal width: {}, Terminal height: {}\nEditor bottom: {}, Editor width: {}, Editor height: {}, Mode row: {}, Command row: {}\n",
                 dimensions.width, dimensions.height, editor_dim.editor_bottom, editor_dim.editor_width, editor_dim.editor_height, editor_dim.mode_row, editor_dim.command_row
             )
             .as_bytes(),
