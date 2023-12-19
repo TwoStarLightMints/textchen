@@ -18,14 +18,14 @@ pub enum Modes {
 }
 
 pub struct Editor {
-    editor_top: usize,
-    editor_bottom: usize,
-    editor_left_edge: usize,
-    editor_right_edge: usize,
-    editor_width: usize,
-    editor_height: usize,
-    mode_row: usize,
-    command_row: usize,
+    pub editor_top: usize,
+    pub editor_bottom: usize,
+    pub editor_left_edge: usize,
+    pub editor_right_edge: usize,
+    pub editor_width: usize,
+    pub editor_height: usize,
+    pub mode_row: usize,
+    pub command_row: usize,
 }
 
 impl Editor {
@@ -67,12 +67,7 @@ pub fn display_line(
     cursor.revert_pos();
 }
 
-pub fn display_document(
-    document: &Document,
-    editor_left_edge: usize,
-    editor_width: usize,
-    cursor: &mut Cursor,
-) {
+pub fn display_document(document: &Document, editor_dim: &Editor, cursor: &mut Cursor) {
     //! document - Document being edited
     //! editor_left_edge - This is the offset from the left side of the terminal
     //! editor_width - Size of the editor screen, calculated from the left side offset and the right side offset, pass this calculated result to the function
@@ -82,37 +77,20 @@ pub fn display_document(
 
     cursor.save_current_pos();
 
-    cursor.move_to(2, editor_left_edge);
+    cursor.move_to(2, editor_dim.editor_left_edge);
 
     for line in document.lines.iter() {
         for (ind, char) in line.1.chars().enumerate() {
             print_flush(format!("{char}").as_str());
 
-            if ind != 0 && (ind + 1) % editor_width == 0 && ind != line.1.len() - 1 {
+            if ind != 0 && (ind + 1) % editor_dim.editor_width == 0 && ind != line.1.len() - 1 {
                 cursor.move_down();
-                cursor.move_to_editor_left(editor_left_edge);
+                cursor.move_to_editor_left(editor_dim.editor_left_edge);
             }
         }
 
         cursor.move_down();
-        cursor.move_to_editor_left(editor_left_edge);
-    }
-
-    cursor.revert_pos();
-}
-
-pub fn clear_line(
-    editor_left_edge: usize,
-    editor_width: usize,
-    document: &Document,
-    cursor: &mut Cursor,
-) {
-    cursor.save_current_pos();
-
-    cursor.move_to_start_line(document, editor_left_edge);
-
-    for _ in document.get_line_at_cursor(cursor.row).0 {
-        print!("{: <1$}", "", editor_width);
+        cursor.move_to_editor_left(editor_dim.editor_left_edge);
     }
 
     cursor.revert_pos();
@@ -138,27 +116,7 @@ pub fn clear_editor_window(editor_right_edge: usize, document: &Document, cursor
     cursor.revert_pos();
 }
 
-pub fn reset_line_view(
-    editor_left_edge: usize,
-    editor_width: usize,
-    document: &Document,
-    cursor: &mut Cursor,
-) {
-    cursor.save_current_pos();
-
-    clear_line(editor_left_edge, editor_width, document, cursor);
-
-    display_line(editor_left_edge, editor_width, document, cursor);
-
-    cursor.revert_pos();
-}
-
-pub fn reset_editor_view(
-    document: &Document,
-    editor_left_edge: usize,
-    editor_right_edge: usize,
-    cursor: &mut Cursor,
-) {
+pub fn reset_editor_view(document: &Document, editor_dim: &Editor, cursor: &mut Cursor) {
     //! editor_right_edge - This is the offset from the right side of the terminal
     //! editor_left_edge - This is the offset from the left side of the terminal
     //! document - Document being edited
@@ -166,14 +124,9 @@ pub fn reset_editor_view(
     //!
     //! Clears the editor screen and redraws the document provided, tends to be used as to refresh the screen after an edit has occurred
 
-    clear_editor_window(editor_right_edge, document, cursor);
+    clear_editor_window(editor_dim.editor_right_edge, document, cursor);
 
-    display_document(
-        document,
-        editor_left_edge,
-        editor_right_edge - editor_left_edge,
-        cursor,
-    );
+    display_document(document, editor_dim, cursor);
 }
 
 pub fn change_mode(curr: &mut Modes, new_mode: Modes, mode_row: usize, cursor: &mut Cursor) {
@@ -206,26 +159,21 @@ pub fn redraw_screen(
     dimensions: &Wh,
     curr_mode: &mut Modes,
     document: &mut Document,
-    editor_top: usize,
-    editor_left_edge: usize,
-    editor_right_edge: &mut usize,
-    editor_width: &mut usize,
-    mode_row: &mut usize,
-    command_row: &mut usize,
+    editor_dim: &mut Editor,
     editor_home: &mut (usize, usize),
     cursor: &mut Cursor,
 ) {
     // Used to return back
-    let cursor_pos = cursor.get_position_in_line(&document, editor_left_edge, *editor_width);
+    let cursor_pos = cursor.get_position_in_line(&document, editor_dim);
 
     // Save to see if it will be at least within the right line or an adjacent one instead of only going to the start of the editor
     cursor.save_current_pos();
 
-    *editor_right_edge = dimensions.width - 2;
-    *editor_width = *editor_right_edge - editor_left_edge;
-    *mode_row = dimensions.height - 1;
-    *command_row = dimensions.height;
-    *editor_home = (editor_top, editor_left_edge);
+    editor_dim.editor_right_edge = dimensions.width - 2;
+    editor_dim.editor_width = editor_dim.editor_right_edge - editor_dim.editor_left_edge;
+    editor_dim.mode_row = dimensions.height - 1;
+    editor_dim.command_row = dimensions.height;
+    *editor_home = (editor_dim.editor_top, editor_dim.editor_left_edge);
 
     // Clear the screen, blank canvas
     clear_screen();
@@ -234,13 +182,13 @@ pub fn redraw_screen(
     cursor.move_to(0, 0);
     print!("{}", document.file_name);
 
-    document.recalculate_indices(*editor_width);
+    document.recalculate_indices(editor_dim.editor_width);
 
     // Redraw document
-    reset_editor_view(document, editor_left_edge, *editor_right_edge, cursor);
+    reset_editor_view(document, editor_dim, cursor);
 
     // Redraw mode
-    change_mode(curr_mode, *curr_mode, *mode_row, cursor);
+    change_mode(curr_mode, *curr_mode, editor_dim.mode_row, cursor);
 
     // Return to the previous cursor position
     cursor.revert_pos();
@@ -248,16 +196,13 @@ pub fn redraw_screen(
     // Because it is possible that the line at which the cursor was has moved, using the cursor's current row minus two, you can
     // get the index of the line at which the cursor should be, then get the first index of that line's index list and move to
     // that row along with keeping in mind the editor's left edge
-    cursor.move_to(document.lines[cursor.row - 2].0[0] + 2, editor_left_edge);
+    cursor.move_to(
+        document.lines[cursor.row - 2].0[0] + 2,
+        editor_dim.editor_left_edge,
+    );
 
     // Move to the original position of the cursor within the line
-    cursor.move_to_pos_in_line(
-        document,
-        editor_left_edge,
-        *editor_width,
-        editor_top,
-        cursor_pos,
-    );
+    cursor.move_to_pos_in_line(document, editor_dim, cursor_pos);
 }
 
 pub fn spawn_char_channel() -> Receiver<char> {
