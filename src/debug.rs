@@ -1,5 +1,6 @@
 use crate::cursor::Cursor;
 use crate::document::Document;
+use crate::editor::Editor;
 use crate::gapbuf::GapBuf;
 use crate::term::Wh;
 use std::fs::File;
@@ -20,12 +21,12 @@ pub fn debug_log_document(document: &Document, log_file: &mut File) {
 }
 
 #[allow(dead_code)]
-pub fn debug_log_dimensions(dimensions: &Wh, log_file: &mut File) {
+pub fn debug_log_dimensions(dimensions: &Wh, editor_dim: &Editor, log_file: &mut File) {
     log_file
         .write(
             format!(
-                "Terminal width: {}, Terminal height: {}\n",
-                dimensions.width, dimensions.height
+                "Terminal width: {}, Terminal height: {}\nEditor bottom: {}, Editor width: {}, Editor height: {}, Mode row: {}, Command row: {}",
+                dimensions.width, dimensions.height, editor_dim.editor_bottom, editor_dim.editor_width, editor_dim.editor_height, editor_dim.mode_row, editor_dim.command_row
             )
             .as_bytes(),
         )
