@@ -6,10 +6,8 @@ use crate::term::print_flush;
 use crate::term::{kbhit, Wh};
 use std::io::{self, Write};
 use std::sync::mpsc;
-use std::sync::mpsc::TryRecvError;
-use std::sync::mpsc::{Receiver, Sender};
+use std::sync::mpsc::Receiver;
 use std::thread;
-use std::thread::JoinHandle;
 
 #[derive(Clone, Copy, PartialEq, Eq)]
 pub enum Modes {
@@ -249,21 +247,6 @@ pub fn spawn_char_channel() -> Receiver<char> {
             }
         }
     });
-
-    // let thread = thread::spawn(move || loop {
-    //     match kill_receiver.try_recv() {
-    //         Ok(_) => {
-    //             println!("stopped");
-    //             break;
-    //         }
-    //         Err(_) => (),
-    //     }
-
-    //     match from_thread.send(get_char()) {
-    //         Ok(_) => (),
-    //         Err(_) => break,
-    //     }
-    // });
 
     to_use
 }
