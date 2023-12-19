@@ -2,4 +2,3 @@
 0|Add scrolling|[0|When adding new lines, check for reaching the end of the editor screen|]
 0|Add registers|[0|Add in editor register|%0|Add ability to paste in system clipboard|]
 0|Add selections|
-0|Make resizing occur as terminal is resized instead of only after user presses a button|[0|Make the async character getter not hang for a second after exiting program|]
