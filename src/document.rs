@@ -59,29 +59,24 @@ impl Line {
 
 pub struct Rows {
     rows: Vec<(usize, String)>,
+    curr_ind: usize,
     curr: Option<(usize, String)>,
-    next: Option<(usize, String)>,
 }
 
 impl Rows {
     pub fn new(rows: Vec<(usize, String)>) -> Self {
-        if rows.len() == 0 {
-            Self {
-                rows: Vec::new(),
-                curr: None,
-                next: None,
-            }
-        } else if rows.len() == 1 {
+        let curr = Some(rows[0].clone());
+        if rows.len() > 0 {
             Self {
                 rows,
-                curr: Some(rows[0]),
-                next: None,
+                curr_ind: 0,
+                curr,
             }
         } else {
             Self {
                 rows,
-                curr: Some(rows[0]),
-                next: Some(rows[1]),
+                curr_ind: 0,
+                curr: None,
             }
         }
     }
@@ -90,7 +85,21 @@ impl Rows {
 impl Iterator for Rows {
     type Item = (usize, String);
 
-    pub fn next(&self) -> Option<Self::Item> {}
+    fn next(&mut self) -> Option<Self::Item> {
+        let res = match &self.curr {
+            Some(item) => Some(item.clone()),
+            None => None,
+        };
+
+        if self.curr_ind + 1 != self.rows.len() {
+            self.curr_ind += 1;
+            self.curr = Some(self.rows[self.curr_ind].clone());
+        } else {
+            self.curr = None;
+        }
+
+        res
+    }
 }
 
 #[derive(Debug)]
@@ -338,7 +347,7 @@ impl Document {
         }
     }
 
-    fn rows(&self, editor_width: usize) -> Rows {
+    pub fn rows(&self, editor_width: usize) -> Rows {
         let mut rows: Vec<_> = Vec::new();
 
         for line in self.lines.iter() {
