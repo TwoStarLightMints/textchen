@@ -106,7 +106,7 @@ impl Iterator for Rows {
 pub struct Document {
     pub file_name: String,
     pub lines: Vec<Line>,
-    pub visible_lines: (usize, usize),
+    pub visible_rows: (usize, usize),
 }
 
 impl Document {
@@ -119,7 +119,7 @@ impl Document {
             return Self {
                 file_name,
                 lines: vec![line],
-                visible_lines: (0, 0),
+                visible_rows: (0, 0),
             };
         }
 
@@ -143,7 +143,7 @@ impl Document {
         Self {
             file_name,
             lines,
-            visible_lines,
+            visible_rows: visible_lines,
         }
     }
 
@@ -368,6 +368,16 @@ impl Document {
         }
 
         Rows::new(rows)
+    }
+
+    pub fn push_vis_down(&mut self) {
+        self.visible_rows.0 += 1;
+        self.visible_rows.1 += 1;
+    }
+
+    pub fn push_vis_up(&mut self) {
+        self.visible_rows.0 -= 1;
+        self.visible_rows.1 -= 1;
     }
 }
 
