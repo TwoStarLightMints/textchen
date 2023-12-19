@@ -77,10 +77,10 @@ fn main() {
                 in_file.read_to_string(&mut buf).unwrap();
 
                 // Create document struct instance from file contents and editor width
-                document = Document::new(file_name, buf.clone(), editor_dim.editor_width);
+                document = Document::new(file_name, buf.clone(), &editor_dim);
             }
             Err(_) => {
-                document = Document::new(file_name, "".to_string(), editor_dim.editor_width);
+                document = Document::new(file_name, "".to_string(), &editor_dim);
             }
         }
 
@@ -94,11 +94,7 @@ fn main() {
         // No file name provided
 
         // Create new empty document with default name scratch
-        document = Document::new(
-            "scratch".to_string(),
-            "".to_string(),
-            editor_dim.editor_right_edge,
-        );
+        document = Document::new("scratch".to_string(), "".to_string(), &editor_dim);
 
         // Move cursor to home to print file name
         move_cursor_home();
@@ -269,8 +265,6 @@ fn main() {
 
                             change_mode(&mut mode, Modes::Normal, editor_dim.mode_row, &mut cursor);
                         } else if new_c == 'h' {
-                            debug_log_document(&document, &mut log_file);
-
                             cursor.move_to_start_line(&document, editor_dim.editor_left_edge);
 
                             change_mode(&mut mode, Modes::Normal, editor_dim.mode_row, &mut cursor);
@@ -468,9 +462,6 @@ fn main() {
 
                             // Move the cursor to the right
                             cursor.move_right();
-
-                            debug_log_message("HERER".to_string(), &mut log_file);
-                            debug_log_cursor(&cursor, &mut log_file);
 
                             // Set the current line's string content to the gap buffer
                             document.set_line_at_cursor(
