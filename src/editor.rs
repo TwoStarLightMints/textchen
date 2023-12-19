@@ -3,7 +3,7 @@ use crate::document::*;
 use crate::term::clear_screen;
 use crate::term::get_char;
 use crate::term::print_flush;
-use crate::term::Wh;
+use crate::term::{kbhit, Wh};
 use std::io::{self, Write};
 use std::sync::mpsc;
 use std::sync::mpsc::TryRecvError;
@@ -236,16 +236,13 @@ pub fn redraw_screen(
     );
 }
 
-pub fn spawn_char_channel() -> (JoinHandle<()>, Sender<char>, Receiver<char>) {
+pub fn spawn_char_channel() -> Receiver<char> {
     //! (kill sender, the receiver for the character)
 
     let (from_thread, to_use) = mpsc::channel::<char>();
-    let (killer, kill_receiver) = mpsc::channel::<char>();
 
-    let to_thread = from_thread.clone();
-
-    let thread = thread::spawn(move || {
-        while !kill_receiver.try_recv().is_ok() {
+    thread::spawn(move || loop {
+        if kbhit() {
             match from_thread.send(get_char()) {
                 Ok(_) => (),
                 Err(_) => break,
@@ -268,5 +265,5 @@ pub fn spawn_char_channel() -> (JoinHandle<()>, Sender<char>, Receiver<char>) {
     //     }
     // });
 
-    (thread, killer, to_use)
+    to_use
 }
