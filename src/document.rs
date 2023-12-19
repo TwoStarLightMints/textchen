@@ -1,3 +1,4 @@
+use crate::editor::Editor;
 use std::fmt::Display;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -59,10 +60,11 @@ impl Line {
 pub struct Document {
     pub file_name: String,
     pub lines: Vec<Line>,
+    pub visible_lines: (usize, usize),
 }
 
 impl Document {
-    pub fn new(file_name: String, content: String, editor_width: usize) -> Self {
+    pub fn new(file_name: String, content: String, editor_dim: &Editor) -> Self {
         if content.len() == 0 {
             let mut line = Line::new();
 
@@ -71,6 +73,7 @@ impl Document {
             return Self {
                 file_name,
                 lines: vec![line],
+                visible_lines: (0, 0),
             };
         }
 
@@ -78,12 +81,24 @@ impl Document {
         let mut lines: Vec<Line> = Vec::new();
 
         for line in content.lines() {
-            let new_line = Line::from_str(line.to_string(), &mut curr_ind, editor_width);
+            let new_line = Line::from_str(line.to_string(), &mut curr_ind, editor_dim.editor_width);
 
             lines.push(new_line);
         }
 
-        Self { file_name, lines }
+        let mut visible_lines = (0, 0);
+
+        if lines[lines.len() - 1].0[lines[lines.len() - 1].0.len() - 1] < editor_dim.editor_height {
+            visible_lines.1 = lines[lines.len() - 1].0[lines[lines.len() - 1].0.len() - 1] + 1;
+        } else {
+            visible_lines.1 = editor_dim.editor_height;
+        }
+
+        Self {
+            file_name,
+            lines,
+            visible_lines,
+        }
     }
 
     fn find_line_from_index(&self, ind: usize) -> Line {
