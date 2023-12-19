@@ -144,8 +144,8 @@ fn main() {
                 match c as u8 {
                     // Move down
                     J_LOWER if mode == Modes::Normal => {
-                        if cursor.row <= document.num_rows() {
-                            // If the cursor's row is at most equal to the number of rows in the document, see docs for differnce between rows and Lines
+                        if cursor.row < editor_dim.editor_height {
+                            // If the cursor's row is at most the line before the end of the visible rows of the document
 
                             // Store the position of the cursor in the original line, save on method calls
                             let cursor_pos = cursor.get_position_in_line(&document, &editor_dim);
@@ -155,8 +155,8 @@ fn main() {
                             if cursor_pos > document.get_str_at_cursor(cursor.row + 1).len() {
                                 // If the current position of the cursor is greater than the length of the next line
 
-                                // Move the cursor down
                                 cursor.move_down();
+                                cursor.move_doc_down();
 
                                 // Move to the end of the line
                                 cursor.move_to_end_line(&document, &editor_dim);
@@ -171,6 +171,7 @@ fn main() {
                                     0..(curr_line.0.len() - (cursor_pos / editor_dim.editor_width))
                                 {
                                     cursor.move_down();
+                                    cursor.move_doc_down();
                                 }
 
                                 // Move to the equivalent of the current position in the next line, check method definition for explaination of the logic
@@ -180,10 +181,20 @@ fn main() {
 
                                 // Move to the next line
                                 cursor.move_down();
+                                cursor.move_doc_down();
 
                                 // Move to the equivalent of the current position in the next line, check method definition for explaination of the logic
                                 cursor.move_to_pos_in_line(&document, &editor_dim, cursor_pos);
                             }
+                        } else if document.visible_rows.1 <= document.num_rows() {
+                            // If the document's maximum visible row index is at most the number of rows in the document
+
+                            document.push_vis_down();
+
+                            cursor.move_doc_down();
+
+                            // TODO: Make sure to put in a way to reset the cursor's position within the newly shown line
+                            reset_editor_view(&document, &editor_dim, &mut cursor);
                         }
                     }
                     // Move right
@@ -199,6 +210,7 @@ fn main() {
                             // and the cursor's position is 0
 
                             cursor.move_right();
+                            cursor.move_doc_right();
                         } else if cursor_pos < curr_line.1.len()
                             && cursor_pos / editor_dim.editor_width < curr_line.0.len()
                         {
@@ -208,6 +220,7 @@ fn main() {
 
                             // Move down to the next row
                             cursor.move_down();
+                            cursor.move_doc_down();
 
                             // Move to the left edge of the editor
                             cursor.move_to_editor_left(editor_dim.editor_left_edge);
@@ -215,11 +228,34 @@ fn main() {
                             // Because the end of the previous line is included within the conditions of the previous if clause, move the cursor to the right of the immediate next
                             // chracter in the line
                             cursor.move_right();
+                            cursor.move_doc_right();
                         }
                     }
                     // Move up
                     K_LOWER if mode == Modes::Normal => {
-                        if cursor.row - 1 >= editor_dim.editor_top
+                        if document.visible_rows.0 != 0 {
+                            // If the document's visible rows does not include the first row
+
+                            if cursor.row - 2 == editor_home.0 {
+                                document.push_vis_up();
+
+                                cursor.move_doc_up();
+
+                                // TODO: Make sure to put in a way to reset the cursor's position within the newly shown line
+
+                                reset_editor_view(&document, &editor_dim, &mut cursor);
+                            } else {
+                                let cursor_pos =
+                                    cursor.get_position_in_line(&document, &editor_dim);
+
+                                for _ in 0..((cursor_pos / editor_dim.editor_width) + 1) {
+                                    cursor.move_up();
+                                    cursor.move_doc_up();
+                                }
+
+                                cursor.move_to_pos_in_line(&document, &editor_dim, cursor_pos);
+                            }
+                        } else if cursor.row - 1 >= editor_dim.editor_top
                             && document.get_line_at_cursor(cursor.row).0[0] != 0
                         {
                             // If moving the cursor up 1 is at most the editor's top line and (if the line is a multiline) the first index in the line's row indices is not 0 (i.e. the
@@ -232,6 +268,7 @@ fn main() {
                             // that many times to move out of the current line upwards, yet since the vector is 0 indexed, one must add 1 to the result
                             for _ in 0..((cursor_pos / editor_dim.editor_width) + 1) {
                                 cursor.move_up();
+                                cursor.move_doc_up();
                             }
 
                             cursor.move_to_pos_in_line(&document, &editor_dim, cursor_pos);
@@ -247,11 +284,13 @@ fn main() {
                             // If moving the cursor left does not reach the first column of the editor's field (i.e. the cursor will not be moved to the first possible column where characters can be printed to)
                             // or the cursor is at the second position of the line
 
-                            cursor.move_left()
+                            cursor.move_left();
+                            cursor.move_doc_left();
                         } else if cursor_pos / editor_dim.editor_width != 0 && cursor_pos != 0 {
                             // If the row in the line where the cursor is is not the first row of the line and the cursor is not at the first position of the line
 
                             cursor.move_up();
+                            cursor.move_doc_up();
                             cursor.move_to(cursor.row, editor_dim.editor_right_edge);
                         }
                     }

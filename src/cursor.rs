@@ -3,6 +3,8 @@ use crate::editor::Editor;
 use crate::term::move_cursor_to;
 
 pub struct Cursor {
+    pub doc_row: usize,
+    pub doc_column: usize,
     pub row: usize,
     pub column: usize,
     pub prev_row: Vec<usize>,
@@ -12,6 +14,8 @@ pub struct Cursor {
 impl Cursor {
     pub fn new(row: usize, column: usize) -> Self {
         Self {
+            doc_row: 0,
+            doc_column: 0,
             row,
             column,
             prev_row: Vec::new(), // Both initialized to 0 so there's no need for options
@@ -97,20 +101,41 @@ impl Cursor {
     }
 
     pub fn move_up(&mut self) {
+        //! Used to move within the editor visually
         self.row -= 1;
         self.update_pos();
     }
     pub fn move_left(&mut self) {
+        //! Used to move within the editor visually
         self.column -= 1;
         self.update_pos();
     }
     pub fn move_down(&mut self) {
+        //! Used to move within the editor visually
         self.row += 1;
         self.update_pos();
     }
     pub fn move_right(&mut self) {
+        //! Used to move within the editor visually
         self.column += 1;
         self.update_pos();
+    }
+
+    pub fn move_doc_up(&mut self) {
+        //! Used to move within the document for editing
+        self.doc_row -= 1;
+    }
+    pub fn move_doc_left(&mut self) {
+        //! Used to move within the document for editing
+        self.doc_column -= 1;
+    }
+    pub fn move_doc_down(&mut self) {
+        //! Used to move within the document for editing
+        self.doc_row += 1;
+    }
+    pub fn move_doc_right(&mut self) {
+        //! Used to move within the document for editing
+        self.doc_column += 1;
     }
 
     pub fn move_to_editor_left(&mut self, editor_left_edge: usize) {
