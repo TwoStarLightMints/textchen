@@ -17,6 +17,32 @@ pub enum Modes {
     MoveTo,
 }
 
+pub struct Editor {
+    editor_top: usize,
+    editor_bottom: usize,
+    editor_left_edge: usize,
+    editor_right_edge: usize,
+    editor_width: usize,
+    editor_height: usize,
+    mode_row: usize,
+    command_row: usize,
+}
+
+impl Editor {
+    pub fn new(dimensions: Wh, editor_left_edge: usize, editor_right_edge: usize) -> Self {
+        Self {
+            editor_top: 2,
+            editor_bottom: dimensions.height - 2,
+            editor_left_edge,
+            editor_right_edge,
+            editor_width: editor_right_edge - editor_left_edge,
+            editor_height: dimensions.height - 3,
+            mode_row: dimensions.height - 1,
+            command_row: dimensions.height,
+        }
+    }
+}
+
 pub fn display_line(
     editor_left_edge: usize,
     editor_width: usize,
@@ -240,6 +266,9 @@ pub fn spawn_char_channel() -> Receiver<char> {
     let (from_thread, to_use) = mpsc::channel::<char>();
 
     thread::spawn(move || loop {
+        // Here, you need to check for a keyboard hit before trying to send a character
+        // because otherwise when quiting the editor, the program will wait till the
+        // user enters a key to exit
         if kbhit() {
             match from_thread.send(get_char()) {
                 Ok(_) => (),
