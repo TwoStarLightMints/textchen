@@ -12,3 +12,9 @@ https://stackoverflow.com/a/35280799
 
 Non blocking input:
 https://stackoverflow.com/a/55201400
+
+Changing value in different thread:
+https://stackoverflow.com/a/59537177
+
+Replacement for kbhit from conio for linux:
+https://stackoverflow.com/a/45067593
