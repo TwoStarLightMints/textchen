@@ -1,4 +1,5 @@
 use crate::document::Document;
+use crate::editor::Editor;
 use crate::term::move_cursor_to;
 
 pub struct Cursor {
@@ -18,12 +19,7 @@ impl Cursor {
         }
     }
 
-    pub fn get_position_in_line(
-        &self,
-        document: &Document,
-        editor_left_edge: usize,
-        editor_width: usize,
-    ) -> usize {
+    pub fn get_position_in_line(&self, document: &Document, editor_dim: &Editor) -> usize {
         // document.get_str_at_cursor(cursor.row).len() as u32 / editor_right : takes into account whole string
         // cursor.row - 2 : doesn't take actual cursor position into full account
         // cursor.column : only gives where the cursor is inside of the line
@@ -37,17 +33,11 @@ impl Cursor {
             .iter()
             .position(|i| *i == (self.row - 2))
             .unwrap()
-            * editor_width)
-            + self.get_column_in_editor(editor_left_edge)
+            * editor_dim.editor_width)
+            + self.get_column_in_editor(editor_dim.editor_left_edge)
     }
 
-    pub fn move_to_end_line(
-        &mut self,
-        document: &Document,
-        editor_left_edge: usize,
-        editor_width: usize,
-        editor_top: usize,
-    ) {
+    pub fn move_to_end_line(&mut self, document: &Document, editor_dim: &Editor) {
         let curr_line = document.get_line_at_cursor(self.row);
 
         // The cursor's position mod the editor width is the distance from the left edge, adding the left
@@ -58,17 +48,15 @@ impl Cursor {
         // curr_line.0[curr_line.0.len() - 1] + editor_top;
 
         self.move_to(
-            curr_line.0[curr_line.0.len() - 1] + editor_top,
-            (curr_line.1.len() % editor_width) + editor_left_edge,
+            curr_line.0[curr_line.0.len() - 1] + editor_dim.editor_top,
+            (curr_line.1.len() % editor_dim.editor_width) + editor_dim.editor_left_edge,
         );
     }
 
     pub fn move_to_pos_in_line(
         &mut self,
         document: &Document,
-        editor_left_edge: usize,
-        editor_width: usize,
-        editor_top: usize,
+        editor_dim: &Editor,
         new_pos: usize,
     ) {
         //! new_pos - An index value of where in the line the cursor should visually appear
@@ -76,9 +64,9 @@ impl Cursor {
         let curr_line = document.get_line_at_cursor(self.row);
 
         // Based on the index given, these will be the coordinates to move to within the line
-        let row_index = new_pos / editor_width;
+        let row_index = new_pos / editor_dim.editor_width;
         // Add editor_left_edge to account for the blank space between the edge and the terminal left edge
-        let column = (new_pos % editor_width) + editor_left_edge;
+        let column = (new_pos % editor_dim.editor_width) + editor_dim.editor_left_edge;
 
         // row_index simply gives the row within the line where the actual overall index is given, and because the rows are only in realtion to the beginning of
         // the document, add 2 to get the actual position in the terminal to place the cursor visually
@@ -91,19 +79,20 @@ impl Cursor {
             self.move_to(row, column);
         } else {
             // If the new position is outside the bounds of the line
-            self.move_to_end_line(&document, editor_left_edge, editor_width, editor_top);
+            self.move_to_end_line(&document, editor_dim);
         }
     }
 
     pub fn move_to_start_line(&mut self, document: &Document, editor_left_edge: usize) {
         self.move_to_editor_left(editor_left_edge);
 
-        self.move_to(document.get_line_at_cursor(self.row).0[0], self.column);
+        self.move_to(document.get_line_at_cursor(self.row).0[0] + 2, self.column);
     }
 
     pub fn move_to(&mut self, new_row: usize, new_col: usize) {
         self.row = new_row;
         self.column = new_col;
+
         self.update_pos()
     }
 
