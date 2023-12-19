@@ -79,16 +79,11 @@ pub fn display_document(document: &Document, editor_dim: &Editor, cursor: &mut C
 
     cursor.move_to(2, editor_dim.editor_left_edge);
 
-    for line in document.lines.iter() {
-        for (ind, char) in line.1.chars().enumerate() {
-            print_flush(format!("{char}").as_str());
-
-            if ind != 0 && (ind + 1) % editor_dim.editor_width == 0 && ind != line.1.len() - 1 {
-                cursor.move_down();
-                cursor.move_to_editor_left(editor_dim.editor_left_edge);
-            }
-        }
-
+    for row in document
+        .rows(editor_dim.editor_width)
+        .skip(document.visible_lines.0)
+    {
+        print!("{}", row.1);
         cursor.move_down();
         cursor.move_to_editor_left(editor_dim.editor_left_edge);
     }
