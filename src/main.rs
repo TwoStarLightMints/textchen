@@ -181,6 +181,7 @@ fn main() {
                             &editor_dim,
                             curr_line,
                             document.get_line_at_cursor(cursor.doc_row),
+                            &document,
                             &mut cursor,
                         );
                     }
@@ -293,6 +294,7 @@ fn main() {
                             &editor_dim,
                             curr_line,
                             document.get_line_at_cursor(cursor.doc_row),
+                            &document,
                             &mut cursor,
                         );
                     }

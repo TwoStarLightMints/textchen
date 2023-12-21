@@ -1,5 +1,4 @@
 use crate::cursor::*;
-use crate::debug::*;
 use crate::document::*;
 use crate::term::clear_screen;
 use crate::term::get_char;
@@ -206,6 +205,7 @@ pub fn same_line_different_row_bump(
     editor_dim: &Editor,
     curr_line: Line,
     next_line: Line,
+    document: &Document,
     cursor: &mut Cursor,
 ) {
     //! cursor_pos : This position is the position before having moved the cursor
@@ -219,11 +219,14 @@ pub fn same_line_different_row_bump(
     // TODO: Fix moving back and forth at the home position of the editor
 
     if cursor_pos == 0
-        && ((curr_line == next_line && curr_line.0.len() > 1)
+        && ((curr_line == next_line
+            && curr_line.0.len() > 1
+            && cursor_pos != cursor.get_position_in_line(document, editor_dim))
             || (next_line.0.len() > 1 && cursor.doc_row != next_line.0[0]))
     {
         // If the cursor's position is 0 (first position in line) and either:
-        //     The current line is the same as the next line and the current line is a multiline
+        //     The current line is the same as the next line, the current line is a multiline, and the cursor's current position is not equal
+        //     to the new position of the cursor
         //     The next line is a multiline and the cursor's row in relation to the document is not equal to the next line's first row index
 
         cursor.move_right();
