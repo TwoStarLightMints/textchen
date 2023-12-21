@@ -119,7 +119,7 @@ impl Document {
             return Self {
                 file_name,
                 lines: vec![line],
-                visible_rows: (0, 0),
+                visible_rows: (0, editor_dim.editor_height),
             };
         }
 
@@ -132,18 +132,10 @@ impl Document {
             lines.push(new_line);
         }
 
-        let mut visible_lines = (0, 0);
-
-        if lines[lines.len() - 1].0[lines[lines.len() - 1].0.len() - 1] < editor_dim.editor_height {
-            visible_lines.1 = lines[lines.len() - 1].0[lines[lines.len() - 1].0.len() - 1] + 1;
-        } else {
-            visible_lines.1 = editor_dim.editor_height;
-        }
-
         Self {
             file_name,
             lines,
-            visible_rows: visible_lines,
+            visible_rows: (0, editor_dim.editor_height),
         }
     }
 
