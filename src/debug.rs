@@ -20,7 +20,14 @@ pub fn debug_log_document(document: &Document, log_file: &mut File) {
     });
 
     log_file
-        .write(format!("Visible lines: {:?}\n", document.visible_rows).as_bytes())
+        .write(
+            format!(
+                "Visible lines: {:?}, Number of lines: {}\n",
+                document.visible_rows,
+                document.num_rows()
+            )
+            .as_bytes(),
+        )
         .unwrap();
 }
 

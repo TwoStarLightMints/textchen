@@ -66,7 +66,6 @@ impl Cursor {
 
             if (document.visible_rows.0..(document.visible_rows.1 - 1))
                 .contains(&curr_line_final_row)
-                && document.visible_rows.1 > curr_line_final_row
             {
                 // If the last row of the current line is within the visible rows exclusive of the document and the last visible row is strictly
                 // less than the last row of the current line
@@ -80,7 +79,7 @@ impl Cursor {
                     curr_line_final_row,
                     curr_line.1.len() % editor_dim.editor_width,
                 );
-            } else if document.visible_rows.1 >= curr_line_final_row {
+            } else {
                 // If the last row of the current line is within the visible rows inclusive of the document and the last row of the current line
                 // is greater than or equal to the last visible row
 
@@ -137,10 +136,45 @@ impl Cursor {
         }
     }
 
-    pub fn move_to_start_line(&mut self, document: &Document, editor_left_edge: usize) {
-        self.move_to_editor_left(editor_left_edge);
+    pub fn move_to_start_line(
+        &mut self,
+        document: &mut Document,
+        editor_dim: &Editor,
+        editor_home_row: usize,
+    ) {
+        let curr_line = document.get_line_at_cursor(self.doc_row);
+        let cursor_pos = self.get_position_in_line(&document, editor_dim);
 
-        self.move_to(document.get_line_at_cursor(self.row).0[0] + 2, self.column);
+        if cursor_pos != 0 {
+            if ((document.visible_rows.0 + 2)..document.visible_rows.1).contains(&curr_line.0[0]) {
+                self.move_to_editor_left(editor_dim.editor_left_edge);
+                self.move_doc_to_editor_left();
+
+                self.move_to(
+                    self.row - (cursor_pos / editor_dim.editor_width),
+                    self.column,
+                );
+
+                self.move_doc_to(curr_line.0[0], self.doc_column);
+            } else {
+                self.move_to_editor_left(editor_dim.editor_left_edge);
+                self.move_doc_to_editor_left();
+
+                let current_first_vis_row = document.visible_rows.0;
+
+                let mut curr_line_first_row = curr_line.0[0];
+
+                while current_first_vis_row > curr_line_first_row {
+                    document.push_vis_up(editor_dim);
+
+                    curr_line_first_row += 1;
+                }
+
+                self.move_to(editor_home_row, self.column);
+
+                reset_editor_view(document, editor_dim, self);
+            }
+        }
     }
 
     pub fn move_to(&mut self, new_row: usize, new_col: usize) {

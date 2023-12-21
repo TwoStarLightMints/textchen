@@ -87,15 +87,11 @@ pub fn display_document(document: &Document, editor_dim: &Editor, cursor: &mut C
 
     cursor.move_to(2, editor_dim.editor_left_edge);
 
-    let mut f = File::create("thing.txt").unwrap();
-
     if document.visible_rows.0 == 0 {
         for row in document
             .rows(editor_dim.editor_width)
             .take(document.visible_rows.1)
         {
-            f.write(format!("Row index: {}, Row content: {}\n", row.0, row.1).as_bytes())
-                .unwrap();
             print!("{}", row.1);
             cursor.move_down();
             cursor.move_to_editor_left(editor_dim.editor_left_edge);

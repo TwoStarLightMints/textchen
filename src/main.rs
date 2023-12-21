@@ -1,7 +1,14 @@
 use std::env;
 use std::fs::{self, File};
 use std::io::{Read, Write};
-use textchen::{cursor::*, debug::*, document::*, editor::*, gapbuf::*, term::*};
+use textchen::{
+    cursor::*,
+    debug::*,
+    document::{self, *},
+    editor::*,
+    gapbuf::*,
+    term::*,
+};
 
 // ==== ASCII KEY CODE VALUES ====
 const J_LOWER: u8 = 106;
@@ -340,21 +347,29 @@ fn main() {
 
                             change_mode(&mut mode, Modes::Normal, editor_dim.mode_row, &mut cursor);
                         } else if new_c == 'h' {
-                            todo!("Reimplement for scrolling");
-                            cursor.move_to_start_line(&document, editor_dim.editor_left_edge);
+                            cursor.move_to_start_line(&mut document, &editor_dim, editor_home.0);
 
                             change_mode(&mut mode, Modes::Normal, editor_dim.mode_row, &mut cursor);
                         } else if new_c == 'g' {
-                            todo!("Reimplement for scrolling");
                             cursor.move_to(editor_home.0, editor_home.1);
+                            cursor.move_doc_to(0, 0);
+
+                            document.visible_rows.0 = 0;
+                            document.visible_rows.1 = editor_dim.editor_height;
+
+                            reset_editor_view(&document, &editor_dim, &mut cursor);
 
                             change_mode(&mut mode, Modes::Normal, editor_dim.mode_row, &mut cursor);
                         } else if new_c == 'e' {
-                            todo!("Reimplement for scrolling");
-                            cursor.move_to(
-                                document.lines.last().unwrap().0.last().unwrap() + 2,
-                                editor_dim.editor_left_edge,
-                            );
+                            cursor.move_to(editor_dim.editor_height, editor_home.1);
+                            cursor
+                                .move_doc_to(*document.lines.last().unwrap().0.last().unwrap(), 0);
+
+                            document.visible_rows.0 =
+                                (document.num_rows() + 1) - editor_dim.editor_height;
+                            document.visible_rows.1 = document.num_rows();
+
+                            reset_editor_view(&document, &editor_dim, &mut cursor);
 
                             change_mode(&mut mode, Modes::Normal, editor_dim.mode_row, &mut cursor);
                         } else {
@@ -362,21 +377,33 @@ fn main() {
                         }
                     }
                     X_LOWER if mode == Modes::Normal => {
-                        todo!("Reimplement for scrolling");
+                        // todo!("Reimplement for scrolling");
                         if get_char() == 'd' {
+                            cursor.move_to_start_line(&mut document, &editor_dim, editor_home.0);
+
                             // The key combination xd will delete a line
                             // Remove the line from the document
-                            document.remove_index_from_line(cursor.row);
+                            // document.remove_index_from_line(cursor.row);
+                            document.remove_line_from_doc(cursor.doc_row, editor_dim.editor_width);
 
-                            // Save current position
-                            cursor.save_current_pos();
+                            if (document.visible_rows.0 == 0 && cursor.doc_row != 0)
+                                || cursor.row > editor_home.0
+                            {
+                                // If the document's visible rows does include the first row
+
+                                // Move the cursor to the previous row
+                                cursor.move_up();
+                            } else if cursor.doc_row != 0 {
+                                // If the document's visible rows does not include the first row
+
+                                document.push_vis_up(&editor_dim);
+                            }
+
+                            if cursor.doc_row != 0 {
+                                cursor.move_doc_up();
+                            }
 
                             reset_editor_view(&document, &editor_dim, &mut cursor);
-
-                            // Return to previous position
-                            cursor.revert_pos();
-                            // Move to left edge of editor
-                            cursor.move_to_editor_left(editor_dim.editor_left_edge);
                         }
                     }
                     // Enter insert mode
@@ -516,7 +543,7 @@ fn main() {
                             let curr_str = document.get_str_at_cursor(cursor.doc_row);
 
                             // Remove the current line from the document
-                            document.remove_line_from_doc(cursor.doc_row);
+                            document.remove_line_from_doc(cursor.doc_row, editor_dim.editor_width);
 
                             // Move to the previous line
                             cursor.move_up();
@@ -547,7 +574,7 @@ fn main() {
                             let curr_str = document.get_str_at_cursor(cursor.doc_row);
 
                             // Remove the current line from the document
-                            document.remove_line_from_doc(cursor.doc_row);
+                            document.remove_line_from_doc(cursor.doc_row, editor_dim.editor_width);
 
                             document.push_vis_up(&editor_dim);
 

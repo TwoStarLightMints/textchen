@@ -1,5 +1,7 @@
 use crate::editor::Editor;
 use std::fmt::Display;
+use std::fs::File;
+use std::io::Write;
 use std::iter::Iterator;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -183,36 +185,12 @@ impl Document {
             ind_to_change += 1;
         }
 
+        let original = self.lines[ind_to_change].clone();
+
         self.lines[ind_to_change] = changed_line.clone();
 
-        if ind_to_change != self.lines.len() - 1 {
-            // If the changed index is not the end of the lines vector
-            if changed_line.0[changed_line.0.len() - 1] + 1 != self.lines[ind_to_change + 1].0[0] {
-                // If the last index of the changed line incremented by 1 is not equal to the first index of the line after it, recalculate the indices
-                // the first index should equal the previous line's last index decremented by 1 as it was directly copied from the original Line
-                if changed_line.0[changed_line.0.len() - 1] > self.lines[ind_to_change + 1].0[0] {
-                    // If the last index of the changed line is greater than the next Line's first index
-                    let difference = changed_line.0[changed_line.0.len() - 1]
-                        - (self.lines[ind_to_change + 1].0[0] + 1);
-
-                    for i in (ind_to_change + 1)..self.lines.len() {
-                        self.lines[i].0 = self.lines[i].0.iter().map(|l| *l + difference).collect();
-                    }
-                } else if changed_line.0[changed_line.0.len() - 1]
-                    < self.lines[ind_to_change + 1].0[0]
-                {
-                    let difference = self.lines[ind_to_change + 1].0[0]
-                        - (changed_line.0[changed_line.0.len() - 1] + 1);
-
-                    for i in (ind_to_change + 1)..self.lines.len() {
-                        self.lines[i].0 = self.lines[i].0.iter().map(|l| *l - difference).collect();
-                    }
-                } else {
-                    for i in (ind_to_change + 1)..self.lines.len() {
-                        self.lines[i].0 = self.lines[i].0.iter().map(|l| *l + 1).collect();
-                    }
-                }
-            }
+        if original.0 != changed_line.0 {
+            self.recalculate_indices(editor_width);
         }
     }
 
@@ -248,16 +226,7 @@ impl Document {
         }
     }
 
-    pub fn remove_index_from_line(&mut self, cursor_row: usize) {
-        for line in self.lines.iter_mut() {
-            if line.0.contains(&(cursor_row - 2)) {
-                line.0.remove(cursor_row - 2);
-                break;
-            }
-        }
-    }
-
-    pub fn remove_line_from_doc(&mut self, cursor_doc_row: usize) {
+    pub fn remove_line_from_doc(&mut self, cursor_doc_row: usize, editor_width: usize) {
         let mut ind_to_remove = 0;
 
         for line in self.lines.iter() {
@@ -268,37 +237,9 @@ impl Document {
             ind_to_remove += 1;
         }
 
-        let line_removed = self.lines.remove(ind_to_remove);
+        self.lines.remove(ind_to_remove);
 
-        if ind_to_remove != self.lines.len() {
-            // If the changed index is not the end of the lines vector
-            if line_removed.0[line_removed.0.len() - 1] + 1 != self.lines[ind_to_remove].0[0] {
-                // If the last index of the changed line incremented by 1 is not equal to the first index of the line after it, recalculate the indices
-                // the first index should equal the previous line's last index decremented by 1 as it was directly copied from the original Line
-                if line_removed.0[line_removed.0.len() - 1] > self.lines[ind_to_remove + 1].0[0] {
-                    // If the last index of the changed line is greater than the next Line's first index
-                    let difference = line_removed.0[line_removed.0.len() - 1]
-                        - (self.lines[ind_to_remove + 1].0[0] + 1);
-
-                    for i in ind_to_remove..self.lines.len() {
-                        self.lines[i].0 = self.lines[i].0.iter().map(|l| *l + difference).collect();
-                    }
-                } else if line_removed.0[line_removed.0.len() - 1]
-                    < self.lines[ind_to_remove + 1].0[0]
-                {
-                    let difference = self.lines[ind_to_remove + 1].0[0]
-                        - (line_removed.0[line_removed.0.len() - 1] + 1);
-
-                    for i in ind_to_remove..self.lines.len() {
-                        self.lines[i].0 = self.lines[i].0.iter().map(|l| *l - difference).collect();
-                    }
-                } else {
-                    for i in ind_to_remove..self.lines.len() {
-                        self.lines[i].0 = self.lines[i].0.iter().map(|l| *l + 1).collect();
-                    }
-                }
-            }
-        }
+        self.recalculate_indices(editor_width);
     }
 
     pub fn add_line_at_row(&mut self, new_line: Line, cursor_doc_row: usize) {
