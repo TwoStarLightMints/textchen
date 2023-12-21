@@ -1,6 +1,8 @@
 use crate::document::Document;
-use crate::editor::Editor;
+use crate::editor::{reset_editor_view, Editor};
 use crate::term::move_cursor_to;
+use std::fs::File;
+use std::io::Write;
 
 pub struct Cursor {
     pub doc_row: usize,
@@ -24,25 +26,33 @@ impl Cursor {
     }
 
     pub fn get_position_in_line(&self, document: &Document, editor_dim: &Editor) -> usize {
-        // document.get_str_at_cursor(cursor.row).len() as u32 / editor_right : takes into account whole string
-        // cursor.row - 2 : doesn't take actual cursor position into full account
-        // cursor.column : only gives where the cursor is inside of the line
-
-        // document.get_line_at_cursor(cursor.row).0.iter().find(|i| *i == cursor.row - 2) * editor_right : skip x amount of lines, refer to this line as skip_amount
+        // document.get_line_at_cursor(cursor.row).0.iter().position(|i| *i == cursor.row - 2) * editor_right : skip x amount of lines, refer to this line as skip_amount
         // skip_amount + cursor.column
 
+        // self.doc_row : The row of the cursor in relation to the document, will be equal to an index of one of the Lines within the document
+        // self.doc_column : The column of the cursor in relation to the document, will be within the string in some way
+
+        // document.get_line_at_cursor(self.doc_row).0.iter.position(|i| *i == self.doc_row).unwrap() : Returns the row number within the line that the cursor lies
+        // /\ * editor_width : The above times the editor's width will give the amount of spaces to skip given the row of the cursor in relation to the document
+        // /\ + doc_column : This will be the position of the cursor within the line
+
         (document
-            .get_line_at_cursor(self.row)
+            .get_line_at_cursor(self.doc_row)
             .0
             .iter()
-            .position(|i| *i == (self.row - 2))
+            .position(|i| *i == self.doc_row)
             .unwrap()
             * editor_dim.editor_width)
-            + self.get_column_in_editor(editor_dim.editor_left_edge)
+            + self.doc_column
     }
 
-    pub fn move_to_end_line(&mut self, document: &Document, editor_dim: &Editor) {
-        let curr_line = document.get_line_at_cursor(self.row);
+    pub fn move_to_end_line(&mut self, document: &mut Document, editor_dim: &Editor) {
+        //! This method will only be called when the cursor is within a given line
+        //! This will move both the cursor's visual position *AND* the doc position
+
+        let curr_line = document.get_line_at_cursor(self.doc_row);
+
+        let mut curr_line_final_row = *curr_line.0.last().unwrap();
 
         // The cursor's position mod the editor width is the distance from the left edge, adding the left
         // edge to the result gets the distance from the terminal's left edge
@@ -51,15 +61,55 @@ impl Cursor {
         // Last row index of the line, index from the top of the EDITOR not the terminal, so add editor_top as offset
         // curr_line.0[curr_line.0.len() - 1] + editor_top;
 
-        self.move_to(
-            curr_line.0[curr_line.0.len() - 1] + editor_dim.editor_top,
-            (curr_line.1.len() % editor_dim.editor_width) + editor_dim.editor_left_edge,
-        );
+        if self.get_position_in_line(document, editor_dim) != curr_line.1.len() {
+            // If the cursor is not already at the end of the line
+
+            if (document.visible_rows.0..(document.visible_rows.1 - 1))
+                .contains(&curr_line_final_row)
+                && document.visible_rows.1 > curr_line_final_row
+            {
+                // If the last row of the current line is within the visible rows exclusive of the document and the last visible row is strictly
+                // less than the last row of the current line
+
+                self.move_to(
+                    (curr_line_final_row - document.visible_rows.0) + editor_dim.editor_top,
+                    (curr_line.1.len() % editor_dim.editor_width) + editor_dim.editor_left_edge,
+                );
+
+                self.move_doc_to(
+                    curr_line_final_row,
+                    curr_line.1.len() % editor_dim.editor_width,
+                );
+            } else if document.visible_rows.1 >= curr_line_final_row {
+                // If the last row of the current line is within the visible rows inclusive of the document and the last row of the current line
+                // is greater than or equal to the last visible row
+
+                self.move_to(
+                    editor_dim.editor_height,
+                    curr_line.1.len() % editor_dim.editor_width + editor_dim.editor_left_edge,
+                );
+
+                self.move_doc_to(
+                    curr_line_final_row,
+                    curr_line.1.len() % editor_dim.editor_width,
+                );
+
+                let current_last_vis_row = document.visible_rows.1;
+
+                while current_last_vis_row > curr_line_final_row {
+                    document.push_vis_down();
+
+                    curr_line_final_row += 1;
+                }
+
+                reset_editor_view(&document, editor_dim, self);
+            }
+        }
     }
 
     pub fn move_to_pos_in_line(
         &mut self,
-        document: &Document,
+        document: &mut Document,
         editor_dim: &Editor,
         new_pos: usize,
     ) {
@@ -83,7 +133,7 @@ impl Cursor {
             self.move_to(row, column);
         } else {
             // If the new position is outside the bounds of the line
-            self.move_to_end_line(&document, editor_dim);
+            self.move_to_end_line(document, editor_dim);
         }
     }
 
@@ -98,6 +148,11 @@ impl Cursor {
         self.column = new_col;
 
         self.update_pos()
+    }
+
+    pub fn move_doc_to(&mut self, new_doc_row: usize, new_doc_col: usize) {
+        self.doc_row = new_doc_row;
+        self.doc_column = new_doc_col;
     }
 
     pub fn move_up(&mut self) {
@@ -125,14 +180,17 @@ impl Cursor {
         //! Used to move within the document for editing
         self.doc_row -= 1;
     }
+
     pub fn move_doc_left(&mut self) {
         //! Used to move within the document for editing
         self.doc_column -= 1;
     }
+
     pub fn move_doc_down(&mut self) {
         //! Used to move within the document for editing
         self.doc_row += 1;
     }
+
     pub fn move_doc_right(&mut self) {
         //! Used to move within the document for editing
         self.doc_column += 1;
@@ -142,8 +200,21 @@ impl Cursor {
         self.move_to(self.row, editor_left_edge);
     }
 
+    pub fn move_doc_to_editor_left(&mut self) {
+        //! This function is *ONLY* meant to be used to reset the cursor's doc_column value to zero and provide documentation through the name of the
+        // function
+
+        self.doc_column = 0;
+    }
+
     pub fn move_to_editor_right(&mut self, editor_right_edge: usize) {
         self.move_to(self.row, editor_right_edge);
+    }
+
+    pub fn move_doc_to_editor_width(&mut self, editor_width: usize) {
+        //! For the doc_column field, the "editor right" would be the *WIDTH* of the editor, not the right edge
+
+        self.doc_column = editor_width;
     }
 
     fn update_pos(&self) {

@@ -1,4 +1,5 @@
 use crate::cursor::*;
+use crate::debug::*;
 use crate::document::*;
 use crate::term::clear_screen;
 use crate::term::get_char;
@@ -9,6 +10,8 @@ use std::sync::mpsc;
 use std::sync::mpsc::Receiver;
 use std::thread;
 
+// ==================== MODE FUNCTIONS AND DEFINITIONS ====================
+
 #[derive(Clone, Copy, PartialEq, Eq)]
 pub enum Modes {
     Normal,
@@ -16,6 +19,34 @@ pub enum Modes {
     Command,
     MoveTo,
 }
+
+pub fn change_mode(curr: &mut Modes, new_mode: Modes, mode_row: usize, cursor: &mut Cursor) {
+    //! curr - Current mode stored in the state of the application
+    //! new_mode - The new mode which will be stored in the state of the application
+    //! mode_row - The row at which the mode will be printed
+    //! cursor - Get control of cursor
+    //!
+    //! Changes the current mode of the editor to a new target mode, handles changing state and drawing to screen
+
+    *curr = new_mode;
+
+    cursor.save_current_pos();
+
+    cursor.move_to(mode_row, 0);
+
+    match curr {
+        Modes::Normal => print!("NOR"),
+        Modes::Insert => print!("INS"),
+        Modes::Command => print!("COM"),
+        Modes::MoveTo => print!("MOV"),
+    };
+
+    io::stdout().flush().unwrap();
+
+    cursor.revert_pos();
+}
+
+// ==================== EDITOR DIMENSIONS STRUCT ====================
 
 pub struct Editor {
     pub editor_top: usize,
@@ -43,6 +74,8 @@ impl Editor {
     }
 }
 
+// ==================== DISPLAY METHODS FOR EDITOR ====================
+
 pub fn display_document(document: &Document, editor_dim: &Editor, cursor: &mut Cursor) {
     //! document - Document being edited
     //! editor_left_edge - This is the offset from the left side of the terminal
@@ -55,11 +88,15 @@ pub fn display_document(document: &Document, editor_dim: &Editor, cursor: &mut C
 
     cursor.move_to(2, editor_dim.editor_left_edge);
 
+    let mut f = File::create("thing.txt").unwrap();
+
     if document.visible_rows.0 == 0 {
         for row in document
             .rows(editor_dim.editor_width)
             .take(document.visible_rows.1)
         {
+            f.write(format!("Row index: {}, Row content: {}\n", row.0, row.1).as_bytes())
+                .unwrap();
             print!("{}", row.1);
             cursor.move_down();
             cursor.move_to_editor_left(editor_dim.editor_left_edge);
@@ -67,7 +104,7 @@ pub fn display_document(document: &Document, editor_dim: &Editor, cursor: &mut C
     } else {
         for row in document
             .rows(editor_dim.editor_width)
-            .skip(document.visible_rows.0 - 1)
+            .skip(document.visible_rows.0)
             .take(document.visible_rows.1 - document.visible_rows.0)
         {
             print!("{}", row.1);
@@ -90,28 +127,8 @@ pub fn clear_editor_window(editor_dim: &Editor, cursor: &mut Cursor) {
 
     cursor.move_to(2, 1);
 
-    let mut f = File::create("log.txt").unwrap();
-
     for _ in 0..editor_dim.editor_height {
-        f.write(
-            format!(
-                "Cursor before print - Curosr row: {}, Cursor column: {}",
-                cursor.row, cursor.column
-            )
-            .as_bytes(),
-        )
-        .unwrap();
-
         print!("{: >1$}", "", editor_dim.editor_right_edge);
-
-        f.write(
-            format!(
-                "Cursor after print - Curosr row: {}, Cursor column: {}",
-                cursor.row, cursor.column
-            )
-            .as_bytes(),
-        )
-        .unwrap();
 
         cursor.move_down();
     }
@@ -130,32 +147,6 @@ pub fn reset_editor_view(document: &Document, editor_dim: &Editor, cursor: &mut 
     clear_editor_window(editor_dim, cursor);
 
     display_document(document, editor_dim, cursor);
-}
-
-pub fn change_mode(curr: &mut Modes, new_mode: Modes, mode_row: usize, cursor: &mut Cursor) {
-    //! curr - Current mode stored in the state of the application
-    //! new_mode - The new mode which will be stored in the state of the application
-    //! mode_row - The row at which the mode will be printed
-    //! cursor - Get control of cursor
-    //!
-    //! Changes the current mode of the editor to a new target mode, handles changing state and drawing to screen
-
-    *curr = new_mode;
-
-    cursor.save_current_pos();
-
-    cursor.move_to(mode_row, 0);
-
-    match curr {
-        Modes::Normal => print!("NOR"),
-        Modes::Insert => print!("INS"),
-        Modes::Command => print!("COM"),
-        Modes::MoveTo => print!("MOV"),
-    };
-
-    io::stdout().flush().unwrap();
-
-    cursor.revert_pos();
 }
 
 pub fn redraw_screen(
@@ -207,6 +198,53 @@ pub fn redraw_screen(
     // Move to the original position of the cursor within the line
     cursor.move_to_pos_in_line(document, editor_dim, cursor_pos);
 }
+
+// ==================== CURSOR HELPER FUNCTIONS ====================
+
+pub fn same_line_different_row_bump(
+    cursor_pos: usize,
+    editor_dim: &Editor,
+    curr_line: Line,
+    next_line: Line,
+    cursor: &mut Cursor,
+) {
+    //! cursor_pos : This position is the position before having moved the cursor
+    //! curr_line : This is the line before moving
+    //! next_line : This is the line *AFTER* moving
+    //!
+    //! This function is used to move a cursor to the appropriate position within a line when moving vertically
+    //! "Appropriate" here means that if the cursor is in a row of a line other than the beginning line, the very first position the
+    //! cursor should be able to take is on top of the second character of the row
+
+    // TODO: Fix moving back and forth at the home position of the editor
+
+    if cursor_pos == 0
+        && ((curr_line == next_line && curr_line.0.len() > 1)
+            || (next_line.0.len() > 1 && cursor.doc_row != next_line.0[0]))
+    {
+        // If the cursor's position is 0 (first position in line) and either:
+        //     The current line is the same as the next line and the current line is a multiline
+        //     The next line is a multiline and the cursor's row in relation to the document is not equal to the next line's first row index
+
+        cursor.move_right();
+        cursor.move_doc_right();
+    } else if (curr_line != next_line && next_line.0[0] > curr_line.0[0] && cursor.doc_column == 1)
+        || (curr_line == next_line
+            && cursor_pos % editor_dim.editor_width == 1
+            && cursor.doc_row == next_line.0[0])
+    {
+        // If either:
+        //     The current line is not the next line and the next line's first row index is less than the current line's first index and the
+        //     cursor's column in relation to the document is 1
+        //     The current line is the next line and the cursor's positon mod the editor's width is 1 and the cursor's row in relation to
+        //     the document is equal to the next line's first row index
+
+        cursor.move_left();
+        cursor.move_doc_left();
+    }
+}
+
+// ==================== INPUT RETRIEVAL FUNCTION ====================
 
 pub fn spawn_char_channel() -> Receiver<char> {
     //! (kill sender, the receiver for the character)

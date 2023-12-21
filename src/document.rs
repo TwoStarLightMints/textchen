@@ -157,29 +157,34 @@ impl Document {
         panic!("Not found")
     }
 
-    pub fn get_str_at_cursor(&self, cursor_row: usize) -> String {
+    pub fn get_str_at_cursor(&self, cursor_doc_row: usize) -> String {
         //! Auto offsets cursor_row value by the distance from the top of the terminal to the actual start of the editor
-        self.find_line_from_index(cursor_row - 2).1.clone()
+        self.find_line_from_index(cursor_doc_row).1.clone()
     }
 
-    pub fn get_line_at_cursor(&self, cursor_row: usize) -> Line {
+    pub fn get_line_at_cursor(&self, cursor_doc_row: usize) -> Line {
         //! Auto offsets cursor_row value by the distance from the top of the terminal to the actual start of the editor
-        self.find_line_from_index(cursor_row - 2)
+        self.find_line_from_index(cursor_doc_row)
     }
 
-    pub fn set_line_at_cursor(&mut self, cursor_row: usize, new_line: String, editor_width: usize) {
+    pub fn set_line_at_cursor(
+        &mut self,
+        cursor_doc_row: usize,
+        new_line: String,
+        editor_width: usize,
+    ) {
         //! Sets the line's string value at cursor_row to new_line and recalculates the line's indices
         //! as well as the following lines according to the editor_width
-        let mut dest = self.get_line_at_cursor(cursor_row); // The line to be re-set
+        let mut dest = self.get_line_at_cursor(cursor_doc_row); // The line to be re-set
 
         dest.1 = new_line;
 
-        let changed_line = Line::from_existing(dest, editor_width, cursor_row);
+        let changed_line = Line::from_existing(dest, editor_width, cursor_doc_row);
 
         let mut ind_to_change = 0;
 
         for line in self.lines.iter() {
-            if line.0.contains(&(cursor_row - 2)) {
+            if line.0.contains(&(cursor_doc_row)) {
                 break;
             }
 
@@ -238,6 +243,7 @@ impl Document {
         //! So, the number of rows will be the total number of rows that the document spans in the
         //! editor.
         // Bare in mind, getting the indices allow is 0 indexed, so add 1 to get real number
+
         match self.lines.last() {
             Some(line) => {
                 if line.0.len() > 1 {
@@ -259,11 +265,11 @@ impl Document {
         }
     }
 
-    pub fn remove_line_from_doc(&mut self, cursor_row: usize) {
+    pub fn remove_line_from_doc(&mut self, cursor_doc_row: usize) {
         let mut ind_to_remove = 0;
 
         for line in self.lines.iter() {
-            if line.0.contains(&(cursor_row - 2)) {
+            if line.0.contains(&(cursor_doc_row)) {
                 break;
             }
 
@@ -303,11 +309,11 @@ impl Document {
         }
     }
 
-    pub fn add_line_at_row(&mut self, new_line: Line, cursor_row: usize) {
+    pub fn add_line_at_row(&mut self, new_line: Line, cursor_doc_row: usize) {
         let mut insert_ind = 0;
 
         for line in self.lines.iter() {
-            if line.0.contains(&(cursor_row - 2)) {
+            if line.0.contains(&(cursor_doc_row)) {
                 break;
             }
 
@@ -351,33 +357,51 @@ impl Document {
         let mut rows: Vec<_> = Vec::new();
 
         for line in self.lines.iter() {
-            let mut chars = line.1.chars().peekable();
+            if line.1.len() > 0 {
+                // If line is not empty, this guard needs to be here due to a graphical bug I encountered
 
-            let mut sub_rows: Vec<_> = Vec::new();
+                let mut chars = line.1.chars().peekable();
 
-            while let Some(_) = chars.by_ref().peek() {
-                let next_row_content = chars.by_ref().take(editor_width).collect::<String>();
-                sub_rows.push(next_row_content);
+                let mut sub_rows: Vec<_> = Vec::new();
+
+                while let Some(_) = chars.by_ref().peek() {
+                    let next_row_content = chars.by_ref().take(editor_width).collect::<String>();
+                    sub_rows.push(next_row_content);
+                }
+
+                line.0
+                    .iter()
+                    .zip(sub_rows.iter())
+                    .map(|e| (*e.0, e.1.clone()))
+                    .for_each(|e| rows.push(e));
+            } else {
+                // If line is empty
+
+                rows.push((line.0[0], "".to_string()));
             }
-
-            line.0
-                .iter()
-                .zip(sub_rows.iter())
-                .map(|e| (*e.0, e.1.clone()))
-                .for_each(|e| rows.push(e));
         }
 
         Rows::new(rows)
     }
 
     pub fn push_vis_down(&mut self) {
+        //! Do not worry about "showing rows that aren't there" the reset_editor_view will do the rest for you
+
         self.visible_rows.0 += 1;
-        self.visible_rows.1 += 1;
+        if self.visible_rows.1 < self.num_rows() {
+            self.visible_rows.1 += 1;
+        }
     }
 
-    pub fn push_vis_up(&mut self) {
-        self.visible_rows.0 -= 1;
-        self.visible_rows.1 -= 1;
+    pub fn push_vis_up(&mut self, editor_dim: &Editor) {
+        //! Do not worry about "showing rows that aren't there" the reset_editor_view will do the rest for you
+
+        if self.visible_rows.1 - self.visible_rows.0 != editor_dim.editor_height {
+            self.visible_rows.0 -= 1;
+        } else {
+            self.visible_rows.0 -= 1;
+            self.visible_rows.1 -= 1;
+        }
     }
 }
 
