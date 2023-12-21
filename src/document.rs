@@ -1,7 +1,5 @@
 use crate::editor::Editor;
 use std::fmt::Display;
-use std::fs::File;
-use std::io::Write;
 use std::iter::Iterator;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -141,24 +139,44 @@ impl Document {
         }
     }
 
-    fn find_line_from_index(&self, ind: usize) -> Line {
-        for line in self.lines.iter() {
-            if line.0.contains(&ind) {
-                return line.clone();
-            }
-        }
-
-        panic!("Not found")
-    }
-
     pub fn get_str_at_cursor(&self, cursor_doc_row: usize) -> String {
-        //! Auto offsets cursor_row value by the distance from the top of the terminal to the actual start of the editor
-        self.find_line_from_index(cursor_doc_row).1.clone()
+        //! Returns the string content of the line which is located at the cursor's row relative to the document
+
+        // self.find_line_from_index(cursor_doc_row).1.clone()
+
+        match self.get_index_at_cursor(cursor_doc_row) {
+            Ok(ind) => self.lines[ind].1.clone(),
+            Err(message) => panic!("{message}"),
+        }
     }
 
     pub fn get_line_at_cursor(&self, cursor_doc_row: usize) -> Line {
-        //! Auto offsets cursor_row value by the distance from the top of the terminal to the actual start of the editor
-        self.find_line_from_index(cursor_doc_row)
+        //! Returns the entire line which is located at the cursor's row relative to the document
+
+        // self.find_line_from_index(cursor_doc_row)
+
+        match self.get_index_at_cursor(cursor_doc_row) {
+            Ok(ind) => self.lines[ind].clone(),
+            Err(message) => panic!("{message}"),
+        }
+    }
+
+    pub fn get_index_at_cursor(&self, cursor_doc_row: usize) -> Result<usize, String> {
+        let mut ind = 0;
+
+        for line in self.lines.iter() {
+            if line.0.contains(&(cursor_doc_row)) {
+                break;
+            }
+
+            ind += 1;
+        }
+
+        if ind == self.lines.len() {
+            Err("Line not found with given curosr document row".to_string())
+        } else {
+            Ok(ind)
+        }
     }
 
     pub fn set_line_at_cursor(
