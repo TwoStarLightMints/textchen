@@ -614,6 +614,8 @@ fn main() {
 
                                 // Move down to the next row
                                 cursor.move_down();
+                            } else {
+                                document.push_vis_down();
                             }
 
                             // Move the cursor to the left edge of the editor
@@ -625,8 +627,6 @@ fn main() {
                             cursor.move_doc_down();
                             cursor.move_doc_to_editor_left();
                             cursor.move_doc_right();
-
-                            document.push_vis_down();
 
                             // Reset the view
                             reset_editor_view(&document, &editor_dim, &mut cursor);
