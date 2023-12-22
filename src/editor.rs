@@ -195,6 +195,8 @@ pub fn redraw_screen(
     if curr_height != editor_dim.editor_height {
         // If the original height is not equal to the new width
 
+        todo!("Redo logic for resizing the height of the editor");
+
         if (cursor.row - 2) <= (curr_height / 2) {
             // If the cursor's visual row within the editor is located at the middle of or in the upper half of the editor screen
 
@@ -205,8 +207,6 @@ pub fn redraw_screen(
             }
         } else {
             // If the cursor's visual row within the editor is located in the lower half of the editor screen
-
-            let mut f = File::create("thing.txt").unwrap();
 
             if document.visible_rows.0 == 0 {
                 // If the first visible line is the first line of the document
@@ -220,7 +220,7 @@ pub fn redraw_screen(
                     // If the document's first visible row is 0 and the original height is greater than
                     // the new height
 
-                    if cursor.doc_row == document.visible_rows.1 - 2 {
+                    if cursor.row >= editor_dim.editor_height {
                         document.visible_rows.0 += curr_height - editor_dim.editor_height;
 
                         for _ in 0..(curr_height - editor_dim.editor_height) {
@@ -243,8 +243,8 @@ pub fn redraw_screen(
                     // If original height is greater than the new height and the cursor is not at the
                     // second to last visible row
 
-                    if cursor.doc_row < document.visible_rows.1 - 2 {
-                        document.visible_rows.1 -= curr_height - editor_dim.editor_height;
+                    if cursor.row >= editor_dim.editor_height {
+                        document.visible_rows.0 += curr_height - editor_dim.editor_height;
 
                         for _ in 0..(curr_height - editor_dim.editor_height) {
                             cursor.move_up();
@@ -309,28 +309,6 @@ pub fn redraw_screen(
                 }
             }
         }
-
-        // if document.num_above_rows(editor_dim.editor_width, cursor.doc_row)
-        //     > original_num_rows_above
-        // {
-        //     // If the amount of rows increased after resizing
-
-        //     for _ in 0..(document.num_above_rows(editor_dim.editor_width, cursor.doc_row)
-        //         - original_num_rows_above)
-        //     {
-        //         cursor.move_down();
-        //     }
-        // } else if document.num_above_rows(editor_dim.editor_width, cursor.doc_row)
-        //     < original_num_rows_above
-        // {
-        //     // If the amount of rows decreased after resizing
-
-        //     for _ in 0..(original_num_rows_above
-        //         - document.num_above_rows(editor_dim.editor_width, cursor.doc_row))
-        //     {
-        //         cursor.move_up();
-        //     }
-        // }
     }
 
     // Redraw document
