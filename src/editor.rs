@@ -206,7 +206,11 @@ pub fn redraw_screen(
         } else {
             // If the cursor's visual row within the editor is located in the lower half of the editor screen
 
+            let mut f = File::create("thing.txt").unwrap();
+
             if document.visible_rows.0 == 0 {
+                // If the first visible line is the first line of the document
+
                 if curr_height < editor_dim.editor_height {
                     // If the document's first visible row is 0 and the original height is less than
                     // the new height
@@ -218,6 +222,10 @@ pub fn redraw_screen(
 
                     if cursor.doc_row == document.visible_rows.1 - 2 {
                         document.visible_rows.0 += curr_height - editor_dim.editor_height;
+
+                        for _ in 0..(curr_height - editor_dim.editor_height) {
+                            cursor.move_up();
+                        }
                     } else {
                         document.visible_rows.1 -= curr_height - editor_dim.editor_height;
                     }
@@ -235,8 +243,12 @@ pub fn redraw_screen(
                     // If original height is greater than the new height and the cursor is not at the
                     // second to last visible row
 
-                    if cursor.doc_row == document.visible_rows.1 - 2 {
+                    if cursor.doc_row < document.visible_rows.1 - 2 {
                         document.visible_rows.1 -= curr_height - editor_dim.editor_height;
+
+                        for _ in 0..(curr_height - editor_dim.editor_height) {
+                            cursor.move_up();
+                        }
                     } else {
                         document.visible_rows.0 += curr_height - editor_dim.editor_height;
                     }
