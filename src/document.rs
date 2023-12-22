@@ -142,8 +142,6 @@ impl Document {
     pub fn get_str_at_cursor(&self, cursor_doc_row: usize) -> String {
         //! Returns the string content of the line which is located at the cursor's row relative to the document
 
-        // self.find_line_from_index(cursor_doc_row).1.clone()
-
         match self.get_index_at_cursor(cursor_doc_row) {
             Ok(ind) => self.lines[ind].1.clone(),
             Err(message) => panic!("{message}"),
@@ -153,8 +151,6 @@ impl Document {
     pub fn get_line_at_cursor(&self, cursor_doc_row: usize) -> Line {
         //! Returns the entire line which is located at the cursor's row relative to the document
 
-        // self.find_line_from_index(cursor_doc_row)
-
         match self.get_index_at_cursor(cursor_doc_row) {
             Ok(ind) => self.lines[ind].clone(),
             Err(message) => panic!("{message}"),
@@ -162,6 +158,9 @@ impl Document {
     }
 
     pub fn get_index_at_cursor(&self, cursor_doc_row: usize) -> Result<usize, String> {
+        //! Returns the index of the line within the Document's line vector which is located at the cursor's row
+        //! relative to the document
+
         let mut ind = 0;
 
         for line in self.lines.iter() {
@@ -244,6 +243,12 @@ impl Document {
         }
     }
 
+    pub fn num_above_rows(&self, editor_width: usize, cursor_doc_row: usize) -> usize {
+        self.rows(editor_width)
+            .take_while(|row| row.0 != cursor_doc_row)
+            .count()
+    }
+
     pub fn remove_line_from_doc(&mut self, cursor_doc_row: usize, editor_width: usize) {
         let mut ind_to_remove = 0;
 
@@ -288,7 +293,11 @@ impl Document {
 
                 ind_counter += 1;
             } else {
-                let overflow = self.lines[i].1.len() / editor_width;
+                let overflow = if self.lines[i].1.len() % editor_width == 0 {
+                    (self.lines[i].1.len() / editor_width) - 1
+                } else {
+                    self.lines[i].1.len() / editor_width
+                };
 
                 let mut new_inds = Vec::new();
 

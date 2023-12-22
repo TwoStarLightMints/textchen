@@ -149,20 +149,31 @@ pub fn redraw_screen(
     curr_mode: &mut Modes,
     document: &mut Document,
     editor_dim: &mut Editor,
-    editor_home: &mut (usize, usize),
+    editor_home_row: usize,
     cursor: &mut Cursor,
 ) {
-    // Used to return back
-    let cursor_pos = cursor.get_position_in_line(&document, editor_dim);
+    //! dimensions - The new dimensions of the terminal screen after resize
+    //! editor_dim - The old dimensions of the editor screen
+
+    let curr_line_ind = document.get_index_at_cursor(cursor.doc_row).unwrap();
+    let curr_line_indices = document.lines[curr_line_ind].0.clone();
+    let curr_index_in_line = cursor.doc_row;
+
+    let curr_num_above =
+        document.num_above_rows(editor_dim.editor_width, document.lines[curr_line_ind].0[0]);
+
+    let curr_height = editor_dim.editor_height;
+    let curr_width = editor_dim.editor_width;
 
     // Save to see if it will be at least within the right line or an adjacent one instead of only going to the start of the editor
     cursor.save_current_pos();
 
+    // Recalculate the values of the editor_dim variable
     editor_dim.editor_right_edge = dimensions.width - 2;
     editor_dim.editor_width = editor_dim.editor_right_edge - editor_dim.editor_left_edge;
+    editor_dim.editor_height = dimensions.height - 3;
     editor_dim.mode_row = dimensions.height - 1;
     editor_dim.command_row = dimensions.height;
-    *editor_home = (editor_dim.editor_top, editor_dim.editor_left_edge);
 
     // Clear the screen, blank canvas
     clear_screen();
@@ -171,7 +182,144 @@ pub fn redraw_screen(
     cursor.move_to(0, 0);
     print!("{}", document.file_name);
 
-    document.recalculate_indices(editor_dim.editor_width);
+    if curr_width != editor_dim.editor_width {
+        // If the original width is not equal to the new width
+
+        // Recalculate the indices of the lines
+        document.recalculate_indices(editor_dim.editor_width);
+    }
+
+    // Return to the previous cursor position
+    cursor.revert_pos();
+
+    if curr_height != editor_dim.editor_height {
+        // If the original height is not equal to the new width
+
+        if (cursor.row - 2) <= (curr_height / 2) {
+            // If the cursor's visual row within the editor is located at the middle of or in the upper half of the editor screen
+
+            if curr_height > editor_dim.editor_height {
+                document.visible_rows.1 -= curr_height - editor_dim.editor_height;
+            } else {
+                document.visible_rows.1 += editor_dim.editor_height - curr_height;
+            }
+        } else {
+            // If the cursor's visual row within the editor is located in the lower half of the editor screen
+
+            if document.visible_rows.0 == 0 {
+                if curr_height < editor_dim.editor_height {
+                    // If the document's first visible row is 0 and the original height is less than
+                    // the new height
+
+                    document.visible_rows.1 += editor_dim.editor_height - curr_height;
+                } else if curr_height > editor_dim.editor_height {
+                    // If the document's first visible row is 0 and the original height is greater than
+                    // the new height
+
+                    if cursor.doc_row == document.visible_rows.1 - 2 {
+                        document.visible_rows.0 += curr_height - editor_dim.editor_height;
+                    } else {
+                        document.visible_rows.1 -= curr_height - editor_dim.editor_height;
+                    }
+                }
+            } else {
+                // Since document.visible_rows's parts are usize, below 0 is not possible and
+                // thus this branch handles above 0 values
+
+                if curr_height < editor_dim.editor_height {
+                    // If the document's first visible row is greater than 0 and the original height
+                    // is less than the new height
+
+                    document.visible_rows.0 -= editor_dim.editor_height - curr_height;
+                } else if curr_height > editor_dim.editor_height {
+                    // If original height is greater than the new height and the cursor is not at the
+                    // second to last visible row
+
+                    if cursor.doc_row == document.visible_rows.1 - 2 {
+                        document.visible_rows.1 -= curr_height - editor_dim.editor_height;
+                    } else {
+                        document.visible_rows.0 += curr_height - editor_dim.editor_height;
+                    }
+                }
+            }
+        }
+    }
+
+    if curr_width != editor_dim.editor_width {
+        if cursor.doc_row != curr_line_indices[0] {
+            // If the cursor's row in relation to the document is not at the first possible row of the original line
+
+            if cursor.doc_column == editor_dim.editor_width + 1 {
+                // If the cursor is at the last possible position within the row
+
+                cursor.move_down();
+                cursor.move_to_editor_left(editor_dim.editor_left_edge);
+                cursor.move_right();
+
+                cursor.move_doc_down();
+                cursor.move_doc_to_editor_left();
+                cursor.move_doc_right();
+            } else if cursor.doc_row <= editor_dim.editor_width {
+                // If the cursor is within the row
+
+                cursor.move_right();
+                cursor.move_doc_right();
+            }
+        }
+
+        // If row delta is greater than 0, that means there is a difference in the number of rows
+        // and the new number of rows is less than the original, if the delta is negative, the new
+        // number of rows is greater than the original, and if they are equal it will be 0
+
+        if document.num_above_rows(editor_dim.editor_width, document.lines[curr_line_ind].0[0])
+            != curr_num_above
+        {
+            // If the number of rows above the current line is greater than the number of rows prior
+
+            let row_delta = (document
+                .num_above_rows(editor_dim.editor_width, document.lines[curr_line_ind].0[0])
+                as i32)
+                - (curr_num_above as i32);
+
+            if row_delta > 0 {
+                // If there are more rows than previous
+
+                for _ in 0..row_delta {
+                    cursor.move_down();
+                    cursor.move_doc_down();
+                }
+            } else if row_delta < 0 {
+                // If there are less rows than previous
+
+                for _ in 0..(row_delta * -1) {
+                    cursor.move_up();
+                    cursor.move_doc_up();
+                }
+            }
+        }
+
+        // if document.num_above_rows(editor_dim.editor_width, cursor.doc_row)
+        //     > original_num_rows_above
+        // {
+        //     // If the amount of rows increased after resizing
+
+        //     for _ in 0..(document.num_above_rows(editor_dim.editor_width, cursor.doc_row)
+        //         - original_num_rows_above)
+        //     {
+        //         cursor.move_down();
+        //     }
+        // } else if document.num_above_rows(editor_dim.editor_width, cursor.doc_row)
+        //     < original_num_rows_above
+        // {
+        //     // If the amount of rows decreased after resizing
+
+        //     for _ in 0..(original_num_rows_above
+        //         - document.num_above_rows(editor_dim.editor_width, cursor.doc_row))
+        //     {
+        //         cursor.move_up();
+        //     }
+        // }
+    }
 
     // Redraw document
     reset_editor_view(document, editor_dim, cursor);
@@ -179,19 +327,8 @@ pub fn redraw_screen(
     // Redraw mode
     change_mode(curr_mode, *curr_mode, editor_dim.mode_row, cursor);
 
-    // Return to the previous cursor position
-    cursor.revert_pos();
-
-    // Because it is possible that the line at which the cursor was has moved, using the cursor's current row minus two, you can
-    // get the index of the line at which the cursor should be, then get the first index of that line's index list and move to
-    // that row along with keeping in mind the editor's left edge
-    cursor.move_to(
-        document.lines[cursor.row - 2].0[0] + 2,
-        editor_dim.editor_left_edge,
-    );
-
     // Move to the original position of the cursor within the line
-    cursor.move_to_pos_in_line(document, editor_dim, cursor_pos);
+    // cursor.reposition_after_resize(document, editor_dim, editor_dim_change);
 }
 
 // ==================== CURSOR HELPER FUNCTIONS ====================

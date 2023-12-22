@@ -1,8 +1,6 @@
 use crate::document::Document;
 use crate::editor::{reset_editor_view, Editor};
 use crate::term::move_cursor_to;
-use std::fs::File;
-use std::io::Write;
 
 pub struct Cursor {
     pub doc_row: usize,
@@ -106,33 +104,29 @@ impl Cursor {
         }
     }
 
-    pub fn move_to_pos_in_line(
+    pub fn reposition_after_resize(
         &mut self,
         document: &mut Document,
         editor_dim: &Editor,
-        new_pos: usize,
+        editor_dim_change: (bool, bool, usize, bool, bool),
     ) {
         //! new_pos - An index value of where in the line the cursor should visually appear
         //! Assumed to be the current line the cursor is inside of
-        let curr_line = document.get_line_at_cursor(self.row);
+        //! editor_dim_change - (current half cursor is in, is width changed, which is greater,
+        //!                      difference, is height changed, difference)
+        //!
+        //! Current half cursor is in will be either 0 or 1, top or bottom respectively
 
-        // Based on the index given, these will be the coordinates to move to within the line
-        let row_index = new_pos / editor_dim.editor_width;
-        // Add editor_left_edge to account for the blank space between the edge and the terminal left edge
-        let column = (new_pos % editor_dim.editor_width) + editor_dim.editor_left_edge;
+        let (w_changed, w_expand, cursor_half, h_changed, h_expand) = editor_dim_change;
 
-        // row_index simply gives the row within the line where the actual overall index is given, and because the rows are only in realtion to the beginning of
-        // the document, add 2 to get the actual position in the terminal to place the cursor visually
-        let row = curr_line.0[row_index] + 2;
+        if self.row == editor_dim.editor_height + 1
+            || (cursor_half == 1 && document.visible_rows.0 != 0)
+        {
+            // If the visual cursor is at the position directly before the bottom most
+            // row of the editor or it is located in the second half and the first
+            // visible row is not the first row of the document
 
-        if new_pos <= curr_line.1.len() {
-            // If the new position is within the line's string content
-
-            // Move to that position
-            self.move_to(row, column);
-        } else {
-            // If the new position is outside the bounds of the line
-            self.move_to_end_line(document, editor_dim);
+            self.move_up();
         }
     }
 

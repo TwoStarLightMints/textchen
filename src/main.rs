@@ -140,7 +140,7 @@ fn main() {
                 &mut mode,
                 &mut document,
                 &mut editor_dim,
-                &mut editor_home,
+                editor_home.0,
                 &mut cursor,
             );
         }
