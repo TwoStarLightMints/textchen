@@ -20,7 +20,11 @@ impl Line {
 
             *ind_counter += 1;
         } else {
-            let overflow = src.len() / editor_width;
+            let overflow = if src.len() % editor_width == 0 {
+                (src.len() / editor_width) - 1
+            } else {
+                src.len() / editor_width
+            };
 
             for i in 0..=overflow {
                 new.0.push(*ind_counter + i);
