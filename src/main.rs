@@ -1,14 +1,9 @@
 use std::env;
 use std::fs::{self, File};
 use std::io::{Read, Write};
-use textchen::{
-    cursor::*,
-    debug::*,
-    document::{self, *},
-    editor::*,
-    gapbuf::*,
-    term::*,
-};
+#[allow(unused_imports)]
+use textchen::debug::*;
+use textchen::{cursor::*, document::*, editor::*, gapbuf::*, term::*};
 
 // ==== ASCII KEY CODE VALUES ====
 const J_LOWER: u8 = 106;
@@ -140,7 +135,6 @@ fn main() {
                 &mut mode,
                 &mut document,
                 &mut editor_dim,
-                editor_home.0,
                 &mut cursor,
             );
         }

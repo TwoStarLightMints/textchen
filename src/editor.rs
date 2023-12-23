@@ -149,7 +149,6 @@ pub fn redraw_screen(
     curr_mode: &mut Modes,
     document: &mut Document,
     editor_dim: &mut Editor,
-    editor_home_row: usize,
     cursor: &mut Cursor,
 ) {
     //! dimensions - The new dimensions of the terminal screen after resize
@@ -157,7 +156,6 @@ pub fn redraw_screen(
 
     let curr_line_ind = document.get_index_at_cursor(cursor.doc_row).unwrap();
     let curr_line_indices = document.lines[curr_line_ind].0.clone();
-    let curr_index_in_line = cursor.doc_row;
 
     let curr_num_above =
         document.num_above_rows(editor_dim.editor_width, document.lines[curr_line_ind].0[0]);
@@ -195,8 +193,6 @@ pub fn redraw_screen(
     if curr_height != editor_dim.editor_height {
         // If the original height is not equal to the new width
 
-        todo!("Redo logic for resizing the height of the editor");
-
         if (cursor.row - 2) <= (curr_height / 2) {
             // If the cursor's visual row within the editor is located at the middle of or in the upper half of the editor screen
 
@@ -223,9 +219,7 @@ pub fn redraw_screen(
                     if cursor.row >= editor_dim.editor_height {
                         document.visible_rows.0 += curr_height - editor_dim.editor_height;
 
-                        for _ in 0..(curr_height - editor_dim.editor_height) {
-                            cursor.move_up();
-                        }
+                        cursor.move_up();
                     } else {
                         document.visible_rows.1 -= curr_height - editor_dim.editor_height;
                     }
@@ -246,9 +240,7 @@ pub fn redraw_screen(
                     if cursor.row >= editor_dim.editor_height {
                         document.visible_rows.0 += curr_height - editor_dim.editor_height;
 
-                        for _ in 0..(curr_height - editor_dim.editor_height) {
-                            cursor.move_up();
-                        }
+                        cursor.move_up();
                     } else {
                         document.visible_rows.0 += curr_height - editor_dim.editor_height;
                     }
@@ -257,7 +249,19 @@ pub fn redraw_screen(
         }
     }
 
+    let mut f = File::create("thing.txt").unwrap();
+
+    f.write(
+        format!(
+            "current width: {curr_width}, new width: {}",
+            editor_dim.editor_width
+        )
+        .as_bytes(),
+    )
+    .unwrap();
+
     if curr_width != editor_dim.editor_width {
+        todo!("Change how cursor moves when editor width is changed");
         if cursor.doc_row != curr_line_indices[0] {
             // If the cursor's row in relation to the document is not at the first possible row of the original line
 
@@ -271,10 +275,33 @@ pub fn redraw_screen(
                 cursor.move_doc_down();
                 cursor.move_doc_to_editor_left();
                 cursor.move_doc_right();
+            } else if cursor.doc_column == editor_dim.editor_left_edge {
+                cursor.move_up();
+                cursor.move_to_editor_right(editor_dim.editor_right_edge);
+                cursor.move_doc_to_editor_width(editor_dim.editor_width);
             } else if cursor.doc_row <= editor_dim.editor_width {
                 // If the cursor is within the row
 
+                if curr_width < editor_dim.editor_width {
+                    cursor.move_right();
+                    cursor.move_doc_right();
+                } else {
+                    cursor.move_left();
+                    cursor.move_doc_left();
+                }
+            }
+        } else {
+            // If the cursor's row is in the first row of the line
+
+            if cursor.doc_column == editor_dim.editor_width + 1 {
+                // If the cursor is at the last possible position within the row
+
+                cursor.move_down();
+                cursor.move_to_editor_left(editor_dim.editor_left_edge);
                 cursor.move_right();
+
+                cursor.move_doc_down();
+                cursor.move_doc_to_editor_left();
                 cursor.move_doc_right();
             }
         }
