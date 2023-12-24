@@ -155,9 +155,18 @@ pub fn redraw_screen(
     //! editor_dim - The old dimensions of the editor screen
 
     let curr_line_ind = document.get_index_at_cursor(cursor.doc_row).unwrap();
+    // The curr_row_in_line variable is not based on 0 indexing, this will be for later with dealing with looping
+    let curr_row_in_line = document
+        .get_line_at_cursor(cursor.doc_row)
+        .0
+        .iter()
+        .position(|i| *i == cursor.doc_row)
+        .unwrap()
+        + 1;
     let curr_line_indices = document.lines[curr_line_ind].0.clone();
 
-    let curr_num_above =
+    // The current number of rows within the document above the line wherein the cursor lies
+    let curr_num_above_line =
         document.num_above_rows(editor_dim.editor_width, document.lines[curr_line_ind].0[0]);
 
     let curr_height = editor_dim.editor_height;
@@ -179,13 +188,6 @@ pub fn redraw_screen(
     // Redraw document title
     cursor.move_to(0, 0);
     print!("{}", document.file_name);
-
-    if curr_width != editor_dim.editor_width {
-        // If the original width is not equal to the new width
-
-        // Recalculate the indices of the lines
-        document.recalculate_indices(editor_dim.editor_width);
-    }
 
     // Return to the previous cursor position
     cursor.revert_pos();
@@ -251,88 +253,201 @@ pub fn redraw_screen(
 
     let mut f = File::create("thing.txt").unwrap();
 
-    f.write(
-        format!(
-            "current width: {curr_width}, new width: {}",
-            editor_dim.editor_width
-        )
-        .as_bytes(),
-    )
-    .unwrap();
-
     if curr_width != editor_dim.editor_width {
-        todo!("Change how cursor moves when editor width is changed");
-        if cursor.doc_row != curr_line_indices[0] {
-            // If the cursor's row in relation to the document is not at the first possible row of the original line
+        // If the current width is different from the new width
 
-            if cursor.doc_column == editor_dim.editor_width + 1 {
-                // If the cursor is at the last possible position within the row
+        // Recalculate the indices of the lines
+        document.recalculate_indices(editor_dim.editor_width);
 
-                cursor.move_down();
-                cursor.move_to_editor_left(editor_dim.editor_left_edge);
+        let mut moved_down = false;
+
+        if cursor.doc_column == editor_dim.editor_width + 1 && curr_width > editor_dim.editor_width
+        {
+            // If the cursor's column within the document is at the final possible position within the current row when shrinking
+            // the editor width
+
+            cursor.move_down();
+            cursor.move_doc_down();
+
+            cursor.move_to_editor_left(editor_dim.editor_left_edge);
+            cursor.move_doc_to_editor_left();
+
+            for _ in 0..curr_row_in_line {
                 cursor.move_right();
-
-                cursor.move_doc_down();
-                cursor.move_doc_to_editor_left();
                 cursor.move_doc_right();
-            } else if cursor.doc_column == editor_dim.editor_left_edge {
-                cursor.move_up();
-                cursor.move_to_editor_right(editor_dim.editor_right_edge);
-                cursor.move_doc_to_editor_width(editor_dim.editor_width);
-            } else if cursor.doc_row <= editor_dim.editor_width {
-                // If the cursor is within the row
+            }
 
-                if curr_width < editor_dim.editor_width {
-                    cursor.move_right();
-                    cursor.move_doc_right();
+            moved_down = true;
+        }
+
+        if cursor.doc_row == curr_line_indices[0] {
+            // If the curosr's row in relation to the document is the first possible row of the original line
+
+            let new_num_above = document
+                .num_above_rows(editor_dim.editor_width, document.lines[curr_line_ind].0[0]);
+
+            if new_num_above != curr_num_above_line {
+                // If the number of rows above the current line is greater than the number of rows prior to the resize
+                // Because the cursor is in the first row of the line, we do not need to check for the rows changing within the line
+
+                // The following casts the usize variables to i32s for the logic to follow and to prevent underflowing
+                let row_delta = (new_num_above as i32) - (curr_num_above_line as i32);
+
+                if row_delta > 0 {
+                    // If there are more rows than previous
+
+                    for _ in 0..row_delta {
+                        // The amount of rows changed (row delta) might be more than 1
+
+                        cursor.move_down();
+                        cursor.move_doc_down();
+                    }
                 } else {
-                    cursor.move_left();
-                    cursor.move_doc_left();
+                    // If there are less rows than previous
+
+                    for _ in 0..(row_delta * -1) {
+                        // The amount of rows changed (row delta) might be more than 1
+
+                        cursor.move_up();
+                        cursor.move_doc_up();
+                    }
                 }
             }
         } else {
-            // If the cursor's row is in the first row of the line
+            // If the cursor is not within the first row of the line
 
-            if cursor.doc_column == editor_dim.editor_width + 1 {
-                // If the cursor is at the last possible position within the row
+            if curr_width < editor_dim.editor_width {
+                // If the current width is less than the new width, the window is expanding
 
-                cursor.move_down();
-                cursor.move_to_editor_left(editor_dim.editor_left_edge);
-                cursor.move_right();
-
-                cursor.move_doc_down();
-                cursor.move_doc_to_editor_left();
-                cursor.move_doc_right();
-            }
-        }
-
-        // If row delta is greater than 0, that means there is a difference in the number of rows
-        // and the new number of rows is less than the original, if the delta is negative, the new
-        // number of rows is greater than the original, and if they are equal it will be 0
-
-        if document.num_above_rows(editor_dim.editor_width, document.lines[curr_line_ind].0[0])
-            != curr_num_above
-        {
-            // If the number of rows above the current line is greater than the number of rows prior
-
-            let row_delta = (document
-                .num_above_rows(editor_dim.editor_width, document.lines[curr_line_ind].0[0])
-                as i32)
-                - (curr_num_above as i32);
-
-            if row_delta > 0 {
-                // If there are more rows than previous
-
-                for _ in 0..row_delta {
-                    cursor.move_down();
-                    cursor.move_doc_down();
+                for _ in 0..curr_row_in_line {
+                    cursor.move_left();
+                    cursor.move_doc_left();
                 }
-            } else if row_delta < 0 {
-                // If there are less rows than previous
 
-                for _ in 0..(row_delta * -1) {
+                if cursor.doc_column == 0 {
+                    // If the cursor's column with relation to the document is at the left most side of the screen
                     cursor.move_up();
                     cursor.move_doc_up();
+
+                    cursor.move_to_editor_right(editor_dim.editor_right_edge);
+                    cursor.move_doc_to_editor_width(editor_dim.editor_width);
+
+                    for _ in 0..(editor_dim.editor_width - curr_width - 1) {
+                        // The amount of characters long that the width changes may be more than 1, yet if it is only 1, don't do anything
+                        cursor.move_left();
+                        cursor.move_doc_left();
+                    }
+
+                    let new_num_above_line = document.num_above_rows(
+                        editor_dim.editor_width,
+                        document.lines[curr_line_ind].0[0],
+                    );
+
+                    if new_num_above_line != curr_num_above_line {
+                        // If the number of rows above the current line is greater than the number of rows prior to the resize
+                        // Because the cursor is in the first row of the line, we do not need to check for the rows changing within the line
+
+                        // The following casts the usize variables to i32s for the logic to follow and to prevent underflowing
+                        let row_delta = (new_num_above_line as i32) - (curr_num_above_line as i32);
+
+                        if row_delta > 0 {
+                            // If there are more rows than previous
+
+                            for _ in 0..row_delta {
+                                // The amount of rows changed (row delta) might be more than 1
+
+                                cursor.move_down();
+                                cursor.move_doc_down();
+                            }
+                        } else {
+                            // If there are less rows than previous
+
+                            for _ in 0..row_delta {
+                                // The amount of rows changed (row delta) might be more than 1
+
+                                cursor.move_up();
+                                cursor.move_doc_up();
+                            }
+                        }
+                    }
+                } else {
+                    // If the cursor is within the row
+
+                    let new_num_above_line = document.num_above_rows(
+                        editor_dim.editor_width,
+                        document.lines[curr_line_ind].0[0],
+                    );
+
+                    if new_num_above_line != curr_num_above_line {
+                        // If the number of rows above the current line is greater than the number of rows prior to the resize
+                        // Because the cursor is in the first row of the line, we do not need to check for the rows changing within the line
+
+                        // The following casts the usize variables to i32s for the logic to follow and to prevent underflowing
+                        let row_delta = (new_num_above_line as i32) - (curr_num_above_line as i32);
+
+                        if row_delta > 0 {
+                            // If there are more rows than previous
+
+                            for _ in 0..row_delta {
+                                // The amount of rows changed (row delta) might be more than 1
+
+                                cursor.move_down();
+                                cursor.move_doc_down();
+                            }
+                        } else {
+                            // If there are less rows than previous
+
+                            for _ in 0..row_delta {
+                                // The amount of rows changed (row delta) might be more than 1
+
+                                cursor.move_up();
+                                cursor.move_doc_up();
+                            }
+                        }
+                    }
+
+                    // Theoretically, it is not possible for a line to gain rows without the cursor having already ran
+                    // through till the end of the row and wrapped around already, so this case will not be dealt with now
+                }
+            } else {
+                // The current width is greater than the new width
+
+                if cursor.doc_column > 0 && !moved_down {
+                    // If the cursor is within the row and the cursor was not just moved down
+
+                    cursor.move_right();
+                    cursor.move_doc_right();
+                }
+
+                let new_num_above = document
+                    .num_above_rows(editor_dim.editor_width, document.lines[curr_line_ind].0[0]);
+
+                if new_num_above != curr_num_above_line {
+                    // If the number of rows above the current line is greater than the number of rows prior to the resize
+                    // Because the cursor is in the first row of the line, we do not need to check for the rows changing within the line
+
+                    // The following casts the usize variables to i32s for the logic to follow and to prevent underflowing
+                    let row_delta = (new_num_above as i32) - (curr_num_above_line as i32);
+
+                    if row_delta > 0 {
+                        // If there are more rows than previous
+
+                        for _ in 0..row_delta {
+                            // The amount of rows changed (row delta) might be more than 1
+
+                            cursor.move_down();
+                            cursor.move_doc_down();
+                        }
+                    } else {
+                        // If there are less rows than previous
+
+                        for _ in 0..(row_delta * -1) {
+                            // The amount of rows changed (row delta) might be more than 1
+
+                            cursor.move_up();
+                            cursor.move_doc_up();
+                        }
+                    }
                 }
             }
         }
@@ -343,9 +458,6 @@ pub fn redraw_screen(
 
     // Redraw mode
     change_mode(curr_mode, *curr_mode, editor_dim.mode_row, cursor);
-
-    // Move to the original position of the cursor within the line
-    // cursor.reposition_after_resize(document, editor_dim, editor_dim_change);
 }
 
 // ==================== CURSOR HELPER FUNCTIONS ====================
