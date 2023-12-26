@@ -74,21 +74,18 @@ fn main() {
     cursor.move_to(editor_dim.mode_row, 0);
     print!("NOR");
 
-    // Set the terminal to raw input mode, this is only possible and needed on linux systems
-    #[cfg(target_os = "linux")]
-    set_raw();
-
     // Move the cursor to the editor home
     cursor.move_to(editor_home.0, editor_home.1);
 
     // Initialize the gap buffer, it will be replaced later when editing actual text
     let mut gap_buf = GapBuf::new();
 
-    // Clear the buffer
-    buf.clear();
-
     // Stores the state of the mode for the program, starts with Modes::Normal
     let mut mode = Modes::Normal;
+
+    // Set the terminal to raw input mode, this is only possible and needed on linux systems
+    #[cfg(target_os = "linux")]
+    set_raw();
 
     let char_channel = spawn_char_channel();
 
@@ -306,7 +303,7 @@ fn main() {
 
                             change_mode(&mut mode, Modes::Normal, editor_dim.mode_row, &mut cursor);
                         } else if new_c == 'h' {
-                            cursor.move_to_start_line(&mut document, &editor_dim, editor_home.0);
+                            cursor.move_to_start_line(&mut document, &editor_dim);
 
                             change_mode(&mut mode, Modes::Normal, editor_dim.mode_row, &mut cursor);
                         } else if new_c == 'g' {
@@ -338,28 +335,36 @@ fn main() {
                     X_LOWER if mode == Modes::Normal => {
                         // todo!("Reimplement for scrolling");
                         if get_char() == 'd' {
-                            cursor.move_to_start_line(&mut document, &editor_dim, editor_home.0);
+                            cursor.move_to_start_line(&mut document, &editor_dim);
 
                             // The key combination xd will delete a line
                             // Remove the line from the document
                             // document.remove_index_from_line(cursor.row);
                             document.remove_line_from_doc(cursor.doc_row, editor_dim.editor_width);
 
-                            if (document.visible_rows.0 == 0 && cursor.doc_row != 0)
-                                || cursor.row > editor_home.0
-                            {
-                                // If the document's visible rows does include the first row
+                            if document.num_rows() > 0 {
+                                if cursor.doc_row > 0 {
+                                    cursor.move_doc_up();
 
-                                // Move the cursor to the previous row
-                                cursor.move_up();
-                            } else if cursor.doc_row != 0 {
-                                // If the document's visible rows does not include the first row
+                                    if cursor.row == editor_dim.editor_home_row {
+                                        // Move the cursor to the previous row
+                                        cursor.move_to_start_line(&mut document, &editor_dim);
+                                    } else {
+                                        cursor.move_up();
+                                        cursor.move_to_start_line(&mut document, &editor_dim);
+                                    }
+                                }
 
-                                document.push_vis_up(&editor_dim);
-                            }
+                                if document.visible_rows.0 != 0
+                                    && cursor.row == editor_dim.editor_home_row
+                                {
+                                    let curr_line_inds =
+                                        &document.get_line_at_cursor(cursor.doc_row).0;
 
-                            if cursor.doc_row != 0 {
-                                cursor.move_doc_up();
+                                    while curr_line_inds[0] != document.visible_rows.0 {
+                                        document.push_vis_up(&editor_dim);
+                                    }
+                                }
                             }
 
                             reset_editor_view(&document, &editor_dim, &mut cursor);
@@ -370,11 +375,17 @@ fn main() {
                         // Change mode to insert
                         change_mode(&mut mode, Modes::Insert, editor_dim.mode_row, &mut cursor);
 
-                        // Create a new gap buffer from the string at the current cursor position
-                        gap_buf = GapBuf::from_str(
-                            document.get_str_at_cursor(cursor.doc_row),
-                            cursor.get_position_in_line(&document, &editor_dim),
-                        );
+                        if document.lines.len() > 0 {
+                            // Create a new gap buffer from the string at the current cursor position
+                            gap_buf = GapBuf::from_str(
+                                document.get_str_at_cursor(cursor.doc_row),
+                                cursor.get_position_in_line(&document, &editor_dim),
+                            );
+                        } else {
+                            gap_buf = GapBuf::new();
+
+                            document.add_scratch_line();
+                        }
                     }
                     // Create a new empty line
                     O_LOWER if mode == Modes::Normal => {
