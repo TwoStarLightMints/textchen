@@ -4,6 +4,7 @@ use crate::term::clear_screen;
 use crate::term::get_char;
 use crate::term::{kbhit, Wh};
 use std::fs::File;
+use std::io::Read;
 use std::io::{self, Write};
 use std::sync::mpsc;
 use std::sync::mpsc::Receiver;
@@ -48,7 +49,7 @@ pub fn change_mode(curr: &mut Modes, new_mode: Modes, mode_row: usize, cursor: &
 // ==================== EDITOR DIMENSIONS STRUCT ====================
 
 pub struct Editor {
-    pub editor_top: usize,
+    pub editor_home_row: usize,
     pub editor_bottom: usize,
     pub editor_left_edge: usize,
     pub editor_right_edge: usize,
@@ -61,7 +62,7 @@ pub struct Editor {
 impl Editor {
     pub fn new(dimensions: Wh, editor_left_edge: usize, editor_right_edge: usize) -> Self {
         Self {
-            editor_top: 2,
+            editor_home_row: 2,
             editor_bottom: dimensions.height - 2,
             editor_left_edge,
             editor_right_edge,
@@ -250,8 +251,6 @@ pub fn redraw_screen(
             }
         }
     }
-
-    let mut f = File::create("thing.txt").unwrap();
 
     if curr_width != editor_dim.editor_width {
         // If the current width is different from the new width
@@ -506,6 +505,46 @@ pub fn same_line_different_row_bump(
 
         cursor.move_left();
         cursor.move_doc_left();
+    }
+}
+
+// ==================== DOCUMENT RETRIEVAL AND CREATION ====================
+
+pub fn create_document(file_name: Option<String>, editor_dim: &Editor) -> Document {
+    if let Some(ifile) = file_name {
+        // If a file has been provided through command line
+
+        // Attempt to open the file provided
+        match File::open(&ifile) {
+            Ok(mut in_file) => {
+                let mut buf = String::new();
+
+                // Read the file contents into the buffer
+                in_file.read_to_string(&mut buf).unwrap();
+
+                // Create document struct instance from file contents and editor width
+                Document::new(ifile, buf.clone(), editor_dim)
+            }
+            Err(_) => Document::new(ifile, "".to_string(), editor_dim),
+        }
+
+        // // Move cursor to home to print file name
+        // move_cursor_home();
+        // print!("{}", &document.file_name);
+
+        // // Display document
+        // display_document(&document, &editor_dim, &mut cursor);
+    } else {
+        // No file name provided
+
+        // Create new empty document with default name scratch
+        Document::new("scratch".to_string(), "".to_string(), &editor_dim)
+
+        // // Move cursor to home to print file name
+        // move_cursor_home();
+
+        // // Print scratch to screen instead of file name
+        // print!("scratch");
     }
 }
 
