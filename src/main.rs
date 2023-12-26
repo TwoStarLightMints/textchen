@@ -38,10 +38,8 @@ fn main() {
     // Title row is the home row
     // row: 0, column: 0
 
-    // This variable holds a tuple containing the coordinates of the editor's home,
-    // this is a wrapper
-
-    let mut editor_home: (usize, usize) = (editor_dim.editor_top, editor_dim.editor_left_edge);
+    // TODO: Get rid of this variable
+    let editor_home: (usize, usize) = (editor_dim.editor_home_row, editor_dim.editor_left_edge);
 
     // Get the command line arguments to the program
 
@@ -55,10 +53,6 @@ fn main() {
 
     let mut buf = String::new();
 
-    // This variable is like a more structured buffer for the whole document
-
-    let mut document: Document;
-
     // Prep the screen to draw the editor and the document to the screen, switching to alt buffer to not erase entire screen
 
     switch_to_alt_buf();
@@ -69,41 +63,12 @@ fn main() {
 
     let mut cursor = Cursor::new(editor_home.0, editor_home.1);
 
-    if let Some(file_name) = args.next() {
-        // If a file has been provided through command line
+    // This variable is like a more structured buffer for the whole document
+    let mut document = create_document(args.next(), &editor_dim);
 
-        // Attempt to open the file provided
-        match File::open(&file_name) {
-            Ok(mut in_file) => {
-                // Read the file contents into the buffer
-                in_file.read_to_string(&mut buf).unwrap();
-
-                // Create document struct instance from file contents and editor width
-                document = Document::new(file_name, buf.clone(), &editor_dim);
-            }
-            Err(_) => {
-                document = Document::new(file_name, "".to_string(), &editor_dim);
-            }
-        }
-
-        // Move cursor to home to print file name
-        move_cursor_home();
-        print!("{}", &document.file_name);
-
-        // Display document
-        display_document(&document, &editor_dim, &mut cursor);
-    } else {
-        // No file name provided
-
-        // Create new empty document with default name scratch
-        document = Document::new("scratch".to_string(), "".to_string(), &editor_dim);
-
-        // Move cursor to home to print file name
-        move_cursor_home();
-
-        // Print scratch to screen instead of file name
-        print!("scratch");
-    }
+    move_cursor_home();
+    print!("{}", &document.file_name);
+    display_document(&document, &editor_dim, &mut cursor);
 
     // Print the mode to the screen, in this case, the default is normal
     cursor.move_to(editor_dim.mode_row, 0);
@@ -530,7 +495,7 @@ fn main() {
 
                             // Reset the view
                             reset_editor_view(&document, &editor_dim, &mut cursor);
-                        } else if cursor_pos == 0 && cursor.row != editor_dim.editor_top {
+                        } else if cursor_pos == 0 && cursor.row != editor_dim.editor_home_row {
                             // If the cursor is at the first positon of the line and it is not in the first line of the document (note: cursor's doc row field is not used during checking because editor_top starts at the same index that cursor's row starts at)
 
                             // Get the current line's string
