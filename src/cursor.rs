@@ -104,38 +104,7 @@ impl Cursor {
         }
     }
 
-    pub fn reposition_after_resize(
-        &mut self,
-        document: &mut Document,
-        editor_dim: &Editor,
-        editor_dim_change: (bool, bool, usize, bool, bool),
-    ) {
-        //! new_pos - An index value of where in the line the cursor should visually appear
-        //! Assumed to be the current line the cursor is inside of
-        //! editor_dim_change - (current half cursor is in, is width changed, which is greater,
-        //!                      difference, is height changed, difference)
-        //!
-        //! Current half cursor is in will be either 0 or 1, top or bottom respectively
-
-        let (w_changed, w_expand, cursor_half, h_changed, h_expand) = editor_dim_change;
-
-        if self.row == editor_dim.editor_height + 1
-            || (cursor_half == 1 && document.visible_rows.0 != 0)
-        {
-            // If the visual cursor is at the position directly before the bottom most
-            // row of the editor or it is located in the second half and the first
-            // visible row is not the first row of the document
-
-            self.move_up();
-        }
-    }
-
-    pub fn move_to_start_line(
-        &mut self,
-        document: &mut Document,
-        editor_dim: &Editor,
-        editor_home_row: usize,
-    ) {
+    pub fn move_to_start_line(&mut self, document: &mut Document, editor_dim: &Editor) {
         let curr_line = document.get_line_at_cursor(self.doc_row);
         let cursor_pos = self.get_position_in_line(&document, editor_dim);
 
@@ -164,7 +133,7 @@ impl Cursor {
                     curr_line_first_row += 1;
                 }
 
-                self.move_to(editor_home_row, self.column);
+                self.move_to(editor_dim.editor_home_row, self.column);
 
                 reset_editor_view(document, editor_dim, self);
             }
