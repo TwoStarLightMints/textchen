@@ -69,7 +69,7 @@ impl Cursor {
                 // less than the last row of the current line
 
                 self.move_to(
-                    (curr_line_final_row - document.visible_rows.0) + editor_dim.editor_top,
+                    (curr_line_final_row - document.visible_rows.0) + editor_dim.editor_home_row,
                     (curr_line.1.len() % editor_dim.editor_width) + editor_dim.editor_left_edge,
                 );
 
