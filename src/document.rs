@@ -68,17 +68,17 @@ pub struct Rows {
 }
 
 impl Rows {
-    pub fn new(rows: Vec<(usize, String)>) -> Self {
-        let curr = Some(rows[0].clone());
-        if rows.len() > 0 {
+    pub fn new(opt_rows: Option<Vec<(usize, String)>>) -> Self {
+        if let Some(rows) = opt_rows {
+            let curr = Some(rows[0].clone());
             Self {
-                rows,
+                rows: rows,
                 curr_ind: 0,
                 curr,
             }
         } else {
             Self {
-                rows,
+                rows: Vec::new(),
                 curr_ind: 0,
                 curr: None,
             }
@@ -95,7 +95,7 @@ impl Iterator for Rows {
             None => None,
         };
 
-        if self.curr_ind + 1 != self.rows.len() {
+        if self.curr_ind + 1 < self.rows.len() {
             self.curr_ind += 1;
             self.curr = Some(self.rows[self.curr_ind].clone());
         } else {
@@ -288,6 +288,16 @@ impl Document {
         }
     }
 
+    pub fn add_scratch_line(&mut self) {
+        //! This function is to be used to add a new line when there are no lines at all present in the document
+        //! Possibly generalized in coming while
+        let mut blank = Line::new();
+
+        blank.0.push(0);
+
+        self.lines.push(blank);
+    }
+
     pub fn recalculate_indices(&mut self, editor_width: usize) {
         let mut ind_counter = 0;
 
@@ -320,32 +330,36 @@ impl Document {
     pub fn rows(&self, editor_width: usize) -> Rows {
         let mut rows: Vec<_> = Vec::new();
 
-        for line in self.lines.iter() {
-            if line.1.len() > 0 {
-                // If line is not empty, this guard needs to be here due to a graphical bug I encountered
+        if self.lines.len() > 0 {
+            for line in self.lines.iter() {
+                if line.1.len() > 0 {
+                    // If line is not empty, this guard needs to be here due to a graphical bug I encountered
 
-                let mut chars = line.1.chars().peekable();
+                    let mut chars = line.1.chars().peekable();
 
-                let mut sub_rows: Vec<_> = Vec::new();
+                    let mut sub_rows: Vec<_> = Vec::new();
 
-                while let Some(_) = chars.by_ref().peek() {
-                    let next_row_content = chars.by_ref().take(editor_width).collect::<String>();
-                    sub_rows.push(next_row_content);
+                    while let Some(_) = chars.by_ref().peek() {
+                        let next_row_content =
+                            chars.by_ref().take(editor_width).collect::<String>();
+                        sub_rows.push(next_row_content);
+                    }
+
+                    line.0
+                        .iter()
+                        .zip(sub_rows.iter())
+                        .map(|e| (*e.0, e.1.clone()))
+                        .for_each(|e| rows.push(e));
+                } else {
+                    // If line is empty
+
+                    rows.push((line.0[0], "".to_string()));
                 }
-
-                line.0
-                    .iter()
-                    .zip(sub_rows.iter())
-                    .map(|e| (*e.0, e.1.clone()))
-                    .for_each(|e| rows.push(e));
-            } else {
-                // If line is empty
-
-                rows.push((line.0[0], "".to_string()));
             }
+            Rows::new(Some(rows))
+        } else {
+            Rows::new(None)
         }
-
-        Rows::new(rows)
     }
 
     pub fn push_vis_down(&mut self) {
