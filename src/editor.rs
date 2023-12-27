@@ -3,7 +3,6 @@ use crate::document::*;
 use crate::term::clear_screen;
 use crate::term::get_char;
 use crate::term::{kbhit, Wh};
-use std::env::current_dir;
 use std::fs::File;
 use std::io::Read;
 use std::io::{self, Write};
@@ -156,11 +155,10 @@ pub fn redraw_screen(
     //! dimensions - The new dimensions of the terminal screen after resize
     //! editor_dim - The old dimensions of the editor screen
 
-    todo!("Implement recalculating visible rows and moving cursor up and down");
-
-    let curr_line = document.get_line_at_cursor(cursor.doc_row);
     let curr_line_index = document.get_index_at_cursor(cursor.doc_row).unwrap();
     let curr_pos = cursor.get_position_in_line(&document, editor_dim);
+
+    let original_width = editor_dim.editor_width;
 
     // Save to see if it will be at least within the right line or an adjacent one instead of only going to the start of the editor
     cursor.save_current_pos();
@@ -190,24 +188,18 @@ pub fn redraw_screen(
 
     document.recalculate_indices(editor_dim.editor_width);
 
-    let mut f = File::create("thing.txt").unwrap();
+    if cursor.row + 1 >= editor_dim.editor_bottom && editor_dim.editor_width < original_width {
+        // If the next position of the cursor is the editor's bottom
 
-    f.write(
-        format!(
-            "curr_pos: {}, current line index: {}, first visible row: {}, offset: {}",
-            curr_pos,
-            curr_line_index,
-            document.visible_rows.0,
-            curr_line_index - document.visible_rows.0
-        )
-        .as_bytes(),
-    )
-    .unwrap();
+        document.push_vis_down();
+    } else if editor_dim.editor_width > original_width {
+        document.push_vis_up(&editor_dim);
+    }
 
     cursor.move_to_pos(
         curr_pos,
-        &curr_line,
-        document.visible_rows.1 - document.visible_rows.0,
+        &document.lines[curr_line_index],
+        &document,
         editor_dim,
     );
 }
@@ -229,8 +221,6 @@ pub fn same_line_different_row_bump(
     //! This function is used to move a cursor to the appropriate position within a line when moving vertically
     //! "Appropriate" here means that if the cursor is in a row of a line other than the beginning line, the very first position the
     //! cursor should be able to take is on top of the second character of the row
-
-    // TODO: Fix moving back and forth at the home position of the editor
 
     if cursor_pos == 0
         && ((curr_line == next_line
@@ -280,24 +270,11 @@ pub fn create_document(file_name: Option<String>, editor_dim: &Editor) -> Docume
             }
             Err(_) => Document::new(ifile, "".to_string(), editor_dim),
         }
-
-        // // Move cursor to home to print file name
-        // move_cursor_home();
-        // print!("{}", &document.file_name);
-
-        // // Display document
-        // display_document(&document, &editor_dim, &mut cursor);
     } else {
         // No file name provided
 
         // Create new empty document with default name scratch
         Document::new("scratch".to_string(), "".to_string(), &editor_dim)
-
-        // // Move cursor to home to print file name
-        // move_cursor_home();
-
-        // // Print scratch to screen instead of file name
-        // print!("scratch");
     }
 }
 

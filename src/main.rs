@@ -88,6 +88,7 @@ fn main() {
 
     // Main loop for program
     loop {
+        todo!("Fix vis pushing");
         if dimensions.check_term_resize() {
             redraw_screen(
                 &dimensions,

@@ -374,11 +374,32 @@ impl Document {
     pub fn push_vis_up(&mut self, editor_dim: &Editor) {
         //! Do not worry about "showing rows that aren't there" the reset_editor_view will do the rest for you
 
-        if self.visible_rows.1 - self.visible_rows.0 != editor_dim.editor_height {
-            self.visible_rows.0 -= 1;
-        } else {
-            self.visible_rows.0 -= 1;
+        if self.visible_rows.1 - self.visible_rows.0 > editor_dim.editor_height + 2 {
+            if self.visible_rows.0 > 0 {
+                self.visible_rows.0 -= 1;
+            }
+        } else if (self.visible_rows.1 - self.visible_rows.0) - 1 == editor_dim.editor_height {
+            if self.visible_rows.0 > 0 {
+                self.visible_rows.0 -= 1;
+            }
             self.visible_rows.1 -= 1;
+        }
+    }
+
+    pub fn shrink_vis(&mut self) {
+        if self.visible_rows.0 + 1 < self.visible_rows.1 {
+            self.visible_rows.0 += 1;
+            self.visible_rows.1 -= 1;
+        }
+    }
+
+    pub fn expand_vis(&mut self) {
+        if self.visible_rows.0 > 0 {
+            self.visible_rows.0 -= 1;
+        }
+
+        if self.visible_rows.1 < self.lines.len() {
+            self.visible_rows.1 += 1;
         }
     }
 }
