@@ -1,6 +1,6 @@
 use std::env;
 use std::fs::{self, File};
-use std::io::{Read, Write};
+use std::io::Write;
 #[allow(unused_imports)]
 use textchen::debug::*;
 use textchen::{cursor::*, document::*, editor::*, gapbuf::*, term::*};
@@ -38,20 +38,13 @@ fn main() {
     // Title row is the home row
     // row: 0, column: 0
 
-    // TODO: Get rid of this variable
-    let editor_home: (usize, usize) = (editor_dim.editor_home_row, editor_dim.editor_left_edge);
-
     // Get the command line arguments to the program
 
     let mut args = env::args();
 
     // Skip the first argument, this is unnecessary to the program
 
-    args.next();
-
-    // This is the buffer which will hold the document's raw string content and user commands
-
-    let mut buf = String::new();
+    let _ = args.next();
 
     // Prep the screen to draw the editor and the document to the screen, switching to alt buffer to not erase entire screen
 
@@ -61,7 +54,7 @@ fn main() {
     // This cursor will be the cursor used throughout the document to draw and access elements from the
     // document
 
-    let mut cursor = Cursor::new(editor_home.0, editor_home.1);
+    let mut cursor = Cursor::new(editor_dim.editor_home_row, editor_dim.editor_left_edge);
 
     // This variable is like a more structured buffer for the whole document
     let mut document = create_document(args.next(), &editor_dim);
@@ -75,10 +68,14 @@ fn main() {
     print!("NOR");
 
     // Move the cursor to the editor home
-    cursor.move_to(editor_home.0, editor_home.1);
+    cursor.move_to(editor_dim.editor_home_row, editor_dim.editor_left_edge);
 
     // Initialize the gap buffer, it will be replaced later when editing actual text
     let mut gap_buf = GapBuf::new();
+
+    // This is the buffer which will hold user commands
+
+    let mut buf = String::new();
 
     // Stores the state of the mode for the program, starts with Modes::Normal
     let mut mode = Modes::Normal;
@@ -110,7 +107,6 @@ fn main() {
                         // Store the position of the cursor in the original line, save on method calls
 
                         let cursor_pos = cursor.get_position_in_line(&document, &editor_dim);
-
                         let curr_line = document.get_line_at_cursor(cursor.doc_row);
 
                         if cursor.row < editor_dim.editor_height {
@@ -207,7 +203,7 @@ fn main() {
                         if document.visible_rows.0 != 0 {
                             // If the document's visible rows does not include the first row
 
-                            if cursor.row - 1 > editor_home.0 {
+                            if cursor.row - 1 > editor_dim.editor_home_row {
                                 // If moving the cursor visually updwards will not be the home row of the editor
 
                                 cursor.move_up();
@@ -236,7 +232,7 @@ fn main() {
                                     cursor.move_to_end_line(&mut document, &editor_dim);
                                 }
                             }
-                        } else if cursor.row != editor_home.0 {
+                        } else if cursor.row != editor_dim.editor_home_row {
                             // If the cursor is not visually on the editor's home row
 
                             // Get the current position of the cursor
@@ -276,7 +272,9 @@ fn main() {
                         } else if cursor_pos / editor_dim.editor_width != 0 && cursor_pos != 0 {
                             // If the row in the line where the cursor is is not the first row of the line and the cursor is not at the first position of the line
 
-                            if document.visible_rows.0 == 0 || cursor.row > editor_home.0 {
+                            if document.visible_rows.0 == 0
+                                || cursor.row > editor_dim.editor_home_row
+                            {
                                 // If the document's visible rows does include the first row
 
                                 cursor.move_up();
@@ -307,7 +305,7 @@ fn main() {
 
                             change_mode(&mut mode, Modes::Normal, editor_dim.mode_row, &mut cursor);
                         } else if new_c == 'g' {
-                            cursor.move_to(editor_home.0, editor_home.1);
+                            cursor.move_to(editor_dim.editor_home_row, editor_dim.editor_left_edge);
                             cursor.move_doc_to(0, 0);
 
                             document.visible_rows.0 = 0;
@@ -317,7 +315,7 @@ fn main() {
 
                             change_mode(&mut mode, Modes::Normal, editor_dim.mode_row, &mut cursor);
                         } else if new_c == 'e' {
-                            cursor.move_to(editor_dim.editor_height, editor_home.1);
+                            cursor.move_to(editor_dim.editor_height, editor_dim.editor_left_edge);
                             cursor
                                 .move_doc_to(*document.lines.last().unwrap().0.last().unwrap(), 0);
 
@@ -481,7 +479,9 @@ fn main() {
                             // Remove the next character in the gap buffer
                             gap_buf.pop();
 
-                            if document.visible_rows.0 == 0 || cursor.row > editor_home.0 {
+                            if document.visible_rows.0 == 0
+                                || cursor.row > editor_dim.editor_home_row
+                            {
                                 // If the document's visible rows does include the first row
 
                                 // Move the cursor to the previous row
