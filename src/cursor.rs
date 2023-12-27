@@ -144,15 +144,10 @@ impl Cursor {
         &mut self,
         new_pos: usize,
         current_line: &Line,
-        visibile_range: usize,
+        document: &Document,
         editor_dim: &Editor,
     ) {
         //! visible_range : Expected to be the last visible row minus the first
-
-        // let new_row = (new_pos / (editor_dim.editor_width + 1))
-        //     + offset_from_editor_home
-        //     + editor_dim.editor_home_row;
-        let new_row = (self.doc_row % visibile_range) + editor_dim.editor_home_row;
 
         // If the new position is 0, just set it to 0, otherwise, the new column will be equal
         // to the new position mod the editor's width plus 1 (to allow for the cursor to hang
@@ -166,8 +161,6 @@ impl Cursor {
                 + (new_pos / (editor_dim.editor_width + 1))
         };
 
-        self.move_to(new_row, new_column);
-
         // For calculating the cursor's position within the document, use the current line to
         // grab the first row index in the current line, using this as the starting point
         // add the calculated row to that index to get the new document row, then use the
@@ -176,6 +169,16 @@ impl Cursor {
             current_line.0[0] + (new_pos / (editor_dim.editor_width + 1)),
             new_column - editor_dim.editor_left_edge,
         );
+
+        let new_row = (self.doc_row - document.visible_rows.0) + editor_dim.editor_home_row;
+
+        let safe_row = if new_row >= editor_dim.editor_bottom - 1 {
+            editor_dim.editor_bottom - 1
+        } else {
+            new_row
+        };
+
+        self.move_to(safe_row, new_column);
     }
 
     pub fn move_to(&mut self, new_row: usize, new_col: usize) {
