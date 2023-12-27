@@ -86,9 +86,15 @@ fn main() {
 
     let char_channel = spawn_char_channel();
 
+    debug_log_document(&document, &mut log_file);
+
     // Main loop for program
     loop {
         if dimensions.check_term_resize() {
+            debug_log_message("Before resize cursor pos:\n".to_string(), &mut log_file);
+
+            debug_log_cursor(&cursor, &mut log_file);
+
             redraw_screen(
                 &dimensions,
                 &mut mode,
@@ -96,6 +102,10 @@ fn main() {
                 &mut editor_dim,
                 &mut cursor,
             );
+
+            debug_log_message("After resize cursor pos:\n".to_string(), &mut log_file);
+
+            debug_log_cursor(&cursor, &mut log_file);
         }
 
         match char_channel.try_recv() {
