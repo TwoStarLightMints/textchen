@@ -1,4 +1,4 @@
-use crate::document::Document;
+use crate::document::{Document, Line};
 use crate::editor::{reset_editor_view, Editor};
 use crate::term::move_cursor_to;
 
@@ -138,6 +138,45 @@ impl Cursor {
                 reset_editor_view(document, editor_dim, self);
             }
         }
+    }
+
+    pub fn move_to_pos(
+        &mut self,
+        new_pos: usize,
+        current_line: &Line,
+        offset_from_editor_home: usize,
+        editor_dim: &Editor,
+    ) {
+        //! offset_from_editor_home : This is expected to be calculated before passing to function,
+        //!     calculated by subratracting the cursor's document row from the first element of the
+        //!     document's visible rows field
+
+        let naive_row = (new_pos / (editor_dim.editor_width + 1))
+            + offset_from_editor_home
+            + editor_dim.editor_home_row;
+
+        // If the new position is 0, just set it to 0, otherwise, the new column will be equal
+        // to the new position mod the editor's width plus 1 (to allow for the cursor to hang
+        // on the right side) plus the editor's left edge to start the counting from within
+        // the editor's window, and then add the "row" to give the necessary bump in movement
+        let new_column = if new_pos == 0 {
+            editor_dim.editor_left_edge
+        } else {
+            new_pos % (editor_dim.editor_width + 1)
+                + editor_dim.editor_left_edge
+                + (new_pos / (editor_dim.editor_width + 1))
+        };
+
+        self.move_to(naive_row, new_column);
+
+        // For calculating the cursor's position within the document, use the current line to
+        // grab the first row index in the current line, using this as the starting point
+        // add the calculated row to that index to get the new document row, then use the
+        // above calculated new column value minus the editor's left edge
+        self.move_doc_to(
+            current_line.0[0] + (new_pos / (editor_dim.editor_width + 1)),
+            new_column - editor_dim.editor_left_edge,
+        );
     }
 
     pub fn move_to(&mut self, new_row: usize, new_col: usize) {
