@@ -156,6 +156,8 @@ pub fn redraw_screen(
     //! dimensions - The new dimensions of the terminal screen after resize
     //! editor_dim - The old dimensions of the editor screen
 
+    todo!("Implement recalculating visible rows and moving cursor up and down");
+
     let curr_line = document.get_line_at_cursor(cursor.doc_row);
     let curr_line_index = document.get_index_at_cursor(cursor.doc_row).unwrap();
     let curr_pos = cursor.get_position_in_line(&document, editor_dim);
@@ -188,10 +190,24 @@ pub fn redraw_screen(
 
     document.recalculate_indices(editor_dim.editor_width);
 
+    let mut f = File::create("thing.txt").unwrap();
+
+    f.write(
+        format!(
+            "curr_pos: {}, current line index: {}, first visible row: {}, offset: {}",
+            curr_pos,
+            curr_line_index,
+            document.visible_rows.0,
+            curr_line_index - document.visible_rows.0
+        )
+        .as_bytes(),
+    )
+    .unwrap();
+
     cursor.move_to_pos(
         curr_pos,
         &curr_line,
-        curr_line_index - document.visible_rows.0,
+        document.visible_rows.1 - document.visible_rows.0,
         editor_dim,
     );
 }
