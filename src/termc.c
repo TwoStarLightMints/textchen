@@ -48,8 +48,8 @@ void set_cooked_term() {
 
   struct termios cooked = raw;
 
-  cooked.c_lflag &= ECHO;
-  cooked.c_lflag &= ICANON;
+  cooked.c_lflag |= ECHO;
+  cooked.c_lflag |= ICANON;
 
   tcsetattr(0, TCSANOW, &cooked);;
 
