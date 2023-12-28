@@ -88,7 +88,6 @@ fn main() {
 
     // Main loop for program
     loop {
-        todo!("Fix vis pushing");
         if dimensions.check_term_resize() {
             redraw_screen(
                 &dimensions,
@@ -221,7 +220,7 @@ fn main() {
                                 // If the cursor is visually below the editor's home row
 
                                 cursor.move_doc_up();
-                                document.push_vis_up(&editor_dim);
+                                document.push_vis_up();
 
                                 reset_editor_view(&document, &editor_dim, &mut cursor);
 
@@ -282,7 +281,7 @@ fn main() {
                             } else {
                                 // If the document's visible rows does not include the first row
 
-                                document.push_vis_up(&editor_dim);
+                                document.push_vis_up();
 
                                 reset_editor_view(&document, &editor_dim, &mut cursor);
                             }
@@ -361,7 +360,7 @@ fn main() {
                                         &document.get_line_at_cursor(cursor.doc_row).0;
 
                                     while curr_line_inds[0] != document.visible_rows.0 {
-                                        document.push_vis_up(&editor_dim);
+                                        document.push_vis_up();
                                     }
                                 }
                             }
@@ -490,7 +489,7 @@ fn main() {
                             } else {
                                 // If the document's visible rows does not include the first row
 
-                                document.push_vis_up(&editor_dim);
+                                document.push_vis_up();
                             }
 
                             // Move the cursor to the end of the previous row
@@ -547,7 +546,7 @@ fn main() {
                             // Remove the current line from the document
                             document.remove_line_from_doc(cursor.doc_row, editor_dim.editor_width);
 
-                            document.push_vis_up(&editor_dim);
+                            document.push_vis_up();
 
                             // Move to the previous line
                             cursor.move_doc_up();
@@ -877,9 +876,9 @@ fn main() {
         }
     }
 
+    return_to_normal_buf();
+
     // Similar to set_raw, only used/needed on linux
     #[cfg(target_os = "linux")]
     set_cooked();
-
-    return_to_normal_buf();
 }
