@@ -233,7 +233,7 @@ impl Document {
         //! Every document is a collection of Lines, and a Line is a collection of rows and a string.
         //! So, the number of rows will be the total number of rows that the document spans in the
         //! editor.
-        // Bare in mind, getting the indices allow is 0 indexed, so add 1 to get real number
+        //! The number of rows is similar to getting the length of a line
 
         match self.lines.last() {
             Some(line) => {
