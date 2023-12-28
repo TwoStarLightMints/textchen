@@ -363,43 +363,22 @@ impl Document {
     }
 
     pub fn push_vis_down(&mut self) {
-        //! Do not worry about "showing rows that aren't there" the reset_editor_view will do the rest for you
+        //! Manipulate the visible rows of the document in such a way as to give the appearance of
+        //! pushing the view down
 
-        self.visible_rows.0 += 1;
-        if self.visible_rows.1 < self.num_rows() {
+        if self.visible_rows.1 < self.num_rows() + 1 {
+            self.visible_rows.0 += 1;
             self.visible_rows.1 += 1;
         }
     }
 
-    pub fn push_vis_up(&mut self, editor_dim: &Editor) {
-        //! Do not worry about "showing rows that aren't there" the reset_editor_view will do the rest for you
+    pub fn push_vis_up(&mut self) {
+        //! Manipulate the visible rows of the document in such a way as to give the appearance of
+        //! pushing the view up
 
-        if self.visible_rows.1 - self.visible_rows.0 > editor_dim.editor_height + 2 {
-            if self.visible_rows.0 > 0 {
-                self.visible_rows.0 -= 1;
-            }
-        } else if (self.visible_rows.1 - self.visible_rows.0) - 1 == editor_dim.editor_height {
-            if self.visible_rows.0 > 0 {
-                self.visible_rows.0 -= 1;
-            }
-            self.visible_rows.1 -= 1;
-        }
-    }
-
-    pub fn shrink_vis(&mut self) {
-        if self.visible_rows.0 + 1 < self.visible_rows.1 {
-            self.visible_rows.0 += 1;
-            self.visible_rows.1 -= 1;
-        }
-    }
-
-    pub fn expand_vis(&mut self) {
         if self.visible_rows.0 > 0 {
             self.visible_rows.0 -= 1;
-        }
-
-        if self.visible_rows.1 < self.lines.len() {
-            self.visible_rows.1 += 1;
+            self.visible_rows.1 -= 1;
         }
     }
 }
