@@ -157,8 +157,13 @@ pub fn redraw_screen(
 
     let curr_line_index = document.get_index_at_cursor(cursor.doc_row).unwrap();
     let curr_pos = cursor.get_position_in_line(&document, editor_dim);
+    let curr_num_above = document.num_above_rows(
+        editor_dim.editor_width,
+        document.lines[curr_line_index].0[0],
+    );
 
     let original_width = editor_dim.editor_width;
+    let original_height = editor_dim.editor_height;
 
     // Save to see if it will be at least within the right line or an adjacent one instead of only going to the start of the editor
     cursor.save_current_pos();
@@ -180,20 +185,78 @@ pub fn redraw_screen(
     // Return to the previous cursor position
     cursor.revert_pos();
 
-    // Redraw document
-    reset_editor_view(document, editor_dim, cursor);
-
     // Redraw mode
     change_mode(curr_mode, *curr_mode, editor_dim.mode_row, cursor);
 
     document.recalculate_indices(editor_dim.editor_width);
 
-    if cursor.row + 1 >= editor_dim.editor_bottom && editor_dim.editor_width < original_width {
-        // If the next position of the cursor is the editor's bottom
+    // If cursor_half is true, the cursor is located in the top half of the editor, else
+    // it is in the bottom half
+    let cursor_half = (cursor.row - 2) < editor_dim.editor_height / 2;
 
-        document.push_vis_down();
+    if original_width > editor_dim.editor_width {
+        // If the original width is greater than the new width (the screen is shrinking horizontally)
+
+        let new_num_above = document.num_above_rows(
+            editor_dim.editor_width,
+            document.lines[curr_line_index].0[0],
+        );
+
+        if new_num_above > curr_num_above {
+            // If the number of lines above the current line is greater than the original number of lines
+            // that were above the current line
+
+            for _ in 0..(new_num_above - curr_num_above) {
+                document.push_vis_down();
+            }
+        }
     } else if editor_dim.editor_width > original_width {
-        document.push_vis_up(&editor_dim);
+        let new_num_above = document.num_above_rows(
+            editor_dim.editor_width,
+            document.lines[curr_line_index].0[0],
+        );
+
+        if curr_num_above > new_num_above {
+            for _ in 0..(curr_num_above - new_num_above) {
+                document.push_vis_up();
+            }
+        }
+    }
+
+    if original_height > editor_dim.editor_height {
+        // If the original height is greater than the new height (the screen is shrinking vertically)
+
+        if cursor_half {
+            // If the cursor is in the first half of the editor
+
+            document.visible_rows.1 -= original_height - editor_dim.editor_height;
+        } else {
+            // If the cursor is in the second half of the editor
+
+            document.visible_rows.0 += original_height - editor_dim.editor_height;
+        }
+    } else if editor_dim.editor_height > original_height {
+        // If the new height is greater than the original height (the screen is growing vertically)
+
+        if cursor_half {
+            // If the cursor is in the first half of the editor
+
+            if document.visible_rows.1 <= *document.lines.last().unwrap().0.last().unwrap() {
+                document.visible_rows.1 += editor_dim.editor_height - original_height;
+            } else {
+                if document.visible_rows.0 != 0 {
+                    document.visible_rows.0 -= editor_dim.editor_height - original_height;
+                }
+            }
+        } else {
+            // If the cursor is in the second half of the editor
+
+            if document.visible_rows.0 != 0 {
+                document.visible_rows.0 -= editor_dim.editor_height - original_height;
+            } else {
+                document.visible_rows.1 += editor_dim.editor_height - original_height;
+            }
+        }
     }
 
     cursor.move_to_pos(
@@ -202,6 +265,9 @@ pub fn redraw_screen(
         &document,
         editor_dim,
     );
+
+    // Redraw document
+    reset_editor_view(document, editor_dim, cursor);
 }
 
 // ==================== CURSOR HELPER FUNCTIONS ====================
