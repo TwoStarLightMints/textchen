@@ -1,4 +1,4 @@
 0|Render alternative whitespace characters beyond just spaces and effectively new line characters|[1|Tabs as 4 spaces|]
 0|Add registers|[0|Add in editor register|%0|Add ability to paste in system clipboard|]
 0|Add selections|
-0|Properly abstract out the repition in the function in the editor file to redraw the editor screen and also add protections against the exponential increase in characters moved when resizing|
+0|Make compatible with Windows|
