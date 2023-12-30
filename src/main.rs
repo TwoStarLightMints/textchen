@@ -109,9 +109,11 @@ fn main() {
                         let cursor_pos = cursor.get_position_in_line(&document, &editor_dim);
                         let curr_line = document.get_line_at_cursor(cursor.doc_row);
 
-                        if cursor.row < editor_dim.editor_height {
+                        if cursor.row < editor_dim.editor_height
+                            && cursor.doc_row != *document.lines.last().unwrap().0.last().unwrap()
+                        {
                             // If the cursor's visual row is less than the height of the editor (the editor's height refers to the number of rows *downward* that the
-                            // editor's screen spans)
+                            // editor's screen spans) and the cursor's row in relation to the document is not equal to the last row
 
                             // Move the cursor visually down to the next row
                             cursor.move_down();
