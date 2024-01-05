@@ -1,18 +1,9 @@
-#include <stdio.h>
-#include <stdbool.h>
 #include "termc.h"
 
-#ifdef __linux__
-#include <asm-generic/ioctls.h>
+#include <stdio.h>
 #include <termios.h>
 #include <sys/ioctl.h>
 #include <unistd.h>
-#endif
-
-#ifdef _WIN32
-#include <conio.h>
-#include <Windows.h>
-#endif
 
 struct wh {
   unsigned int width;
@@ -21,7 +12,6 @@ struct wh {
 
 // Set the terminal into raw mode (i.e. do not wait for the user to press return to accept and begin processing the input)
 void set_raw_term() {
-  #ifdef __linux__
   struct termios cooked;
 
   // Get the current settings for the terminal
@@ -35,13 +25,10 @@ void set_raw_term() {
 
   // Set the new setting for the terminal now
   tcsetattr(0, TCSANOW, &raw);
-
-  #endif
 }
 
 // Set the terminal into cooked mode (i.e. return the terminal to its original state), simply do the reverse of the above
 void set_cooked_term() {
-  #ifdef __linux__
   struct termios raw;
 
   tcgetattr(0, &raw);
@@ -53,26 +40,10 @@ void set_cooked_term() {
 
   tcsetattr(0, TCSANOW, &cooked);;
 
-  #endif
-}
-
-// Get a character from the user, easy enough to just implement in C
-char get_ch() {
-  char c;
-
-  #ifdef __linux__
-  scanf("%c", &c);
-  #endif
-
-  #ifdef _WIN32
-  c = getch();
-  #endif
-
-  return c;
 }
 
 // Check if keyboard key was hit
-unsigned int l_kbhit() {
+unsigned int c_kbhit() {
   int waiting;
 
   ioctl(STDIN_FILENO, FIONREAD, &waiting);
@@ -81,29 +52,21 @@ unsigned int l_kbhit() {
 }
 
 struct wh get_term_size() {
-  #ifdef __linux__
   struct winsize w;
-  
+
   ioctl(STDOUT_FILENO, TIOCGWINSZ, &w);
 
   struct wh res = { .width = w.ws_col, .height = w.ws_row };
 
   return res;
 
-  #endif
+}
 
-  #ifdef _WIN32
-  HANDLE hStdout = GetStdHandle(STD_OUTPUT_HANDLE);
-  CONSOLE_SCREEN_BUFFER_INFO csbiInfo;
+// Get a character from the user, easy enough to just implement in C
+char get_ch() {
+  char c;
 
-  if (!GetConsoleScreenBufferInfo(hStdout, &csbiInfo)) {
-    fprintf(stderr, "Error getting console screen buffer info");
-    exit(1);
-  }
+  scanf("%c", &c);
 
-  struct wh res = { .width = (unsigned int)csbiInfo.dwSize.X, .height = (unsigned int)csbiInfo.dwSize.Y };
-
-  return res;
-
-  #endif
+  return c;
 }

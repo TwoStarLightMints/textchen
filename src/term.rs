@@ -36,13 +36,11 @@ pub struct WidthHeight {
 }
 
 extern "C" {
-    #[cfg(target_os = "linux")]
     fn set_raw_term();
-    #[cfg(target_os = "linux")]
     fn set_cooked_term();
-    fn get_ch() -> c_char;
-    fn l_kbhit() -> c_uint;
+    fn c_kbhit() -> c_uint;
     fn get_term_size() -> WidthHeight;
+    fn get_ch() -> c_char;
 }
 
 #[cfg(target_os = "linux")]
@@ -65,7 +63,7 @@ pub fn get_char() -> char {
 
 pub fn kbhit() -> bool {
     // If the result is 0, it should be false, so return the inverse
-    unsafe { l_kbhit() != 0 }
+    unsafe { c_kbhit() != 0 }
 }
 
 pub fn term_size() -> Wh {

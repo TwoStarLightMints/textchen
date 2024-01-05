@@ -17,10 +17,7 @@ const I_LOWER: u8 = 105;
 const COLON: u8 = 58;
 const ESC: u8 = 27;
 const BCKSP: u8 = 127;
-#[cfg(target_os = "linux")]
 const RETURN: u8 = 10;
-#[cfg(target_os = "windows")]
-const RETURN: u8 = 13;
 // ==== ASCII KEY CODE VALUES ====
 
 fn main() {
@@ -81,7 +78,6 @@ fn main() {
     let mut mode = Modes::Normal;
 
     // Set the terminal to raw input mode, this is only possible and needed on linux systems
-    #[cfg(target_os = "linux")]
     set_raw();
 
     let char_channel = spawn_char_channel();
@@ -881,6 +877,5 @@ fn main() {
     return_to_normal_buf();
 
     // Similar to set_raw, only used/needed on linux
-    #[cfg(target_os = "linux")]
     set_cooked();
 }
