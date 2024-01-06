@@ -18,7 +18,6 @@ const COLON: u8 = 58;
 const ESC: u8 = 27;
 const BCKSP: u8 = 127;
 const RETURN: u8 = 10;
-// ==== ASCII KEY CODE VALUES ====
 
 fn main() {
     // Used to log debug info to
@@ -77,9 +76,10 @@ fn main() {
     // Stores the state of the mode for the program, starts with Modes::Normal
     let mut mode = Modes::Normal;
 
-    // Set the terminal to raw input mode, this is only possible and needed on linux systems
+    // Set the terminal to raw input mode
     set_raw();
 
+    // This will be the channel to receive the characters entered by the user
     let char_channel = spawn_char_channel();
 
     // Main loop for program
@@ -112,7 +112,7 @@ fn main() {
                             // editor's screen spans) and the cursor's row in relation to the document is not equal to the last row
 
                             // Move the cursor visually down to the next row
-                            cursor.move_down();
+                            cursor.move_vis_down();
                             // Move the cursor down to the next row within the document
                             cursor.move_doc_down();
                         } else if cursor.doc_row
@@ -155,7 +155,7 @@ fn main() {
                             // If the cursor's position in the current line is less than the length of the total line and the cursor's column in relation to the document
                             // is less than or equal to the editor's width
 
-                            cursor.move_right();
+                            cursor.move_vis_right();
                             cursor.move_doc_right();
                         } else if cursor_pos < curr_line.1.len()
                             && curr_line.0.contains(&(cursor.doc_row + 1))
@@ -167,7 +167,7 @@ fn main() {
                                 // If the cursor's row is less than the editor's height
 
                                 // Move down to the next row
-                                cursor.move_down();
+                                cursor.move_vis_down();
                             } else {
                                 // If the cursor's row is at the editor's height
 
@@ -183,7 +183,7 @@ fn main() {
 
                             // Because the end of the previous line is included within the conditions of the previous if clause, move the cursor to the right of the immediate next
                             // chracter in the line
-                            cursor.move_right();
+                            cursor.move_vis_right();
 
                             // Set the place of the cursor within the document properly
                             cursor.move_doc_down();
@@ -204,7 +204,7 @@ fn main() {
                             if cursor.row - 1 > editor_dim.editor_home_row {
                                 // If moving the cursor visually updwards will not be the home row of the editor
 
-                                cursor.move_up();
+                                cursor.move_vis_up();
                                 cursor.move_doc_up();
 
                                 if cursor_pos
@@ -236,7 +236,7 @@ fn main() {
                             // Get the current position of the cursor
                             let cursor_pos = cursor.get_position_in_line(&document, &editor_dim);
 
-                            cursor.move_up();
+                            cursor.move_vis_up();
                             cursor.move_doc_up();
 
                             if document.get_line_at_cursor(cursor.doc_row).0.len() == 1
@@ -265,7 +265,7 @@ fn main() {
                             // If moving the cursor left does not reach the first column of the editor's field (i.e. the cursor will not be moved to the first possible column where characters can be printed to)
                             // or the cursor is at the second position of the line
 
-                            cursor.move_left();
+                            cursor.move_vis_left();
                             cursor.move_doc_left();
                         } else if cursor_pos / editor_dim.editor_width != 0 && cursor_pos != 0 {
                             // If the row in the line where the cursor is is not the first row of the line and the cursor is not at the first position of the line
@@ -275,7 +275,7 @@ fn main() {
                             {
                                 // If the document's visible rows does include the first row
 
-                                cursor.move_up();
+                                cursor.move_vis_up();
                             } else {
                                 // If the document's visible rows does not include the first row
 
@@ -346,7 +346,7 @@ fn main() {
                                         // Move the cursor to the previous row
                                         cursor.move_to_start_line(&mut document, &editor_dim);
                                     } else {
-                                        cursor.move_up();
+                                        cursor.move_vis_up();
                                         cursor.move_to_start_line(&mut document, &editor_dim);
                                     }
                                 }
@@ -400,7 +400,7 @@ fn main() {
                             // If the cursor's row is less than the editor's height
 
                             // Move down to the next row
-                            cursor.move_down();
+                            cursor.move_vis_down();
                         } else {
                             // If the cursor's row is at the editor's height
 
@@ -461,7 +461,7 @@ fn main() {
                             gap_buf.pop();
 
                             // Only move the cursor to the left
-                            cursor.move_left();
+                            cursor.move_vis_left();
                             cursor.move_doc_left();
 
                             document.set_line_at_cursor(
@@ -483,7 +483,7 @@ fn main() {
                                 // If the document's visible rows does include the first row
 
                                 // Move the cursor to the previous row
-                                cursor.move_up();
+                                cursor.move_vis_up();
                             } else {
                                 // If the document's visible rows does not include the first row
 
@@ -514,7 +514,7 @@ fn main() {
                             document.remove_line_from_doc(cursor.doc_row, editor_dim.editor_width);
 
                             // Move to the previous line
-                            cursor.move_up();
+                            cursor.move_vis_up();
                             cursor.move_doc_up();
 
                             // Move to the end of the previous line
@@ -581,7 +581,7 @@ fn main() {
                             gap_buf.insert(c as char);
 
                             // Move the cursor to the right
-                            cursor.move_right();
+                            cursor.move_vis_right();
                             cursor.move_doc_right();
 
                             // Set the current line's string content to the gap buffer
@@ -610,7 +610,7 @@ fn main() {
                                 // If the cursor's row is less than the editor's height
 
                                 // Move down to the next row
-                                cursor.move_down();
+                                cursor.move_vis_down();
                             } else {
                                 document.push_vis_down();
                             }
@@ -619,7 +619,7 @@ fn main() {
                             cursor.move_to_editor_left(editor_dim.editor_left_edge);
 
                             // Move the cursor to the right to provide space for the character that was inserted
-                            cursor.move_right();
+                            cursor.move_vis_right();
 
                             cursor.move_doc_down();
                             cursor.move_doc_to_editor_left();
@@ -648,7 +648,7 @@ fn main() {
                             // If the cursor's row is less than the editor's height
 
                             // Move down to the next row
-                            cursor.move_down();
+                            cursor.move_vis_down();
                         } else {
                             // If the cursor's row is at the editor's height
 
@@ -718,7 +718,7 @@ fn main() {
                         print_flush(":");
 
                         // Move the cursor to align with the colon
-                        cursor.move_right();
+                        cursor.move_vis_right();
                     }
                     // Execute command while in command mdoe
                     RETURN if mode == Modes::Command => {
@@ -864,7 +864,7 @@ fn main() {
                         // Display the character to the screen, stdout will be flush on cursor move
                         print!("{}", c as char);
 
-                        cursor.move_right();
+                        cursor.move_vis_right();
                     }
 
                     _ => (),

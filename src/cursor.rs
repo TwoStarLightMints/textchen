@@ -23,27 +23,73 @@ impl Cursor {
         }
     }
 
-    pub fn get_position_in_line(&self, document: &Document, editor_dim: &Editor) -> usize {
-        // document.get_line_at_cursor(cursor.row).0.iter().position(|i| *i == cursor.row - 2) * editor_right : skip x amount of lines, refer to this line as skip_amount
-        // skip_amount + cursor.column
+    // =================== Cursor Movement Functions ===================
+    pub fn move_to(&mut self, new_row: usize, new_col: usize) {
+        self.row = new_row;
+        self.column = new_col;
 
-        // self.doc_row : The row of the cursor in relation to the document, will be equal to an index of one of the Lines within the document
-        // self.doc_column : The column of the cursor in relation to the document, will be within the string in some way
-
-        // document.get_line_at_cursor(self.doc_row).0.iter.position(|i| *i == self.doc_row).unwrap() : Returns the row number within the line that the cursor lies
-        // /\ * editor_width : The above times the editor's width will give the amount of spaces to skip given the row of the cursor in relation to the document
-        // /\ + doc_column : This will be the position of the cursor within the line
-
-        (document
-            .get_line_at_cursor(self.doc_row)
-            .0
-            .iter()
-            .position(|i| *i == self.doc_row)
-            .unwrap()
-            * editor_dim.editor_width)
-            + self.doc_column
+        self.update_pos()
     }
 
+    pub fn move_doc_to(&mut self, new_doc_row: usize, new_doc_col: usize) {
+        self.doc_row = new_doc_row;
+        self.doc_column = new_doc_col;
+    }
+
+    // ------------------- Cursor Visual Movement -------------------
+    pub fn move_vis_up(&mut self) {
+        //! Used to move within the editor visually
+        self.row -= 1;
+        self.update_pos();
+    }
+    pub fn move_vis_left(&mut self) {
+        //! Used to move within the editor visually
+        self.column -= 1;
+        self.update_pos();
+    }
+    pub fn move_vis_down(&mut self) {
+        //! Used to move within the editor visually
+        self.row += 1;
+        self.update_pos();
+    }
+    pub fn move_vis_right(&mut self) {
+        //! Used to move within the editor visually
+        self.column += 1;
+        self.update_pos();
+    }
+
+    // ------------------- Cursor Movement Within Document -------------------
+    pub fn move_doc_up(&mut self) {
+        //! Used to move within the document for editing
+        self.doc_row -= 1;
+    }
+
+    pub fn move_doc_left(&mut self) {
+        //! Used to move within the document for editing
+        self.doc_column -= 1;
+    }
+
+    pub fn move_doc_down(&mut self) {
+        //! Used to move within the document for editing
+        self.doc_row += 1;
+    }
+
+    pub fn move_doc_right(&mut self) {
+        //! Used to move within the document for editing
+        self.doc_column += 1;
+    }
+
+    pub fn revert_pos(&mut self) {
+        //! Pops the last saved row and column from the prev_row and prev_col stacks
+        //! and moves the cursor to that saved position
+
+        let old_row = self.prev_row.pop().unwrap();
+        let old_col = self.prev_col.pop().unwrap();
+
+        self.move_to(old_row, old_col);
+    }
+
+    // ------------------- Cursor Movement Related To Lines -------------------
     pub fn move_to_end_line(&mut self, document: &mut Document, editor_dim: &Editor) {
         //! This method will only be called when the cursor is within a given line
         //! This will move both the cursor's visual position *AND* the doc position
@@ -181,59 +227,7 @@ impl Cursor {
         self.move_to(safe_row, new_column);
     }
 
-    pub fn move_to(&mut self, new_row: usize, new_col: usize) {
-        self.row = new_row;
-        self.column = new_col;
-
-        self.update_pos()
-    }
-
-    pub fn move_doc_to(&mut self, new_doc_row: usize, new_doc_col: usize) {
-        self.doc_row = new_doc_row;
-        self.doc_column = new_doc_col;
-    }
-
-    pub fn move_up(&mut self) {
-        //! Used to move within the editor visually
-        self.row -= 1;
-        self.update_pos();
-    }
-    pub fn move_left(&mut self) {
-        //! Used to move within the editor visually
-        self.column -= 1;
-        self.update_pos();
-    }
-    pub fn move_down(&mut self) {
-        //! Used to move within the editor visually
-        self.row += 1;
-        self.update_pos();
-    }
-    pub fn move_right(&mut self) {
-        //! Used to move within the editor visually
-        self.column += 1;
-        self.update_pos();
-    }
-
-    pub fn move_doc_up(&mut self) {
-        //! Used to move within the document for editing
-        self.doc_row -= 1;
-    }
-
-    pub fn move_doc_left(&mut self) {
-        //! Used to move within the document for editing
-        self.doc_column -= 1;
-    }
-
-    pub fn move_doc_down(&mut self) {
-        //! Used to move within the document for editing
-        self.doc_row += 1;
-    }
-
-    pub fn move_doc_right(&mut self) {
-        //! Used to move within the document for editing
-        self.doc_column += 1;
-    }
-
+    // ------------------- Cursor Movement Related Within Editor -------------------
     pub fn move_to_editor_left(&mut self, editor_left_edge: usize) {
         self.move_to(self.row, editor_left_edge);
     }
@@ -255,24 +249,42 @@ impl Cursor {
         self.doc_column = editor_width;
     }
 
-    fn update_pos(&self) {
-        move_cursor_to(self.row, self.column)
-    }
+    // =================== Cursor Position Retrieval Functions ===================
+    pub fn get_position_in_line(&self, document: &Document, editor_dim: &Editor) -> usize {
+        // document.get_line_at_cursor(cursor.row).0.iter().position(|i| *i == cursor.row - 2) * editor_right : skip x amount of lines, refer to this line as skip_amount
+        // skip_amount + cursor.column
 
-    pub fn save_current_pos(&mut self) {
-        self.prev_row.push(self.row);
-        self.prev_col.push(self.column);
-    }
+        // self.doc_row : The row of the cursor in relation to the document, will be equal to an index of one of the Lines within the document
+        // self.doc_column : The column of the cursor in relation to the document, will be within the string in some way
 
-    pub fn revert_pos(&mut self) {
-        let old_row = self.prev_row.pop().unwrap();
-        let old_col = self.prev_col.pop().unwrap();
+        // document.get_line_at_cursor(self.doc_row).0.iter.position(|i| *i == self.doc_row).unwrap() : Returns the row number within the line that the cursor lies
+        // /\ * editor_width : The above times the editor's width will give the amount of spaces to skip given the row of the cursor in relation to the document
+        // /\ + doc_column : This will be the position of the cursor within the line
 
-        self.move_to(old_row, old_col);
+        (document
+            .get_line_at_cursor(self.doc_row)
+            .0
+            .iter()
+            .position(|i| *i == self.doc_row)
+            .unwrap()
+            * editor_dim.editor_width)
+            + self.doc_column
     }
 
     pub fn get_column_in_editor(&self, editor_left_edge: usize) -> usize {
         //! Used to get column with respect to the editor's left edge (take away the amount that the left edge adds)
         self.column - editor_left_edge
+    }
+
+    // =================== Utility Functions ===================
+    pub fn save_current_pos(&mut self) {
+        self.prev_row.push(self.row);
+        self.prev_col.push(self.column);
+    }
+
+    fn update_pos(&self) {
+        //! Used to set the cursor's visual position to the stored row and column
+
+        move_cursor_to(self.row, self.column)
     }
 }

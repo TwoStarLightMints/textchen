@@ -94,7 +94,7 @@ pub fn display_document(document: &Document, editor_dim: &Editor, cursor: &mut C
             .take(document.visible_rows.1)
         {
             print!("{}", row.1);
-            cursor.move_down();
+            cursor.move_vis_down();
             cursor.move_to_editor_left(editor_dim.editor_left_edge);
         }
     } else {
@@ -104,7 +104,7 @@ pub fn display_document(document: &Document, editor_dim: &Editor, cursor: &mut C
             .take(document.visible_rows.1 - document.visible_rows.0)
         {
             print!("{}", row.1);
-            cursor.move_down();
+            cursor.move_vis_down();
             cursor.move_to_editor_left(editor_dim.editor_left_edge);
         }
     }
@@ -126,7 +126,7 @@ pub fn clear_editor_window(editor_dim: &Editor, cursor: &mut Cursor) {
     for _ in 0..editor_dim.editor_height {
         print!("{: >1$}", "", editor_dim.editor_right_edge);
 
-        cursor.move_down();
+        cursor.move_vis_down();
     }
 
     cursor.revert_pos();
@@ -299,7 +299,7 @@ pub fn same_line_different_row_bump(
         //     to the new position of the cursor
         //     The next line is a multiline and the cursor's row in relation to the document is not equal to the next line's first row index
 
-        cursor.move_right();
+        cursor.move_vis_right();
         cursor.move_doc_right();
     } else if (curr_line != next_line && next_line.0[0] > curr_line.0[0] && cursor.doc_column == 1)
         || (curr_line == next_line
@@ -312,7 +312,7 @@ pub fn same_line_different_row_bump(
         //     The current line is the next line and the cursor's positon mod the editor's width is 1 and the cursor's row in relation to
         //     the document is equal to the next line's first row index
 
-        cursor.move_left();
+        cursor.move_vis_left();
         cursor.move_doc_left();
     }
 }
