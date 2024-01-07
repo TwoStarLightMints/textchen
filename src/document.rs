@@ -72,7 +72,7 @@ impl Rows {
         if let Some(rows) = opt_rows {
             let curr = Some(rows[0].clone());
             Self {
-                rows: rows,
+                rows,
                 curr_ind: 0,
                 curr,
             }
@@ -143,20 +143,20 @@ impl Document {
         }
     }
 
-    pub fn get_str_at_cursor(&self, cursor_doc_row: usize) -> String {
+    pub fn get_str_at_cursor(&self, cursor_doc_row: usize) -> &str {
         //! Returns the string content of the line which is located at the cursor's row relative to the document
 
         match self.get_index_at_cursor(cursor_doc_row) {
-            Ok(ind) => self.lines[ind].1.clone(),
+            Ok(ind) => &self.lines[ind].1,
             Err(message) => panic!("{message}"),
         }
     }
 
-    pub fn get_line_at_cursor(&self, cursor_doc_row: usize) -> Line {
+    pub fn get_line_at_cursor(&self, cursor_doc_row: usize) -> &Line {
         //! Returns the entire line which is located at the cursor's row relative to the document
 
         match self.get_index_at_cursor(cursor_doc_row) {
-            Ok(ind) => self.lines[ind].clone(),
+            Ok(ind) => &self.lines[ind],
             Err(message) => panic!("{message}"),
         }
     }
@@ -185,34 +185,25 @@ impl Document {
     pub fn set_line_at_cursor(
         &mut self,
         cursor_doc_row: usize,
-        new_line: String,
+        new_str: String,
         editor_width: usize,
     ) {
         //! Sets the line's string value at cursor_row to new_line and recalculates the line's indices
         //! as well as the following lines according to the editor_width
-        let mut dest = self.get_line_at_cursor(cursor_doc_row); // The line to be re-set
 
-        dest.1 = new_line;
+        let line_ind = self.get_index_at_cursor(cursor_doc_row).unwrap();
 
-        let changed_line = Line::from_existing(dest, editor_width, cursor_doc_row);
+        self.lines[line_ind].1 = new_str;
 
-        let mut ind_to_change = 0;
+        self.recalculate_indices(editor_width);
+    }
 
-        for line in self.lines.iter() {
-            if line.0.contains(&(cursor_doc_row)) {
-                break;
-            }
+    pub fn append_to_line(&mut self, cursor_doc_row: usize, suffix: &str, editor_width: usize) {
+        let line_ind = self.get_index_at_cursor(cursor_doc_row).unwrap();
 
-            ind_to_change += 1;
-        }
+        self.lines[line_ind].1 += suffix;
 
-        let original = self.lines[ind_to_change].clone();
-
-        self.lines[ind_to_change] = changed_line.clone();
-
-        if original.0 != changed_line.0 {
-            self.recalculate_indices(editor_width);
-        }
+        self.recalculate_indices(editor_width);
     }
 
     pub fn to_string(&self) -> String {

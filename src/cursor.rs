@@ -79,6 +79,29 @@ impl Cursor {
         self.doc_column += 1;
     }
 
+    // ------------------- Cursor Movement Visual And Within Document -------------------
+    pub fn move_up(&mut self) {
+        self.row -= 1;
+        self.doc_row -= 1;
+        self.update_pos();
+    }
+    pub fn move_left(&mut self) {
+        self.column -= 1;
+        self.doc_column -= 1;
+        self.update_pos();
+    }
+    pub fn move_down(&mut self) {
+        self.row += 1;
+        self.doc_row += 1;
+        self.update_pos();
+    }
+    pub fn move_right(&mut self) {
+        self.column += 1;
+        self.doc_column += 1;
+        self.update_pos();
+    }
+
+    // ------------------- Cursor Movement To Previous -------------------
     pub fn revert_pos(&mut self) {
         //! Pops the last saved row and column from the prev_row and prev_col stacks
         //! and moves the cursor to that saved position
