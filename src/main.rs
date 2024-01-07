@@ -103,7 +103,6 @@ fn main() {
                         // Store the position of the cursor in the original line, save on method calls
 
                         let cursor_pos = cursor.get_position_in_line(&document, &editor_dim);
-                        let curr_line = document.get_line_at_cursor(cursor.doc_row);
 
                         if cursor.row < editor_dim.editor_height
                             && cursor.doc_row != *document.lines.last().unwrap().0.last().unwrap()
@@ -111,10 +110,7 @@ fn main() {
                             // If the cursor's visual row is less than the height of the editor (the editor's height refers to the number of rows *downward* that the
                             // editor's screen spans) and the cursor's row in relation to the document is not equal to the last row
 
-                            // Move the cursor visually down to the next row
-                            cursor.move_vis_down();
-                            // Move the cursor down to the next row within the document
-                            cursor.move_doc_down();
+                            cursor.move_down();
                         } else if cursor.doc_row
                             != *document.lines.last().unwrap().0.last().unwrap()
                         {
@@ -136,7 +132,7 @@ fn main() {
                         same_line_different_row_bump(
                             cursor_pos,
                             &editor_dim,
-                            curr_line,
+                            document.get_line_at_cursor(cursor.doc_row - 1),
                             document.get_line_at_cursor(cursor.doc_row),
                             &document,
                             &mut cursor,
@@ -155,8 +151,7 @@ fn main() {
                             // If the cursor's position in the current line is less than the length of the total line and the cursor's column in relation to the document
                             // is less than or equal to the editor's width
 
-                            cursor.move_vis_right();
-                            cursor.move_doc_right();
+                            cursor.move_right();
                         } else if cursor_pos < curr_line.1.len()
                             && curr_line.0.contains(&(cursor.doc_row + 1))
                         {
@@ -180,22 +175,20 @@ fn main() {
 
                             // Move to the cursor visually the left edge of the editor
                             cursor.move_to_editor_left(editor_dim.editor_left_edge);
-
-                            // Because the end of the previous line is included within the conditions of the previous if clause, move the cursor to the right of the immediate next
-                            // chracter in the line
-                            cursor.move_vis_right();
-
-                            // Set the place of the cursor within the document properly
-                            cursor.move_doc_down();
                             // Make the cursor's doc_column value 0 and then move it to the right (increment it) because the cursor needs to hover over the second character of the row
                             // in this particular case
                             cursor.move_doc_to_editor_left();
-                            cursor.move_doc_right();
+
+                            // Because the end of the previous line is included within the conditions of the previous if clause, move the cursor to the right of the immediate next
+                            // chracter in the line
+                            cursor.move_right();
+
+                            // Set the place of the cursor within the document properly
+                            cursor.move_doc_down();
                         }
                     }
                     // Move up
                     K_LOWER if mode == Modes::Normal => {
-                        let curr_line = document.get_line_at_cursor(cursor.doc_row);
                         let cursor_pos = cursor.get_position_in_line(&document, &editor_dim);
 
                         if document.visible_rows.0 != 0 {
@@ -204,8 +197,7 @@ fn main() {
                             if cursor.row - 1 > editor_dim.editor_home_row {
                                 // If moving the cursor visually updwards will not be the home row of the editor
 
-                                cursor.move_vis_up();
-                                cursor.move_doc_up();
+                                cursor.move_up();
 
                                 if cursor_pos
                                     > document.get_line_at_cursor(cursor.doc_row).1.len() + 1
@@ -236,8 +228,7 @@ fn main() {
                             // Get the current position of the cursor
                             let cursor_pos = cursor.get_position_in_line(&document, &editor_dim);
 
-                            cursor.move_vis_up();
-                            cursor.move_doc_up();
+                            cursor.move_up();
 
                             if document.get_line_at_cursor(cursor.doc_row).0.len() == 1
                                 && cursor_pos > document.get_line_at_cursor(cursor.doc_row).1.len()
@@ -249,7 +240,7 @@ fn main() {
                         same_line_different_row_bump(
                             cursor_pos,
                             &editor_dim,
-                            curr_line,
+                            document.get_line_at_cursor(cursor.doc_row - 1),
                             document.get_line_at_cursor(cursor.doc_row),
                             &document,
                             &mut cursor,
@@ -265,8 +256,7 @@ fn main() {
                             // If moving the cursor left does not reach the first column of the editor's field (i.e. the cursor will not be moved to the first possible column where characters can be printed to)
                             // or the cursor is at the second position of the line
 
-                            cursor.move_vis_left();
-                            cursor.move_doc_left();
+                            cursor.move_left();
                         } else if cursor_pos / editor_dim.editor_width != 0 && cursor_pos != 0 {
                             // If the row in the line where the cursor is is not the first row of the line and the cursor is not at the first position of the line
 
@@ -285,8 +275,9 @@ fn main() {
                             }
 
                             cursor.move_doc_to_editor_width(editor_dim.editor_width);
-                            cursor.move_doc_up();
                             cursor.move_to_editor_right(editor_dim.editor_right_edge);
+
+                            cursor.move_doc_up();
                         }
                     }
                     G_LOWER if mode == Modes::Normal => {
@@ -355,7 +346,7 @@ fn main() {
                                     && cursor.row == editor_dim.editor_home_row
                                 {
                                     let curr_line_inds =
-                                        &document.get_line_at_cursor(cursor.doc_row).0;
+                                        document.get_line_at_cursor(cursor.doc_row).0.clone();
 
                                     while curr_line_inds[0] != document.visible_rows.0 {
                                         document.push_vis_up();
@@ -374,7 +365,7 @@ fn main() {
                         if document.lines.len() > 0 {
                             // Create a new gap buffer from the string at the current cursor position
                             gap_buf = GapBuf::from_str(
-                                document.get_str_at_cursor(cursor.doc_row),
+                                document.get_str_at_cursor(cursor.doc_row).to_owned(),
                                 cursor.get_position_in_line(&document, &editor_dim),
                             );
                         } else {
@@ -457,12 +448,33 @@ fn main() {
                         if cursor.doc_column > 1 || cursor_pos == 1 {
                             // If the cursor is one space away from being on top of the first column of characters (i.e. the cursor is within the line)
 
-                            // Remove the next character in the gap buffer
-                            gap_buf.pop();
+                            let num_leading_spaces = (document
+                                .get_line_at_cursor(cursor.doc_row)
+                                .1
+                                .chars()
+                                .take_while(|c| *c == ' ')
+                                .count()
+                                / 4)
+                                * 4;
 
-                            // Only move the cursor to the left
-                            cursor.move_vis_left();
-                            cursor.move_doc_left();
+                            if num_leading_spaces
+                                == cursor.get_position_in_line(&document, &editor_dim)
+                                && num_leading_spaces % 4 == 0
+                            {
+                                // If the number of leading spaces is equivalent to the cursor's current position and
+                                // the number of leading spaces is divisible by 4
+
+                                gap_buf.pop_tab();
+
+                                for _ in 0..4 {
+                                    cursor.move_left();
+                                }
+                            } else {
+                                // Remove the next character in the gap buffer
+                                gap_buf.pop();
+
+                                cursor.move_left();
+                            }
 
                             document.set_line_at_cursor(
                                 cursor.doc_row,
@@ -508,28 +520,26 @@ fn main() {
                             // If the cursor is at the first positon of the line and it is not in the first line of the document (note: cursor's doc row field is not used during checking because editor_top starts at the same index that cursor's row starts at)
 
                             // Get the current line's string
-                            let curr_str = document.get_str_at_cursor(cursor.doc_row);
+                            let curr_str = document.get_str_at_cursor(cursor.doc_row).to_owned();
 
                             // Remove the current line from the document
                             document.remove_line_from_doc(cursor.doc_row, editor_dim.editor_width);
 
                             // Move to the previous line
-                            cursor.move_vis_up();
-                            cursor.move_doc_up();
+                            cursor.move_up();
 
                             // Move to the end of the previous line
                             cursor.move_to_end_line(&mut document, &editor_dim);
 
-                            // Set the previous line's string value to its current string appended with the contents of the current line string
-                            document.set_line_at_cursor(
+                            document.append_to_line(
                                 cursor.doc_row,
-                                document.get_str_at_cursor(cursor.doc_row) + &curr_str,
+                                &curr_str,
                                 editor_dim.editor_width,
                             );
 
                             // Create a new gap buffer based on the new string at the cursor position
                             gap_buf = GapBuf::from_str(
-                                document.get_str_at_cursor(cursor.doc_row),
+                                document.get_str_at_cursor(cursor.doc_row).to_owned(),
                                 cursor.get_position_in_line(&document, &editor_dim),
                             );
 
@@ -539,7 +549,7 @@ fn main() {
                             // If the cursor is at the first positon of the line and the first visible row is not the first row of the document
 
                             // Get the current line's string
-                            let curr_str = document.get_str_at_cursor(cursor.doc_row);
+                            let curr_str = document.get_str_at_cursor(cursor.doc_row).to_owned();
 
                             // Remove the current line from the document
                             document.remove_line_from_doc(cursor.doc_row, editor_dim.editor_width);
@@ -552,16 +562,15 @@ fn main() {
                             // Move to the end of the previous line
                             cursor.move_to_end_line(&mut document, &editor_dim);
 
-                            // Set the previous line's string value to its current string appended with the contents of the current line string
-                            document.set_line_at_cursor(
+                            document.append_to_line(
                                 cursor.doc_row,
-                                document.get_str_at_cursor(cursor.doc_row) + &curr_str,
+                                &curr_str,
                                 editor_dim.editor_width,
                             );
 
                             // Create a new gap buffer based on the new string at the cursor position
                             gap_buf = GapBuf::from_str(
-                                document.get_str_at_cursor(cursor.doc_row),
+                                document.get_str_at_cursor(cursor.doc_row).to_owned(),
                                 cursor.get_position_in_line(&document, &editor_dim),
                             );
 
@@ -631,8 +640,20 @@ fn main() {
                     }
                     // Insert a character while in insert mode
                     c if mode == Modes::Insert && c == RETURN => {
+                        debug_log_cursor(&cursor, &mut log_file);
                         // Collect the two sides of the gap buffer
-                        let (lhs, rhs) = gap_buf.collect_to_pieces();
+                        let (lhs, mut rhs) = gap_buf.collect_to_pieces();
+
+                        let num_spaces = (document
+                            .get_line_at_cursor(cursor.doc_row)
+                            .1
+                            .chars()
+                            .take_while(|c| *c == ' ')
+                            .count()
+                            / 4)
+                            * 4;
+
+                        rhs = (0..num_spaces).into_iter().map(|_| ' ').collect::<String>() + &rhs;
 
                         // Set the current line to the left hand side of the gap buffer
                         document.set_line_at_cursor(
@@ -672,10 +693,19 @@ fn main() {
 
                         gap_buf = GapBuf::from_line(
                             document.get_line_at_cursor(cursor.doc_row),
-                            cursor.get_position_in_line(&document, &editor_dim),
+                            num_spaces,
+                        );
+
+                        cursor.move_to_pos(
+                            num_spaces,
+                            document.get_line_at_cursor(cursor.doc_row),
+                            &document,
+                            &editor_dim,
                         );
 
                         reset_editor_view(&document, &editor_dim, &mut cursor);
+
+                        debug_log_cursor(&cursor, &mut log_file);
                     }
                     c if mode == Modes::Insert && c as char == '\t' => {
                         // For now, a tab is represented as four spaces
@@ -684,13 +714,20 @@ fn main() {
                             gap_buf.insert(' ');
                         }
 
+                        let curr_pos = cursor.get_position_in_line(&document, &editor_dim);
+
                         document.set_line_at_cursor(
-                            cursor.row,
+                            cursor.doc_row,
                             gap_buf.to_string(),
                             editor_dim.editor_width,
                         );
 
-                        cursor.move_to_end_line(&mut document, &editor_dim);
+                        cursor.move_to_pos(
+                            curr_pos + 4,
+                            document.get_line_at_cursor(cursor.doc_row),
+                            &document,
+                            &editor_dim,
+                        );
 
                         reset_editor_view(&document, &editor_dim, &mut cursor);
                     }
