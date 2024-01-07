@@ -275,8 +275,8 @@ pub fn redraw_screen(
 pub fn same_line_different_row_bump(
     cursor_pos: usize,
     editor_dim: &Editor,
-    curr_line: Line,
-    next_line: Line,
+    curr_line: &Line,
+    next_line: &Line,
     document: &Document,
     cursor: &mut Cursor,
 ) {
