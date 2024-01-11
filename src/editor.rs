@@ -34,11 +34,16 @@ pub fn change_mode(curr: &mut Modes, new_mode: Modes, mode_row: usize, cursor: &
 
     cursor.move_to(mode_row, 0);
 
+    print!("\u{001b}[30;47m\u{001b}[K");
+    io::stdout().flush().unwrap();
+
+    cursor.move_to(mode_row, 0);
+
     match curr {
-        Modes::Normal => print!("NOR"),
-        Modes::Insert => print!("INS"),
-        Modes::Command => print!("COM"),
-        Modes::MoveTo => print!("MOV"),
+        Modes::Normal => print!("NOR\u{001b}[0m"),
+        Modes::Insert => print!("INS\u{001b}[0m"),
+        Modes::Command => print!("COM\u{001b}[0m"),
+        Modes::MoveTo => print!("MOV\u{001b}[0m"),
     };
 
     io::stdout().flush().unwrap();
@@ -299,8 +304,7 @@ pub fn same_line_different_row_bump(
         //     to the new position of the cursor
         //     The next line is a multiline and the cursor's row in relation to the document is not equal to the next line's first row index
 
-        cursor.move_vis_right();
-        cursor.move_doc_right();
+        cursor.move_right();
     } else if (curr_line != next_line && next_line.0[0] > curr_line.0[0] && cursor.doc_column == 1)
         || (curr_line == next_line
             && cursor_pos % editor_dim.editor_width == 1
@@ -312,8 +316,7 @@ pub fn same_line_different_row_bump(
         //     The current line is the next line and the cursor's positon mod the editor's width is 1 and the cursor's row in relation to
         //     the document is equal to the next line's first row index
 
-        cursor.move_vis_left();
-        cursor.move_doc_left();
+        cursor.move_left();
     }
 }
 

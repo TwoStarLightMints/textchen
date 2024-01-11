@@ -59,10 +59,6 @@ fn main() {
     print!("{}", &document.file_name);
     display_document(&document, &editor_dim, &mut cursor);
 
-    // Print the mode to the screen, in this case, the default is normal
-    cursor.move_to(editor_dim.mode_row, 0);
-    print!("NOR");
-
     // Move the cursor to the editor home
     cursor.move_to(editor_dim.editor_home_row, editor_dim.editor_left_edge);
 
@@ -75,6 +71,8 @@ fn main() {
 
     // Stores the state of the mode for the program, starts with Modes::Normal
     let mut mode = Modes::Normal;
+
+    change_mode(&mut mode, Modes::Normal, editor_dim.mode_row, &mut cursor);
 
     // Set the terminal to raw input mode
     set_raw();
@@ -237,10 +235,15 @@ fn main() {
                                 cursor.move_to_end_line(&mut document, &editor_dim);
                             }
                         }
+
                         same_line_different_row_bump(
                             cursor_pos,
                             &editor_dim,
-                            document.get_line_at_cursor(cursor.doc_row - 1),
+                            if cursor.doc_row > 0 {
+                                document.get_line_at_cursor(cursor.doc_row - 1)
+                            } else {
+                                document.get_line_at_cursor(cursor.doc_row)
+                            },
                             document.get_line_at_cursor(cursor.doc_row),
                             &document,
                             &mut cursor,
