@@ -1,5 +1,4 @@
 /target
 *.o
 *.a
-test.txt
-log.txt
+*.txt
