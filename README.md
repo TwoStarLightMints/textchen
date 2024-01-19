@@ -15,8 +15,6 @@ You will need to have rust installed on your machine
 
 ```
 $ git clone https://github.com/TwoStarLightMints/textchen.git
-```
-```
 $ cargo install --path ./textchen
 ```
 
