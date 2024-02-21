@@ -16,8 +16,19 @@ fn main() {
         .status()
         .unwrap();
 
+    // Calling the archive libtermc.a in linux is necessary
+    // due to a quirk when compiling on linux
+
+    #[cfg(target_os = "linux")]
     Command::new("ar")
         .args(&["crus", "libtermc.a", "termc.o"])
+        .current_dir(&Path::new(out_dir))
+        .status()
+        .unwrap();
+
+    #[cfg(target_os = "windows")]
+    Command::new("ar")
+        .args(&["rcs", "termc.lib", "termc.o"])
         .current_dir(&Path::new(out_dir))
         .status()
         .unwrap();
