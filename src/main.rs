@@ -75,6 +75,7 @@ fn main() {
     change_mode(&mut mode, Modes::Normal, editor_dim.mode_row, &mut cursor);
 
     // Set the terminal to raw input mode
+    #[cfg(target_os = "linux")]
     set_raw();
 
     // This will be the channel to receive the characters entered by the user
@@ -916,6 +917,7 @@ fn main() {
 
     return_to_normal_buf();
 
+    #[cfg(target_os = "linux")]
     // Similar to set_raw, only used/needed on linux
     set_cooked();
 }
