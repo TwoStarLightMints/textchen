@@ -1,14 +1,28 @@
 #include "termc.h"
 
 #include <stdio.h>
-#include <termios.h>
-#include <sys/ioctl.h>
-#include <unistd.h>
 
 struct wh {
   unsigned int width;
   unsigned int height;
 };
+
+#ifdef __linux__
+
+#include <termios.h>
+#include <sys/ioctl.h>
+#include <unistd.h>
+
+struct wh get_term_size() {
+  struct winsize w;
+
+  ioctl(STDOUT_FILENO, TIOCGWINSZ, &w);
+
+  struct wh res = { .width = w.ws_col, .height = w.ws_row };
+
+  return res;
+
+}
 
 // Set the terminal into raw mode (i.e. do not wait for the user to press return to accept and begin processing the input)
 void set_raw_term() {
@@ -42,6 +56,15 @@ void set_cooked_term() {
 
 }
 
+// Get a character from the user, easy enough to just implement in C
+char get_ch() {
+  char c;
+
+  scanf("%c", &c);
+
+  return c;
+}
+
 // Check if keyboard key was hit
 unsigned int c_kbhit() {
   int waiting;
@@ -51,22 +74,35 @@ unsigned int c_kbhit() {
   return waiting > 0;
 }
 
+#endif
+
+#ifdef _WIN32
+
+#include <Windows.h>
+#include <conio.h>
+
 struct wh get_term_size() {
-  struct winsize w;
+  HANDLE hConsoleOutput;
+  CONSOLE_SCREEN_BUFFER_INFO csbi;
 
-  ioctl(STDOUT_FILENO, TIOCGWINSZ, &w);
+  hConsoleOutput = GetStdHandle(STD_OUTPUT_HANDLE);
 
-  struct wh res = { .width = w.ws_col, .height = w.ws_row };
+  GetConsoleScreenBufferInfo(hConsoleOutput, &csbi);
 
-  return res;
+  struct wh widthHeight = {
+    .width = csbi.dwSize.X,
+    .height = csbi.dwSize.Y
+    };
 
+    return widthHeight;
 }
 
-// Get a character from the user, easy enough to just implement in C
 char get_ch() {
-  char c;
-
-  scanf("%c", &c);
-
-  return c;
+  return (char) _getch();
 }
+
+unsigned int c_kbhit() {
+  return _kbhit();
+}
+
+#endif
