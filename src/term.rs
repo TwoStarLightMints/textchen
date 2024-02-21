@@ -36,11 +36,15 @@ pub struct WidthHeight {
 }
 
 extern "C" {
-    fn set_raw_term();
-    fn set_cooked_term();
     fn c_kbhit() -> c_uint;
     fn get_term_size() -> WidthHeight;
     fn get_ch() -> c_char;
+}
+
+#[cfg(target_os = "linux")]
+extern "C" {
+    fn set_raw_term();
+    fn set_cooked_term();
 }
 
 #[cfg(target_os = "linux")]
