@@ -8,7 +8,7 @@ Textchen is not necessarily meant to be a drop in replacement for such text edit
 
 Textchen uses most of the traditional text editor motion keys such as h, j, k, and l, and it also uses i to enter insert mode, o to create a new line below the current one. More functionality to come.
 
-Note: while I have put some work into making this program crossplatorm it has been primarily tested on linx (debian and arch).
+Note: While I have put some work into making this program crossplatorm it has been primarily tested on linux (debian and arch). I have begun porting to Windows, and textchen should work properly on Windows machines.
 
 ## Install
 You will need to have rust installed on your machine
