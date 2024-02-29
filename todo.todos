@@ -3,4 +3,3 @@
 0|Optimize and remove the many clone statements|
 0|Add Windows compatibility|[0|Update drawing functions to work with Windows API|]
 0|Create documentation for others of how I dealt with the C files, it was insane|
-0|Fix movement within lines not moving cursor to end of line if it is a multiline line|
