@@ -3,7 +3,13 @@ use std::fs::{self, File};
 use std::io::Write;
 #[allow(unused_imports)]
 use textchen::debug::*;
-use textchen::{cursor::*, document::*, editor::*, gapbuf::*, term::*};
+use textchen::{
+    cursor::*,
+    document::{self, *},
+    editor::*,
+    gapbuf::*,
+    term::*,
+};
 
 // ==== ASCII KEY CODE VALUES ====
 const J_LOWER: u8 = 106;
@@ -110,6 +116,14 @@ fn main() {
                             // editor's screen spans) and the cursor's row in relation to the document is not equal to the last row
 
                             cursor.move_down();
+
+                            let curr_line = document.get_line_at_cursor(cursor.doc_row);
+
+                            if cursor.doc_column > curr_line.1.len() % editor_dim.editor_width
+                                && cursor.doc_row == *curr_line.0.last().unwrap()
+                            {
+                                cursor.move_to_end_line(&mut document, &editor_dim);
+                            }
                         } else if cursor.doc_row
                             != *document.lines.last().unwrap().0.last().unwrap()
                         {
