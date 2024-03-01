@@ -40,8 +40,9 @@ fn reset_color() {
     print!("\u{001b}[0;0m");
 }
 
-fn print_colored(color: (&str, &str), message: &str) {
-    print!("{}{}", create_color(Some(color.0), Some(color.1)), message);
+pub fn print_colored(color: (Option<&str>, Option<&str>), message: &str) {
+    //! (foreground color, background color)
+    print!("{}{}", create_color(color.0, color.1), message);
 
     reset_color();
 }

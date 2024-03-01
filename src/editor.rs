@@ -3,6 +3,7 @@ use crate::document::*;
 use crate::term::clear_screen;
 use crate::term::get_char;
 use crate::term::{kbhit, Wh};
+use crate::term_color;
 use std::fs::File;
 use std::io::Read;
 use std::io::{self, Write};
@@ -40,7 +41,7 @@ pub fn change_mode(curr: &mut Modes, new_mode: Modes, mode_row: usize, cursor: &
     cursor.move_to(mode_row, 0);
 
     match curr {
-        Modes::Normal => print!("NOR\u{001b}[0m"),
+        Modes::Normal => term_color::print_colored((Some("0;0;0"), Some("255;255;255")), "NOR"),
         Modes::Insert => print!("INS\u{001b}[0m"),
         Modes::Command => print!("COM\u{001b}[0m"),
         Modes::MoveTo => print!("MOV\u{001b}[0m"),
