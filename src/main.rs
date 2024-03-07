@@ -3,13 +3,7 @@ use std::fs::{self, File};
 use std::io::Write;
 #[allow(unused_imports)]
 use textchen::debug::*;
-use textchen::{
-    cursor::*,
-    document::{self, *},
-    editor::*,
-    gapbuf::*,
-    term::*,
-};
+use textchen::{cursor::*, document::*, editor::*, gapbuf::*, term::*};
 
 // ==== ASCII KEY CODE VALUES ====
 const J_LOWER: u8 = 106;
@@ -769,8 +763,9 @@ fn main() {
                         // Move cursor to command row
                         cursor.move_to(editor_dim.command_row, 1);
 
-                        // Print a colon
-                        print_flush(":");
+                        print!(":");
+
+                        std::io::stdout().flush().unwrap();
 
                         // Move the cursor to align with the colon
                         cursor.move_vis_right();
@@ -916,8 +911,10 @@ fn main() {
                         // Push the pressed character to the buffer
                         buf.push(c as char);
 
-                        // Display the character to the screen, stdout will be flush on cursor move
+                        // Display the character to the screen
                         print!("{}", c as char);
+
+                        std::io::stdout().flush().unwrap();
 
                         cursor.move_vis_right();
                     }
