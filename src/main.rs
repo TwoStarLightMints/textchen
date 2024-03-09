@@ -72,7 +72,7 @@ fn main() {
     // Stores the state of the mode for the program, starts with Modes::Normal
     let mut mode = Modes::Normal;
 
-    change_mode(&mut mode, Modes::Normal, editor.mode_row, &mut cursor);
+    editor.change_mode(&mut mode, Modes::Normal, &mut cursor);
 
     // Set the terminal to raw input mode
     #[cfg(target_os = "linux")]
@@ -284,18 +284,18 @@ fn main() {
                         }
                     }
                     G_LOWER if mode == Modes::Normal => {
-                        change_mode(&mut mode, Modes::MoveTo, editor.mode_row, &mut cursor);
+                        editor.change_mode(&mut mode, Modes::MoveTo, &mut cursor);
 
                         let new_c = get_char();
 
                         if new_c == 'l' {
                             cursor.move_to_end_line(&mut document, &editor);
 
-                            change_mode(&mut mode, Modes::Normal, editor.mode_row, &mut cursor);
+                            editor.change_mode(&mut mode, Modes::Normal, &mut cursor);
                         } else if new_c == 'h' {
                             cursor.move_to_start_line(&mut document, &editor);
 
-                            change_mode(&mut mode, Modes::Normal, editor.mode_row, &mut cursor);
+                            editor.change_mode(&mut mode, Modes::Normal, &mut cursor);
                         } else if new_c == 'g' {
                             cursor.move_to(editor.editor_home_row, editor.editor_left_edge);
                             cursor.move_doc_to(0, 0);
@@ -305,7 +305,7 @@ fn main() {
 
                             editor.reset_editor_view(&document, &mut cursor);
 
-                            change_mode(&mut mode, Modes::Normal, editor.mode_row, &mut cursor);
+                            editor.change_mode(&mut mode, Modes::Normal, &mut cursor);
                         } else if new_c == 'e' {
                             cursor.move_to(editor.editor_height, editor.editor_left_edge);
                             cursor
@@ -317,9 +317,9 @@ fn main() {
 
                             editor.reset_editor_view(&document, &mut cursor);
 
-                            change_mode(&mut mode, Modes::Normal, editor.mode_row, &mut cursor);
+                            editor.change_mode(&mut mode, Modes::Normal, &mut cursor);
                         } else {
-                            change_mode(&mut mode, Modes::Normal, editor.mode_row, &mut cursor);
+                            editor.change_mode(&mut mode, Modes::Normal, &mut cursor);
                         }
                     }
                     X_LOWER if mode == Modes::Normal => {
@@ -363,7 +363,7 @@ fn main() {
                     // Enter insert mode
                     I_LOWER if mode == Modes::Normal => {
                         // Change mode to insert
-                        change_mode(&mut mode, Modes::Insert, editor.mode_row, &mut cursor);
+                        editor.change_mode(&mut mode, Modes::Insert, &mut cursor);
 
                         if document.lines.len() > 0 {
                             // Create a new gap buffer from the string at the current cursor position
@@ -382,7 +382,7 @@ fn main() {
                         let mut new_line = Line::new();
 
                         // Change mode to insert
-                        change_mode(&mut mode, Modes::Insert, editor.mode_row, &mut cursor);
+                        editor.change_mode(&mut mode, Modes::Insert, &mut cursor);
 
                         // Add the last index of the current line incremented to the new line's index list
                         new_line.0.push(cursor.doc_row + 1);
@@ -418,7 +418,7 @@ fn main() {
                     // Exit insert mode
                     ESC if mode == Modes::Insert => {
                         // Change mode to normal
-                        change_mode(&mut mode, Modes::Normal, editor.mode_row, &mut cursor);
+                        editor.change_mode(&mut mode, Modes::Normal, &mut cursor);
 
                         // Set the the to the string representation of the current gap buffer, reculculating the row indices for the line
                         document.set_line_at_cursor(
@@ -430,7 +430,7 @@ fn main() {
                     // Cancel entering a command
                     ESC if mode == Modes::Command => {
                         // Change mode to normal
-                        change_mode(&mut mode, Modes::Normal, editor.mode_row, &mut cursor);
+                        editor.change_mode(&mut mode, Modes::Normal, &mut cursor);
 
                         // Move cursor to the command line row
                         cursor.move_to(dimensions.height, 0);
@@ -721,7 +721,7 @@ fn main() {
                     // Enter command mode
                     COLON if mode == Modes::Normal => {
                         // Change to command mode
-                        change_mode(&mut mode, Modes::Command, editor.mode_row, &mut cursor);
+                        editor.change_mode(&mut mode, Modes::Command, &mut cursor);
 
                         // Clear the buffer to ensure the new command will be empty
                         buf.clear();
@@ -788,12 +788,7 @@ fn main() {
                                     cursor.move_to(editor.command_row, 0);
                                     print!("{: >1$}", "", dimensions.width);
 
-                                    change_mode(
-                                        &mut mode,
-                                        Modes::Normal,
-                                        editor.mode_row,
-                                        &mut cursor,
-                                    );
+                                    editor.change_mode(&mut mode, Modes::Normal, &mut cursor);
 
                                     cursor.revert_pos();
 
@@ -840,12 +835,7 @@ fn main() {
                                     move_cursor_to(editor.command_row, 0);
                                     print!("{: <1$}", "invalid command", dimensions.width);
 
-                                    change_mode(
-                                        &mut mode,
-                                        Modes::Normal,
-                                        editor.mode_row,
-                                        &mut cursor,
-                                    );
+                                    editor.change_mode(&mut mode, Modes::Normal, &mut cursor);
 
                                     cursor.revert_pos();
 
