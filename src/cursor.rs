@@ -1,5 +1,5 @@
 use crate::document::{Document, Line};
-use crate::editor::{reset_editor_view, Editor};
+use crate::editor::Editor;
 use crate::term::move_cursor_to;
 
 pub struct Cursor {
@@ -113,7 +113,7 @@ impl Cursor {
     }
 
     // ------------------- Cursor Movement Related To Lines -------------------
-    pub fn move_to_end_line(&mut self, document: &mut Document, editor_dim: &Editor) {
+    pub fn move_to_end_line(&mut self, document: &mut Document, editor: &Editor) {
         //! This method will only be called when the cursor is within a given line
         //! This will move both the cursor's visual position *AND* the doc position
 
@@ -128,7 +128,7 @@ impl Cursor {
         // Last row index of the line, index from the top of the EDITOR not the terminal, so add editor_top as offset
         // curr_line.0[curr_line.0.len() - 1] + editor_top;
 
-        if self.get_position_in_line(document, editor_dim) != curr_line.1.len() {
+        if self.get_position_in_line(document, editor) != curr_line.1.len() {
             // If the cursor is not already at the end of the line
 
             if (document.visible_rows.0..(document.visible_rows.1 - 1))
@@ -138,27 +138,21 @@ impl Cursor {
                 // less than the last row of the current line
 
                 self.move_to(
-                    (curr_line_final_row - document.visible_rows.0) + editor_dim.editor_home_row,
-                    (curr_line.1.len() % editor_dim.editor_width) + editor_dim.editor_left_edge,
+                    (curr_line_final_row - document.visible_rows.0) + editor.editor_home_row,
+                    (curr_line.1.len() % editor.editor_width) + editor.editor_left_edge,
                 );
 
-                self.move_doc_to(
-                    curr_line_final_row,
-                    curr_line.1.len() % editor_dim.editor_width,
-                );
+                self.move_doc_to(curr_line_final_row, curr_line.1.len() % editor.editor_width);
             } else {
                 // If the last row of the current line is within the visible rows inclusive of the document and the last row of the current line
                 // is greater than or equal to the last visible row
 
                 self.move_to(
-                    editor_dim.editor_height,
-                    curr_line.1.len() % editor_dim.editor_width + editor_dim.editor_left_edge,
+                    editor.editor_height,
+                    curr_line.1.len() % editor.editor_width + editor.editor_left_edge,
                 );
 
-                self.move_doc_to(
-                    curr_line_final_row,
-                    curr_line.1.len() % editor_dim.editor_width,
-                );
+                self.move_doc_to(curr_line_final_row, curr_line.1.len() % editor.editor_width);
 
                 let current_last_vis_row = document.visible_rows.1;
 
@@ -168,28 +162,25 @@ impl Cursor {
                     curr_line_final_row += 1;
                 }
 
-                reset_editor_view(&document, editor_dim, self);
+                editor.reset_editor_view(&document, self);
             }
         }
     }
 
-    pub fn move_to_start_line(&mut self, document: &mut Document, editor_dim: &Editor) {
+    pub fn move_to_start_line(&mut self, document: &mut Document, editor: &Editor) {
         let curr_line = document.get_line_at_cursor(self.doc_row);
-        let cursor_pos = self.get_position_in_line(&document, editor_dim);
+        let cursor_pos = self.get_position_in_line(&document, editor);
 
         if cursor_pos != 0 {
             if ((document.visible_rows.0 + 2)..document.visible_rows.1).contains(&curr_line.0[0]) {
-                self.move_to_editor_left(editor_dim.editor_left_edge);
+                self.move_to_editor_left(editor.editor_left_edge);
                 self.move_doc_to_editor_left();
 
-                self.move_to(
-                    self.row - (cursor_pos / editor_dim.editor_width),
-                    self.column,
-                );
+                self.move_to(self.row - (cursor_pos / editor.editor_width), self.column);
 
                 self.move_doc_to(curr_line.0[0], self.doc_column);
             } else {
-                self.move_to_editor_left(editor_dim.editor_left_edge);
+                self.move_to_editor_left(editor.editor_left_edge);
                 self.move_doc_to_editor_left();
 
                 let current_first_vis_row = document.visible_rows.0;
@@ -202,9 +193,9 @@ impl Cursor {
                     curr_line_first_row += 1;
                 }
 
-                self.move_to(editor_dim.editor_home_row, self.column);
+                self.move_to(editor.editor_home_row, self.column);
 
-                reset_editor_view(document, editor_dim, self);
+                editor.reset_editor_view(document, self);
             }
         }
     }
