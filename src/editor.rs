@@ -3,7 +3,7 @@ use crate::document::*;
 use crate::term::clear_screen;
 use crate::term::get_char;
 use crate::term::{kbhit, Wh};
-use crate::term_color;
+use crate::term_color::{Theme, ThemeBuilder};
 use std::fs::File;
 use std::io::Read;
 use std::io::{self, Write};
@@ -21,43 +21,6 @@ pub enum Modes {
     MoveTo,
 }
 
-pub fn change_mode(curr: &mut Modes, new_mode: Modes, mode_row: usize, cursor: &mut Cursor) {
-    //! curr - Current mode stored in the state of the application
-    //! new_mode - The new mode which will be stored in the state of the application
-    //! mode_row - The row at which the mode will be printed
-    //! cursor - Get control of cursor
-    //!
-    //! Changes the current mode of the editor to a new target mode, handles changing state and drawing to screen
-
-    *curr = new_mode;
-
-    cursor.save_current_pos();
-
-    cursor.move_to(mode_row, 0);
-
-    print!("\u{001b}[30;47m\u{001b}[K");
-    io::stdout().flush().unwrap();
-
-    cursor.move_to(mode_row, 0);
-
-    match curr {
-        Modes::Normal => term_color::print_colored((Some("0;0;0"), Some("255;255;255")), "NOR"),
-        Modes::Insert => print!("INS\u{001b}[0m"),
-        Modes::Command => print!("COM\u{001b}[0m"),
-        Modes::MoveTo => print!("MOV\u{001b}[0m"),
-    };
-
-    io::stdout().flush().unwrap();
-
-    cursor.revert_pos();
-}
-
-// ==================== EDITOR STRUCT ====================
-
-// Editor struct responsibilities:
-//     - Storing the dimensions of the editor screen
-//     - Drawing the editor screen
-
 pub struct Editor {
     pub editor_home_row: usize,
     pub editor_bottom: usize,
@@ -67,6 +30,7 @@ pub struct Editor {
     pub editor_height: usize,
     pub mode_row: usize,
     pub command_row: usize,
+    pub theme: Theme,
 }
 
 impl Editor {
@@ -80,10 +44,47 @@ impl Editor {
             editor_height: dimensions.height - 3,
             mode_row: dimensions.height - 1,
             command_row: dimensions.height,
+            // Note, I am working with only defaults right now
+            theme: ThemeBuilder::new().build(),
         }
     }
 
     // ==================== DISPLAY METHODS FOR EDITOR ====================
+
+    pub fn change_mode(&self, curr: &mut Modes, new_mode: Modes, cursor: &mut Cursor) {
+        //! curr - Current mode stored in the state of the application
+        //! new_mode - The new mode which will be stored in the state of the application
+        //! mode_row - The row at which the mode will be printed
+        //! cursor - Get control of cursor
+        //!
+        //! Changes the current mode of the editor to a new target mode, handles changing state and drawing to screen
+
+        *curr = new_mode;
+
+        cursor.save_current_pos();
+
+        cursor.move_to(self.mode_row, 0);
+
+        print!(
+            "{}{}\u{001b}[2K",
+            self.theme.accent_font_color(),
+            self.theme.mode_line_color()
+        );
+        io::stdout().flush().unwrap();
+
+        cursor.move_to(self.mode_row, 0);
+
+        match curr {
+            Modes::Normal => print!("NOR\u{001b}[0m"),
+            Modes::Insert => print!("INS\u{001b}[0m"),
+            Modes::Command => print!("COM\u{001b}[0m"),
+            Modes::MoveTo => print!("MOV\u{001b}[0m"),
+        };
+
+        io::stdout().flush().unwrap();
+
+        cursor.revert_pos();
+    }
 
     pub fn clear_editor_window(&self, cursor: &mut Cursor) {
         //! document - Document being edited
@@ -188,7 +189,7 @@ impl Editor {
         cursor.revert_pos();
 
         // Redraw mode
-        change_mode(curr_mode, *curr_mode, self.mode_row, cursor);
+        self.change_mode(curr_mode, *curr_mode, cursor);
 
         document.recalculate_indices(self.editor_width);
 
