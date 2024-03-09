@@ -4,3 +4,4 @@
 0|Add Windows compatibility|[0|Update drawing functions to work with Windows API|]
 0|Create documentation for others of how I dealt with the C files, it was insane|
 0|Issue with moving to end of line and beginning|
+0|Make printing full editor window make more sense|
