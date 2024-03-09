@@ -1,48 +1,138 @@
-fn rgb_foreground(rgb: &str) -> String {
-    //! Enter in format: "red;green;blue"
-
-    let color_pieces: Vec<_> = rgb.split(";").collect();
-
-    format!(
-        "\u{001b}[38;2;{};{};{}m",
-        color_pieces[0], color_pieces[1], color_pieces[2]
-    )
+struct RGB {
+    r: u8,
+    g: u8,
+    b: u8,
 }
 
-fn rgb_background(rgb: &str) -> String {
-    //! Enter in format: "red;green;blue"
+impl From<&str> for RGB {
+    fn from(value: &str) -> Self {
+        //! Format: red;green;blue
 
-    let color_pieces: Vec<_> = rgb.split(";").collect();
+        let color_values: Vec<&str> = value.split(";").collect();
 
-    format!(
-        "\u{001b}[48;2;{};{};{}m",
-        color_pieces[0], color_pieces[1], color_pieces[2]
-    )
+        Self {
+            r: color_values[0].parse().unwrap(),
+            g: color_values[1].parse().unwrap(),
+            b: color_values[2].parse().unwrap(),
+        }
+    }
 }
 
-fn create_color(foreground: Option<&str>, background: Option<&str>) -> String {
-    let mut new_color = String::new();
+pub struct Theme {
+    body_fonts: RGB,
+    font_accents: RGB,
+    editor_background: RGB,
+    mode_line: RGB,
+    title_line: RGB,
+}
 
-    match foreground {
-        Some(color) => new_color += rgb_foreground(color).as_str(),
-        None => (),
+impl Theme {
+    pub fn background_color(&self) -> String {
+        format!(
+            "\u{001b}[48;2;{};{};{}m",
+            self.editor_background.r, self.editor_background.g, self.editor_background.b
+        )
     }
 
-    match background {
-        Some(color) => new_color += rgb_background(color).as_str(),
-        None => (),
+    pub fn body_font_color(&self) -> String {
+        format!(
+            "\u{001b}[38;2;{};{};{}m",
+            self.body_fonts.r, self.body_fonts.g, self.body_fonts.b
+        )
     }
 
-    new_color
+    pub fn accent_font_color(&self) -> String {
+        format!(
+            "\u{001b}[38;2;{};{};{}m",
+            self.font_accents.r, self.font_accents.g, self.font_accents.b
+        )
+    }
+
+    pub fn mode_line_color(&self) -> String {
+        format!(
+            "\u{001b}[48;2;{};{};{}m",
+            self.mode_line.r, self.mode_line.g, self.mode_line.b
+        )
+    }
+
+    pub fn title_line_color(&self) -> String {
+        format!(
+            "\u{001b}[48;2;{};{};{}m",
+            self.title_line.r, self.title_line.g, self.title_line.b
+        )
+    }
 }
 
-fn reset_color() {
-    print!("\u{001b}[0;0m");
+pub struct ThemeBuilder {
+    body_fonts: Option<RGB>,
+    font_accents: Option<RGB>,
+    editor_background: Option<RGB>,
+    mode_line: Option<RGB>,
+    title_line: Option<RGB>,
 }
 
-pub fn print_colored(color: (Option<&str>, Option<&str>), message: &str) {
-    //! (foreground color, background color)
-    print!("{}{}", create_color(color.0, color.1), message);
+impl ThemeBuilder {
+    pub fn new() -> Self {
+        Self {
+            body_fonts: None,
+            font_accents: None,
+            editor_background: None,
+            mode_line: None,
+            title_line: None,
+        }
+    }
 
-    reset_color();
+    pub fn font_titles(mut self, color: RGB) -> Self {
+        self.body_fonts = Some(color);
+        self
+    }
+
+    pub fn font_accents(mut self, color: RGB) -> Self {
+        self.font_accents = Some(color);
+        self
+    }
+
+    pub fn editor_background(mut self, color: RGB) -> Self {
+        self.editor_background = Some(color);
+        self
+    }
+
+    pub fn mode_line(mut self, color: RGB) -> Self {
+        self.mode_line = Some(color);
+        self
+    }
+
+    pub fn title_line(mut self, color: RGB) -> Self {
+        self.title_line = Some(color);
+        self
+    }
+
+    pub fn build(self) -> Theme {
+        let default_font = "0;0;0";
+        let default_background = "120;120;120";
+        let default_mode = "255;255;255";
+
+        Theme {
+            body_fonts: match self.body_fonts {
+                Some(color) => color,
+                None => RGB::from(default_font),
+            },
+            font_accents: match self.font_accents {
+                Some(color) => color,
+                None => RGB::from(default_font),
+            },
+            editor_background: match self.editor_background {
+                Some(color) => color,
+                None => RGB::from(default_background),
+            },
+            mode_line: match self.mode_line {
+                Some(color) => color,
+                None => RGB::from(default_mode),
+            },
+            title_line: match self.title_line {
+                Some(color) => color,
+                None => RGB::from(default_background),
+            },
+        }
+    }
 }
