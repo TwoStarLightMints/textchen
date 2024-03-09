@@ -52,7 +52,11 @@ pub fn change_mode(curr: &mut Modes, new_mode: Modes, mode_row: usize, cursor: &
     cursor.revert_pos();
 }
 
-// ==================== EDITOR DIMENSIONS STRUCT ====================
+// ==================== EDITOR STRUCT ====================
+
+// Editor struct responsibilities:
+//     - Storing the dimensions of the editor screen
+//     - Drawing the editor screen
 
 pub struct Editor {
     pub editor_home_row: usize,
@@ -78,202 +82,186 @@ impl Editor {
             command_row: dimensions.height,
         }
     }
-}
 
-// ==================== DISPLAY METHODS FOR EDITOR ====================
+    // ==================== DISPLAY METHODS FOR EDITOR ====================
 
-pub fn display_document(document: &Document, editor_dim: &Editor, cursor: &mut Cursor) {
-    //! document - Document being edited
-    //! editor_left_edge - This is the offset from the left side of the terminal
-    //! editor_width - Size of the editor screen, calculated from the left side offset and the right side offset, pass this calculated result to the function
-    //! cursor - Get control of cursor
-    //!
-    //! Displays the document that is currently being edited to the screen, handles drawing within given bounds
+    pub fn clear_editor_window(&self, cursor: &mut Cursor) {
+        //! document - Document being edited
+        //! cursor - Get control of cursor
+        //!
+        //! Visually clears the contents of the editor window, the rest of the screen is untouched
 
-    cursor.save_current_pos();
+        cursor.save_current_pos();
 
-    cursor.move_to(2, editor_dim.editor_left_edge);
+        cursor.move_to(2, 1);
 
-    if document.visible_rows.0 == 0 {
-        for row in document
-            .rows(editor_dim.editor_width)
-            .take(document.visible_rows.1)
-        {
-            print!("{}", row.1);
+        for _ in 0..self.editor_height {
+            print!("{: >1$}", "", self.editor_right_edge);
+
             cursor.move_vis_down();
-            cursor.move_to_editor_left(editor_dim.editor_left_edge);
         }
-    } else {
-        for row in document
-            .rows(editor_dim.editor_width)
-            .skip(document.visible_rows.0)
-            .take(document.visible_rows.1 - document.visible_rows.0)
-        {
-            print!("{}", row.1);
-            cursor.move_vis_down();
-            cursor.move_to_editor_left(editor_dim.editor_left_edge);
-        }
+
+        cursor.revert_pos();
     }
 
-    cursor.revert_pos();
-}
+    pub fn display_document(&self, document: &Document, cursor: &mut Cursor) {
+        //! document - Document being edited
+        //! cursor - Get control of cursor
+        //!
+        //! Displays the document that is currently being edited to the screen, handles drawing within given bounds
 
-pub fn clear_editor_window(editor_dim: &Editor, cursor: &mut Cursor) {
-    //! editor_right_edge - This is the offset from the right side of the terminal
-    //! document - Document being edited
-    //! cursor - Get control of cursor
-    //!
-    //! Visually clears the contents of the editor window, the rest of the screen is untouched
+        cursor.save_current_pos();
 
-    cursor.save_current_pos();
+        cursor.move_to(2, self.editor_left_edge);
 
-    cursor.move_to(2, 1);
-
-    for _ in 0..editor_dim.editor_height {
-        print!("{: >1$}", "", editor_dim.editor_right_edge);
-
-        cursor.move_vis_down();
-    }
-
-    cursor.revert_pos();
-}
-
-pub fn reset_editor_view(document: &Document, editor_dim: &Editor, cursor: &mut Cursor) {
-    //! editor_right_edge - This is the offset from the right side of the terminal
-    //! editor_left_edge - This is the offset from the left side of the terminal
-    //! document - Document being edited
-    //! cursor - Get control of cursor
-    //!
-    //! Clears the editor screen and redraws the document provided, tends to be used as to refresh the screen after an edit has occurred
-
-    clear_editor_window(editor_dim, cursor);
-
-    display_document(document, editor_dim, cursor);
-}
-
-pub fn redraw_screen(
-    dimensions: &Wh,
-    curr_mode: &mut Modes,
-    document: &mut Document,
-    editor_dim: &mut Editor,
-    cursor: &mut Cursor,
-) {
-    //! dimensions - The new dimensions of the terminal screen after resize
-    //! editor_dim - The old dimensions of the editor screen
-
-    let curr_line_index = document.get_index_at_cursor(cursor.doc_row).unwrap();
-    let curr_pos = cursor.get_position_in_line(&document, editor_dim);
-    let curr_num_above = document.num_above_rows(
-        editor_dim.editor_width,
-        document.lines[curr_line_index].0[0],
-    );
-
-    let original_width = editor_dim.editor_width;
-    let original_height = editor_dim.editor_height;
-
-    // Save to see if it will be at least within the right line or an adjacent one instead of only going to the start of the editor
-    cursor.save_current_pos();
-
-    // Recalculate the values of the editor_dim variable
-    editor_dim.editor_right_edge = dimensions.width - 2;
-    editor_dim.editor_width = editor_dim.editor_right_edge - editor_dim.editor_left_edge;
-    editor_dim.editor_height = dimensions.height - 3;
-    editor_dim.mode_row = dimensions.height - 1;
-    editor_dim.command_row = dimensions.height;
-
-    // Clear the screen, blank canvas
-    clear_screen();
-
-    // Redraw document title
-    cursor.move_to(0, 0);
-    print!("{}", document.file_name);
-
-    // Return to the previous cursor position
-    cursor.revert_pos();
-
-    // Redraw mode
-    change_mode(curr_mode, *curr_mode, editor_dim.mode_row, cursor);
-
-    document.recalculate_indices(editor_dim.editor_width);
-
-    // If cursor_half is true, the cursor is located in the top half of the editor, else
-    // it is in the bottom half
-    let cursor_half = (cursor.row - 2) < editor_dim.editor_height / 2;
-
-    if original_width > editor_dim.editor_width {
-        // If the original width is greater than the new width (the screen is shrinking horizontally)
-
-        let new_num_above = document.num_above_rows(
-            editor_dim.editor_width,
-            document.lines[curr_line_index].0[0],
-        );
-
-        if new_num_above > curr_num_above {
-            // If the number of lines above the current line is greater than the original number of lines
-            // that were above the current line
-
-            for _ in 0..(new_num_above - curr_num_above) {
-                document.push_vis_down();
+        if document.visible_rows.0 == 0 {
+            for row in document
+                .rows(self.editor_width)
+                .take(document.visible_rows.1)
+            {
+                print!("{}", row.1);
+                cursor.move_vis_down();
+                cursor.move_to_editor_left(self.editor_left_edge);
             }
-        }
-    } else if editor_dim.editor_width > original_width {
-        let new_num_above = document.num_above_rows(
-            editor_dim.editor_width,
-            document.lines[curr_line_index].0[0],
-        );
-
-        if curr_num_above > new_num_above {
-            for _ in 0..(curr_num_above - new_num_above) {
-                document.push_vis_up();
-            }
-        }
-    }
-
-    if original_height > editor_dim.editor_height {
-        // If the original height is greater than the new height (the screen is shrinking vertically)
-
-        if cursor_half {
-            // If the cursor is in the first half of the editor
-
-            document.visible_rows.1 -= original_height - editor_dim.editor_height;
         } else {
-            // If the cursor is in the second half of the editor
-
-            document.visible_rows.0 += original_height - editor_dim.editor_height;
+            for row in document
+                .rows(self.editor_width)
+                .skip(document.visible_rows.0)
+                .take(document.visible_rows.1 - document.visible_rows.0)
+            {
+                print!("{}", row.1);
+                cursor.move_vis_down();
+                cursor.move_to_editor_left(self.editor_left_edge);
+            }
         }
-    } else if editor_dim.editor_height > original_height {
-        // If the new height is greater than the original height (the screen is growing vertically)
 
-        if cursor_half {
-            // If the cursor is in the first half of the editor
+        cursor.revert_pos();
+    }
 
-            if document.visible_rows.1 <= *document.lines.last().unwrap().0.last().unwrap() {
-                document.visible_rows.1 += editor_dim.editor_height - original_height;
-            } else {
-                if document.visible_rows.0 != 0 {
-                    document.visible_rows.0 -= editor_dim.editor_height - original_height;
+    pub fn reset_editor_view(&self, document: &Document, cursor: &mut Cursor) {
+        //! document - Document being edited
+        //! cursor - Get control of cursor
+        //!
+        //! Clears the editor screen and redraws the document provided, tends to be used as to refresh the screen after an edit has occurred
+
+        self.clear_editor_window(cursor);
+
+        self.display_document(document, cursor);
+    }
+
+    pub fn redraw_screen(
+        &mut self,
+        dimensions: &Wh,
+        curr_mode: &mut Modes,
+        document: &mut Document,
+        cursor: &mut Cursor,
+    ) {
+        //! dimensions - The new dimensions of the terminal screen after resize
+        //! self - The old dimensions of the editor screen
+
+        let curr_line_index = document.get_index_at_cursor(cursor.doc_row).unwrap();
+        let curr_pos = cursor.get_position_in_line(&document, self);
+        let curr_num_above =
+            document.num_above_rows(self.editor_width, document.lines[curr_line_index].0[0]);
+
+        let original_width = self.editor_width;
+        let original_height = self.editor_height;
+
+        // Save to see if it will be at least within the right line or an adjacent one instead of only going to the start of the editor
+        cursor.save_current_pos();
+
+        // Recalculate the values of the self variable
+        self.editor_right_edge = dimensions.width - 2;
+        self.editor_width = self.editor_right_edge - self.editor_left_edge;
+        self.editor_height = dimensions.height - 3;
+        self.mode_row = dimensions.height - 1;
+        self.command_row = dimensions.height;
+
+        // Clear the screen, blank canvas
+        clear_screen();
+
+        // Redraw document title
+        cursor.move_to(0, 0);
+        print!("{}", document.file_name);
+
+        // Return to the previous cursor position
+        cursor.revert_pos();
+
+        // Redraw mode
+        change_mode(curr_mode, *curr_mode, self.mode_row, cursor);
+
+        document.recalculate_indices(self.editor_width);
+
+        // If cursor_half is true, the cursor is located in the top half of the editor, else
+        // it is in the bottom half
+        let cursor_half = (cursor.row - 2) < self.editor_height / 2;
+
+        if original_width > self.editor_width {
+            // If the original width is greater than the new width (the screen is shrinking horizontally)
+
+            let new_num_above =
+                document.num_above_rows(self.editor_width, document.lines[curr_line_index].0[0]);
+
+            if new_num_above > curr_num_above {
+                // If the number of lines above the current line is greater than the original number of lines
+                // that were above the current line
+
+                for _ in 0..(new_num_above - curr_num_above) {
+                    document.push_vis_down();
                 }
             }
-        } else {
-            // If the cursor is in the second half of the editor
+        } else if self.editor_width > original_width {
+            let new_num_above =
+                document.num_above_rows(self.editor_width, document.lines[curr_line_index].0[0]);
 
-            if document.visible_rows.0 != 0 {
-                document.visible_rows.0 -= editor_dim.editor_height - original_height;
-            } else {
-                document.visible_rows.1 += editor_dim.editor_height - original_height;
+            if curr_num_above > new_num_above {
+                for _ in 0..(curr_num_above - new_num_above) {
+                    document.push_vis_up();
+                }
             }
         }
+
+        if original_height > self.editor_height {
+            // If the original height is greater than the new height (the screen is shrinking vertically)
+
+            if cursor_half {
+                // If the cursor is in the first half of the editor
+
+                document.visible_rows.1 -= original_height - self.editor_height;
+            } else {
+                // If the cursor is in the second half of the editor
+
+                document.visible_rows.0 += original_height - self.editor_height;
+            }
+        } else if self.editor_height > original_height {
+            // If the new height is greater than the original height (the screen is growing vertically)
+
+            if cursor_half {
+                // If the cursor is in the first half of the editor
+
+                if document.visible_rows.1 <= *document.lines.last().unwrap().0.last().unwrap() {
+                    document.visible_rows.1 += self.editor_height - original_height;
+                } else {
+                    if document.visible_rows.0 != 0 {
+                        document.visible_rows.0 -= self.editor_height - original_height;
+                    }
+                }
+            } else {
+                // If the cursor is in the second half of the editor
+
+                if document.visible_rows.0 != 0 {
+                    document.visible_rows.0 -= self.editor_height - original_height;
+                } else {
+                    document.visible_rows.1 += self.editor_height - original_height;
+                }
+            }
+        }
+
+        cursor.move_to_pos(curr_pos, &document.lines[curr_line_index], &document, self);
+
+        // Redraw document
+        self.reset_editor_view(document, cursor);
     }
-
-    cursor.move_to_pos(
-        curr_pos,
-        &document.lines[curr_line_index],
-        &document,
-        editor_dim,
-    );
-
-    // Redraw document
-    reset_editor_view(document, editor_dim, cursor);
 }
 
 // ==================== CURSOR HELPER FUNCTIONS ====================
