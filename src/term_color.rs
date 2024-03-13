@@ -34,17 +34,51 @@ impl Theme {
         )
     }
 
-    pub fn body_font_color(&self) -> String {
+    pub fn body_text_color(&self) -> String {
         format!(
-            "\u{001b}[38;2;{};{};{}m",
-            self.body_fonts.r, self.body_fonts.g, self.body_fonts.b
+            "\u{001b}[38;2;{};{};{}m\u{001b}[48;2;{};{};{}m",
+            self.body_fonts.r,
+            self.body_fonts.g,
+            self.body_fonts.b,
+            self.editor_background.r,
+            self.editor_background.g,
+            self.editor_background.b,
         )
     }
 
-    pub fn accent_font_color(&self) -> String {
+    pub fn title_text_color(&self) -> String {
         format!(
-            "\u{001b}[38;2;{};{};{}m",
-            self.font_accents.r, self.font_accents.g, self.font_accents.b
+            "\u{001b}[38;2;{};{};{}m\u{001b}[48;2;{};{};{}m",
+            self.font_accents.r,
+            self.font_accents.g,
+            self.font_accents.b,
+            self.title_line.r,
+            self.title_line.g,
+            self.title_line.b,
+        )
+    }
+
+    pub fn mode_text_color(&self) -> String {
+        format!(
+            "\u{001b}[38;2;{};{};{}m\u{001b}[48;2;{};{};{}m",
+            self.font_accents.r,
+            self.font_accents.g,
+            self.font_accents.b,
+            self.mode_line.r,
+            self.mode_line.g,
+            self.mode_line.b,
+        )
+    }
+
+    pub fn command_text_color(&self) -> String {
+        format!(
+            "\u{001b}[38;2;{};{};{}m\u{001b}[48;2;{};{};{}m",
+            self.body_fonts.r,
+            self.body_fonts.g,
+            self.body_fonts.b,
+            self.editor_background.r,
+            self.editor_background.g,
+            self.editor_background.b,
         )
     }
 
@@ -82,28 +116,28 @@ impl ThemeBuilder {
         }
     }
 
-    pub fn font_titles(mut self, color: RGB) -> Self {
-        self.body_fonts = Some(color);
+    pub fn font_titles(mut self, color: impl AsRef<str>) -> Self {
+        self.body_fonts = Some(RGB::from(color.as_ref()));
         self
     }
 
-    pub fn font_accents(mut self, color: RGB) -> Self {
-        self.font_accents = Some(color);
+    pub fn font_accents(mut self, color: impl AsRef<str>) -> Self {
+        self.font_accents = Some(RGB::from(color.as_ref()));
         self
     }
 
-    pub fn editor_background(mut self, color: RGB) -> Self {
-        self.editor_background = Some(color);
+    pub fn editor_background(mut self, color: impl AsRef<str>) -> Self {
+        self.editor_background = Some(RGB::from(color.as_ref()));
         self
     }
 
-    pub fn mode_line(mut self, color: RGB) -> Self {
-        self.mode_line = Some(color);
+    pub fn mode_line(mut self, color: impl AsRef<str>) -> Self {
+        self.mode_line = Some(RGB::from(color.as_ref()));
         self
     }
 
-    pub fn title_line(mut self, color: RGB) -> Self {
-        self.title_line = Some(color);
+    pub fn title_line(mut self, color: impl AsRef<str>) -> Self {
+        self.title_line = Some(RGB::from(color.as_ref()));
         self
     }
 
