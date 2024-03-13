@@ -56,8 +56,7 @@ fn main() {
     let mut document = create_document(args.next(), &editor);
 
     move_cursor_home();
-    print!("{}", &document.file_name);
-    editor.display_document(&document, &mut cursor);
+    editor.initialize_display(&document, &mut cursor);
 
     // Move the cursor to the editor home
     cursor.move_to(editor.editor_home_row, editor.editor_left_edge);
@@ -67,12 +66,7 @@ fn main() {
 
     // This is the buffer which will hold user commands
 
-    let mut buf = String::new();
-
-    // Stores the state of the mode for the program, starts with Modes::Normal
-    let mut mode = Modes::Normal;
-
-    editor.change_mode(&mut mode, Modes::Normal, &mut cursor);
+    editor.change_mode(Modes::Normal, &mut cursor);
 
     // Set the terminal to raw input mode
     #[cfg(target_os = "linux")]
@@ -84,7 +78,7 @@ fn main() {
     // Main loop for program
     loop {
         if dimensions.check_term_resize() {
-            editor.redraw_screen(&dimensions, &mut mode, &mut document, &mut cursor);
+            editor.redraw_screen(&dimensions, &mut document, &mut cursor);
         }
 
         match char_channel.try_recv() {
@@ -92,7 +86,7 @@ fn main() {
                 // Get a character and match it aginst some cases as a u8
                 match c as u8 {
                     // Move down
-                    J_LOWER if mode == Modes::Normal => {
+                    J_LOWER if editor.curr_mode == Modes::Normal => {
                         // Store the position of the cursor in the original line, save on method calls
 
                         let cursor_pos = cursor.get_position_in_line(&document, &editor);
@@ -140,7 +134,7 @@ fn main() {
                         );
                     }
                     // Move right
-                    L_LOWER if mode == Modes::Normal => {
+                    L_LOWER if editor.curr_mode == Modes::Normal => {
                         // Get the current line where the cursor is at
 
                         let curr_line = document.get_line_at_cursor(cursor.doc_row);
@@ -188,7 +182,7 @@ fn main() {
                         }
                     }
                     // Move up
-                    K_LOWER if mode == Modes::Normal => {
+                    K_LOWER if editor.curr_mode == Modes::Normal => {
                         let cursor_pos = cursor.get_position_in_line(&document, &editor);
 
                         if document.visible_rows.0 != 0 {
@@ -252,7 +246,7 @@ fn main() {
                         );
                     }
                     // Move left
-                    H_LOWER if mode == Modes::Normal => {
+                    H_LOWER if editor.curr_mode == Modes::Normal => {
                         let cursor_pos = cursor.get_position_in_line(&document, &editor);
 
                         if cursor.get_column_in_editor(editor.editor_left_edge) > 1
@@ -283,19 +277,19 @@ fn main() {
                             cursor.move_doc_up();
                         }
                     }
-                    G_LOWER if mode == Modes::Normal => {
-                        editor.change_mode(&mut mode, Modes::MoveTo, &mut cursor);
+                    G_LOWER if editor.curr_mode == Modes::Normal => {
+                        editor.change_mode(Modes::MoveTo, &mut cursor);
 
                         let new_c = get_char();
 
                         if new_c == 'l' {
                             cursor.move_to_end_line(&mut document, &editor);
 
-                            editor.change_mode(&mut mode, Modes::Normal, &mut cursor);
+                            editor.change_mode(Modes::Normal, &mut cursor);
                         } else if new_c == 'h' {
                             cursor.move_to_start_line(&mut document, &editor);
 
-                            editor.change_mode(&mut mode, Modes::Normal, &mut cursor);
+                            editor.change_mode(Modes::Normal, &mut cursor);
                         } else if new_c == 'g' {
                             cursor.move_to(editor.editor_home_row, editor.editor_left_edge);
                             cursor.move_doc_to(0, 0);
@@ -305,7 +299,7 @@ fn main() {
 
                             editor.reset_editor_view(&document, &mut cursor);
 
-                            editor.change_mode(&mut mode, Modes::Normal, &mut cursor);
+                            editor.change_mode(Modes::Normal, &mut cursor);
                         } else if new_c == 'e' {
                             cursor.move_to(editor.editor_height, editor.editor_left_edge);
                             cursor
@@ -317,12 +311,12 @@ fn main() {
 
                             editor.reset_editor_view(&document, &mut cursor);
 
-                            editor.change_mode(&mut mode, Modes::Normal, &mut cursor);
+                            editor.change_mode(Modes::Normal, &mut cursor);
                         } else {
-                            editor.change_mode(&mut mode, Modes::Normal, &mut cursor);
+                            editor.change_mode(Modes::Normal, &mut cursor);
                         }
                     }
-                    X_LOWER if mode == Modes::Normal => {
+                    X_LOWER if editor.curr_mode == Modes::Normal => {
                         // todo!("Reimplement for scrolling");
                         if get_char() == 'd' {
                             cursor.move_to_start_line(&mut document, &editor);
@@ -361,9 +355,9 @@ fn main() {
                         }
                     }
                     // Enter insert mode
-                    I_LOWER if mode == Modes::Normal => {
+                    I_LOWER if editor.curr_mode == Modes::Normal => {
                         // Change mode to insert
-                        editor.change_mode(&mut mode, Modes::Insert, &mut cursor);
+                        editor.change_mode(Modes::Insert, &mut cursor);
 
                         if document.lines.len() > 0 {
                             // Create a new gap buffer from the string at the current cursor position
@@ -378,11 +372,11 @@ fn main() {
                         }
                     }
                     // Create a new empty line
-                    O_LOWER if mode == Modes::Normal => {
+                    O_LOWER if editor.curr_mode == Modes::Normal => {
                         let mut new_line = Line::new();
 
                         // Change mode to insert
-                        editor.change_mode(&mut mode, Modes::Insert, &mut cursor);
+                        editor.change_mode(Modes::Insert, &mut cursor);
 
                         // Add the last index of the current line incremented to the new line's index list
                         new_line.0.push(cursor.doc_row + 1);
@@ -416,9 +410,9 @@ fn main() {
                         editor.reset_editor_view(&document, &mut cursor);
                     }
                     // Exit insert mode
-                    ESC if mode == Modes::Insert => {
+                    ESC if editor.curr_mode == Modes::Insert => {
                         // Change mode to normal
-                        editor.change_mode(&mut mode, Modes::Normal, &mut cursor);
+                        editor.change_mode(Modes::Normal, &mut cursor);
 
                         // Set the the to the string representation of the current gap buffer, reculculating the row indices for the line
                         document.set_line_at_cursor(
@@ -428,24 +422,24 @@ fn main() {
                         );
                     }
                     // Cancel entering a command
-                    ESC if mode == Modes::Command => {
+                    ESC if editor.curr_mode == Modes::Command => {
                         // Change mode to normal
-                        editor.change_mode(&mut mode, Modes::Normal, &mut cursor);
+                        editor.change_mode(Modes::Normal, &mut cursor);
 
                         // Move cursor to the command line row
                         cursor.move_to(dimensions.height, 0);
 
                         // Visually delete the contents of the row
-                        print!("{: >1$}", "", dimensions.width);
+                        print!("{}\u{001b}[2K", editor.theme.command_text_color());
 
                         // The cursor position was saved when switching to command mode, so revert to that position
                         cursor.revert_pos();
 
                         // Clear the buffer
-                        buf.clear();
+                        editor.command_buf.clear();
                     }
                     // Delete a character while in insert mode
-                    BCKSP if mode == Modes::Insert => {
+                    BCKSP if editor.curr_mode == Modes::Insert => {
                         let cursor_pos = cursor.get_position_in_line(&document, &editor);
 
                         if cursor.doc_column > 1 || cursor_pos == 1 {
@@ -571,7 +565,7 @@ fn main() {
                         }
                     }
                     // Insert a new line character to break line while in insert mode
-                    c if mode == Modes::Insert
+                    c if editor.curr_mode == Modes::Insert
                         && (c as char == ' ' || !(c as char).is_whitespace()) =>
                     {
                         // Here, c can only be a non whitespace character except for space
@@ -631,7 +625,7 @@ fn main() {
                         }
                     }
                     // Insert a character while in insert mode
-                    c if mode == Modes::Insert && c == RETURN => {
+                    c if editor.curr_mode == Modes::Insert && c == RETURN => {
                         debug_log_cursor(&cursor, &mut log_file);
                         // Collect the two sides of the gap buffer
                         let (lhs, mut rhs) = gap_buf.collect_to_pieces();
@@ -694,7 +688,7 @@ fn main() {
 
                         debug_log_cursor(&cursor, &mut log_file);
                     }
-                    c if mode == Modes::Insert && c as char == '\t' => {
+                    c if editor.curr_mode == Modes::Insert && c as char == '\t' => {
                         // For now, a tab is represented as four spaces
 
                         for _ in 0..4 {
@@ -719,41 +713,33 @@ fn main() {
                         editor.reset_editor_view(&document, &mut cursor);
                     }
                     // Enter command mode
-                    COLON if mode == Modes::Normal => {
+                    COLON if editor.curr_mode == Modes::Normal => {
                         // Change to command mode
-                        editor.change_mode(&mut mode, Modes::Command, &mut cursor);
+                        editor.change_mode(Modes::Command, &mut cursor);
 
                         // Clear the buffer to ensure the new command will be empty
-                        buf.clear();
+                        editor.command_buf.clear();
 
                         // Save cursor position to come back to
                         cursor.save_current_pos();
 
-                        // Move cursor to command row
+                        // Move cursor to command row at first position
                         cursor.move_to(editor.command_row, 1);
+                        editor.print_char(':');
 
-                        // Clear the line if something was already printed there
-                        print!("{: >1$}", "", dimensions.width);
-
-                        // Move cursor to command row
-                        cursor.move_to(editor.command_row, 1);
-
-                        print!(":");
-
-                        std::io::stdout().flush().unwrap();
-
-                        // Move the cursor to align with the colon
                         cursor.move_vis_right();
                     }
                     // Execute command while in command mdoe
-                    RETURN if mode == Modes::Command => {
-                        let mut input = buf
+                    RETURN if editor.curr_mode == Modes::Command => {
+                        let mut input = editor
+                            .command_buf
                             .as_str()
                             .split_whitespace()
                             .collect::<Vec<&str>>()
                             .into_iter();
 
                         if let Some(command) = input.next() {
+                            debug_log_message(command, &mut log_file);
                             match command {
                                 "w" => {
                                     if let Some(file_name) = input.next() {
@@ -788,11 +774,11 @@ fn main() {
                                     cursor.move_to(editor.command_row, 0);
                                     print!("{: >1$}", "", dimensions.width);
 
-                                    editor.change_mode(&mut mode, Modes::Normal, &mut cursor);
+                                    editor.change_mode(Modes::Normal, &mut cursor);
 
                                     cursor.revert_pos();
 
-                                    buf.clear();
+                                    editor.command_buf.clear();
                                 }
                                 "q" => {
                                     clear_screen();
@@ -832,51 +818,40 @@ fn main() {
                                     break;
                                 }
                                 _ => {
-                                    move_cursor_to(editor.command_row, 0);
-                                    print!("{: <1$}", "invalid command", dimensions.width);
-
-                                    editor.change_mode(&mut mode, Modes::Normal, &mut cursor);
-
                                     cursor.revert_pos();
+                                    editor.print_command_message("Invalid Command", &mut cursor);
 
-                                    buf.clear();
+                                    editor.command_buf.clear();
+
+                                    editor.change_mode(Modes::Normal, &mut cursor);
                                 }
                             }
                         }
                     }
                     // Delete character while in command mode
-                    BCKSP if mode == Modes::Command => {
-                        if buf.len() > 0 {
+                    BCKSP if editor.curr_mode == Modes::Command => {
+                        if editor.command_buf.len() > 0 {
                             // If the buffer is not empty
 
-                            // Remove the last character of the command buffer
-                            buf.pop();
+                            cursor.move_to(
+                                editor.command_row,
+                                editor.editor_left_edge + editor.command_buf.len() - 1,
+                            );
 
-                            // Move to the bottom row of the terminal and just after the colon
-                            cursor.move_to(dimensions.height, 2);
-
-                            // Visually blank out the bottom row
-                            print!("{: >1$}", "", dimensions.width - 1);
-
-                            // Move the cursor to just after the colon
-                            cursor.move_to(dimensions.height, 2);
-
-                            // Reprint the buffer
-                            print!("{buf}");
+                            editor.pop_command_buf();
 
                             // Move cursor to just after the original buffer minus the last character
-                            cursor.move_to(dimensions.height, editor.editor_left_edge + buf.len());
+                            cursor.move_to(
+                                editor.command_row,
+                                editor.editor_left_edge + editor.command_buf.len(),
+                            );
                         }
                     }
                     // Insert character while in command mode
-                    c if mode == Modes::Command => {
+                    c if editor.curr_mode == Modes::Command => {
                         // Push the pressed character to the buffer
-                        buf.push(c as char);
-
                         // Display the character to the screen
-                        print!("{}", c as char);
-
-                        std::io::stdout().flush().unwrap();
+                        editor.print_char(c as char);
 
                         cursor.move_vis_right();
                     }
