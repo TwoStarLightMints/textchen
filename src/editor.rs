@@ -30,11 +30,17 @@ pub struct Editor {
     pub editor_height: usize,
     pub mode_row: usize,
     pub command_row: usize,
+    pub curr_mode: Modes,
     pub theme: Theme,
+    pub command_buf: String,
 }
 
 impl Editor {
     pub fn new(dimensions: Wh, editor_left_edge: usize, editor_right_edge: usize) -> Self {
+        let theme = ThemeBuilder::new()
+            .title_line("255;255;255")
+            .font_accents("0;0;0")
+            .build();
         Self {
             editor_home_row: 2,
             editor_bottom: dimensions.height - 2,
@@ -44,14 +50,78 @@ impl Editor {
             editor_height: dimensions.height - 3,
             mode_row: dimensions.height - 1,
             command_row: dimensions.height,
+            curr_mode: Modes::Normal,
             // Note, I am working with only defaults right now
-            theme: ThemeBuilder::new().build(),
+            theme,
+            command_buf: String::new(),
         }
     }
 
     // ==================== DISPLAY METHODS FOR EDITOR ====================
 
-    pub fn change_mode(&self, curr: &mut Modes, new_mode: Modes, cursor: &mut Cursor) {
+    fn reset_color(&self) {
+        print!("\u{001b}[0m");
+        io::stdout().flush().unwrap();
+    }
+
+    fn print_line_color(&self, color: impl AsRef<str>) {
+        print!("{}\u{001b}[2K", color.as_ref());
+    }
+
+    fn print_text_colored(&self, color: impl AsRef<str>, message: impl AsRef<str>) {
+        print!("{}{}", color.as_ref(), message.as_ref());
+        self.reset_color();
+    }
+
+    fn print_title(&self, document: &Document, cursor: &mut Cursor) {
+        cursor.save_current_pos();
+
+        cursor.move_to(0, 0);
+
+        self.print_line_color(self.theme.title_line_color());
+
+        self.print_text_colored(self.theme.title_text_color(), &document.file_name);
+
+        self.reset_color();
+
+        cursor.revert_pos();
+    }
+
+    fn print_mode_row(&self, cursor: &mut Cursor) {
+        cursor.save_current_pos();
+
+        cursor.move_to(self.mode_row, 0);
+
+        self.print_line_color(self.theme.mode_line_color());
+
+        self.print_text_colored(
+            self.theme.title_text_color(),
+            match self.curr_mode {
+                Modes::Normal => "NOR",
+                Modes::Insert => "INS",
+                Modes::Command => "COM",
+                Modes::MoveTo => "MOV",
+            },
+        );
+
+        self.reset_color();
+
+        cursor.revert_pos();
+    }
+
+    fn print_command_row(&self, cursor: &mut Cursor) {
+        cursor.save_current_pos();
+
+        cursor.move_to(self.command_row, 0);
+
+        self.print_line_color(self.theme.background_color());
+
+        self.reset_color();
+
+        cursor.revert_pos();
+    }
+
+    pub fn change_mode(&mut self, new_mode: Modes, cursor: &mut Cursor) {
         //! curr - Current mode stored in the state of the application
         //! new_mode - The new mode which will be stored in the state of the application
         //! mode_row - The row at which the mode will be printed
@@ -59,34 +129,67 @@ impl Editor {
         //!
         //! Changes the current mode of the editor to a new target mode, handles changing state and drawing to screen
 
-        *curr = new_mode;
+        self.curr_mode = new_mode;
 
         cursor.save_current_pos();
 
         cursor.move_to(self.mode_row, 0);
 
-        print!(
-            "{}{}\u{001b}[2K",
-            self.theme.accent_font_color(),
-            self.theme.mode_line_color()
-        );
-        io::stdout().flush().unwrap();
-
-        cursor.move_to(self.mode_row, 0);
-
-        match curr {
-            Modes::Normal => print!("NOR\u{001b}[0m"),
-            Modes::Insert => print!("INS\u{001b}[0m"),
-            Modes::Command => print!("COM\u{001b}[0m"),
-            Modes::MoveTo => print!("MOV\u{001b}[0m"),
-        };
-
-        io::stdout().flush().unwrap();
+        self.print_mode_row(cursor);
 
         cursor.revert_pos();
     }
 
-    pub fn clear_editor_window(&self, cursor: &mut Cursor) {
+    fn print_document(&self, document: &Document, cursor: &mut Cursor) {
+        cursor.save_current_pos();
+
+        cursor.move_to(2, self.editor_left_edge);
+
+        if document.visible_rows.0 == 0 {
+            // Number of lines in document does not exceed editor height
+            for row in document
+                .rows(self.editor_width)
+                .take(document.visible_rows.1)
+            {
+                self.print_line_color(self.theme.background_color());
+                self.print_text_colored(self.theme.body_text_color(), row.1);
+
+                cursor.move_vis_down();
+                cursor.move_to_editor_left(self.editor_left_edge);
+            }
+
+            // Since the document is not as big as the editor window, print the last lines
+            while cursor.row <= self.editor_bottom {
+                self.print_line_color(self.theme.background_color());
+                cursor.move_vis_down();
+            }
+        } else {
+            // Number of lines in document does exceed editor height
+            for row in document
+                .rows(self.editor_width)
+                .skip(document.visible_rows.0)
+                .take(document.visible_rows.1 - document.visible_rows.0)
+            {
+                self.print_line_color(self.theme.background_color());
+                self.print_text_colored(self.theme.body_text_color(), row.1);
+
+                cursor.move_vis_down();
+                cursor.move_to_editor_left(self.editor_left_edge);
+            }
+        }
+
+        cursor.revert_pos();
+    }
+
+    pub fn initialize_display(&self, document: &Document, cursor: &mut Cursor) {
+        self.clear_document_window(cursor);
+        self.print_title(document, cursor);
+        self.print_document(document, cursor);
+        self.print_mode_row(cursor);
+        self.print_command_row(cursor);
+    }
+
+    pub fn clear_document_window(&self, cursor: &mut Cursor) {
         //! document - Document being edited
         //! cursor - Get control of cursor
         //!
@@ -97,7 +200,7 @@ impl Editor {
         cursor.move_to(2, 1);
 
         for _ in 0..self.editor_height {
-            print!("{: >1$}", "", self.editor_right_edge);
+            print!("\u{001b}[2K");
 
             cursor.move_vis_down();
         }
@@ -145,18 +248,43 @@ impl Editor {
         //!
         //! Clears the editor screen and redraws the document provided, tends to be used as to refresh the screen after an edit has occurred
 
-        self.clear_editor_window(cursor);
+        self.clear_document_window(cursor);
 
-        self.display_document(document, cursor);
+        self.print_document(document, cursor);
     }
 
-    pub fn redraw_screen(
-        &mut self,
-        dimensions: &Wh,
-        curr_mode: &mut Modes,
-        document: &mut Document,
-        cursor: &mut Cursor,
-    ) {
+    pub fn print_char(&mut self, c: char) {
+        match self.curr_mode {
+            Modes::Insert => {
+                todo!();
+            }
+            Modes::Command => {
+                if c != ':' {
+                    self.command_buf.push(c);
+                }
+                self.print_text_colored(self.theme.command_text_color(), c.to_string());
+            }
+            Modes::Normal | Modes::MoveTo => unreachable!("Not scientifically possible!"),
+        }
+    }
+
+    pub fn pop_command_buf(&mut self) {
+        self.command_buf.pop();
+        self.print_text_colored(self.theme.command_text_color(), " ");
+    }
+
+    pub fn print_command_message(&self, message: impl AsRef<str>, cursor: &mut Cursor) {
+        cursor.save_current_pos();
+
+        self.print_command_row(cursor);
+
+        cursor.move_to(self.command_row, 1);
+        self.print_text_colored(self.theme.command_text_color(), message);
+
+        cursor.revert_pos();
+    }
+
+    pub fn redraw_screen(&mut self, dimensions: &Wh, document: &mut Document, cursor: &mut Cursor) {
         //! dimensions - The new dimensions of the terminal screen after resize
         //! self - The old dimensions of the editor screen
 
@@ -189,7 +317,7 @@ impl Editor {
         cursor.revert_pos();
 
         // Redraw mode
-        self.change_mode(curr_mode, *curr_mode, cursor);
+        self.print_mode_row(cursor);
 
         document.recalculate_indices(self.editor_width);
 
