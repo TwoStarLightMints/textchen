@@ -190,14 +190,29 @@ impl Editor {
         cursor.revert_pos();
     }
 
-    pub fn print_line(&self, document: &mut Document, cursor: &mut Cursor) {
+    pub fn print_line(&self, document: &Document, cursor: &mut Cursor) {
         cursor.save_current_pos();
 
-        cursor.move_to_start_line(document, self);
+        let curr_line_rows: Vec<(usize, String)> = document
+            .get_line_at_cursor(cursor.doc_row)
+            .rows(self.editor_width)
+            .collect();
+
+        // Get the row number of the first row in the Line, subtract the cursor's position
+        // in the rows of the document to get the amount up that the cursor needs to be moved
+        // The row number of the first row must be subtracted from the cursor's doc row
+        // because cursor.doc_row >= curr_line_rows[0].0
+        let diff = cursor.doc_row - curr_line_rows[0].0;
+
+        cursor.move_to_editor_left(self.editor_left_edge);
+
+        for _ in 0..diff {
+            cursor.move_vis_up();
+        }
 
         cursor.save_current_pos();
 
-        for _ in 0..document.get_line_at_cursor(cursor.doc_row).0.len() {
+        for _ in 0..curr_line_rows.len() {
             self.print_line_color(self.theme.background_color());
             cursor.move_vis_down();
         }
@@ -206,10 +221,7 @@ impl Editor {
 
         cursor.save_current_pos();
 
-        for (_, s) in document
-            .get_line_at_cursor(cursor.doc_row)
-            .rows(self.editor_width)
-        {
+        for (_, s) in curr_line_rows {
             self.print_text_colored(self.theme.command_text_color(), s);
             cursor.move_vis_down();
         }
