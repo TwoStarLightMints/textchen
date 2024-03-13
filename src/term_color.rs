@@ -116,7 +116,7 @@ impl ThemeBuilder {
         }
     }
 
-    pub fn font_titles(mut self, color: impl AsRef<str>) -> Self {
+    pub fn font_body(mut self, color: impl AsRef<str>) -> Self {
         self.body_fonts = Some(RGB::from(color.as_ref()));
         self
     }
