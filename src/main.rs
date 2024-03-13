@@ -568,6 +568,8 @@ fn main() {
                     c if editor.curr_mode == Modes::Insert
                         && (c as char == ' ' || !(c as char).is_whitespace()) =>
                     {
+                        debug_log_cursor(&cursor, &mut log_file);
+
                         // Here, c can only be a non whitespace character except for space
                         if cursor.doc_column < editor.editor_width {
                             // If adding a new character on the current row will not move past the editor's right edge
@@ -587,7 +589,8 @@ fn main() {
                             );
 
                             // Reset the view
-                            editor.reset_editor_view(&document, &mut cursor);
+                            // editor.reset_editor_view(&document, &mut cursor);
+                            editor.print_line(&mut document, &mut cursor);
                         } else {
                             // If inserting a character will go beyond the editor's right edge (i.e. if the character should begin a new row)
 
@@ -626,7 +629,6 @@ fn main() {
                     }
                     // Insert a character while in insert mode
                     c if editor.curr_mode == Modes::Insert && c == RETURN => {
-                        debug_log_cursor(&cursor, &mut log_file);
                         // Collect the two sides of the gap buffer
                         let (lhs, mut rhs) = gap_buf.collect_to_pieces();
 
@@ -685,8 +687,6 @@ fn main() {
                         );
 
                         editor.reset_editor_view(&document, &mut cursor);
-
-                        debug_log_cursor(&cursor, &mut log_file);
                     }
                     c if editor.curr_mode == Modes::Insert && c as char == '\t' => {
                         // For now, a tab is represented as four spaces
@@ -739,7 +739,6 @@ fn main() {
                             .into_iter();
 
                         if let Some(command) = input.next() {
-                            debug_log_message(command, &mut log_file);
                             match command {
                                 "w" => {
                                     if let Some(file_name) = input.next() {
