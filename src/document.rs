@@ -59,6 +59,26 @@ impl Line {
 
         new
     }
+
+    pub fn rows(&self, editor_width: usize) -> Rows {
+        let mut chars = self.1.chars().peekable();
+
+        let mut sub_rows: Vec<_> = Vec::new();
+
+        while let Some(_) = chars.by_ref().peek() {
+            let next_row_content = chars.by_ref().take(editor_width).collect::<String>();
+            sub_rows.push(next_row_content);
+        }
+
+        let mut rows = Vec::new();
+        self.0
+            .iter()
+            .zip(sub_rows.iter())
+            .map(|row| (*row.0, row.1.clone()))
+            .for_each(|e| rows.push(e));
+
+        Rows::new(Some(rows))
+    }
 }
 
 pub struct Rows {
