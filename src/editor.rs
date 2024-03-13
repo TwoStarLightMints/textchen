@@ -38,8 +38,11 @@ pub struct Editor {
 impl Editor {
     pub fn new(dimensions: Wh, editor_left_edge: usize, editor_right_edge: usize) -> Self {
         let theme = ThemeBuilder::new()
-            .title_line("255;255;255")
-            .font_accents("0;0;0")
+            .title_line("31;35;53")
+            .mode_line("31;35;53")
+            .font_accents("169;177;214")
+            .font_body("122;162;247")
+            .editor_background("36;40;59")
             .build();
         Self {
             editor_home_row: 2,
@@ -80,7 +83,10 @@ impl Editor {
 
         self.print_line_color(self.theme.title_line_color());
 
-        self.print_text_colored(self.theme.title_text_color(), &document.file_name);
+        self.print_text_colored(
+            self.theme.title_text_color(),
+            format!(" {}", &document.file_name),
+        );
 
         self.reset_color();
 
@@ -96,12 +102,15 @@ impl Editor {
 
         self.print_text_colored(
             self.theme.title_text_color(),
-            match self.curr_mode {
-                Modes::Normal => "NOR",
-                Modes::Insert => "INS",
-                Modes::Command => "COM",
-                Modes::MoveTo => "MOV",
-            },
+            format!(
+                " {}",
+                match self.curr_mode {
+                    Modes::Normal => "NOR",
+                    Modes::Insert => "INS",
+                    Modes::Command => "COM",
+                    Modes::MoveTo => "MOV",
+                }
+            ),
         );
 
         self.reset_color();
@@ -177,6 +186,35 @@ impl Editor {
                 cursor.move_to_editor_left(self.editor_left_edge);
             }
         }
+
+        cursor.revert_pos();
+    }
+
+    pub fn print_line(&self, document: &mut Document, cursor: &mut Cursor) {
+        cursor.save_current_pos();
+
+        cursor.move_to_start_line(document, self);
+
+        cursor.save_current_pos();
+
+        for _ in 0..document.get_line_at_cursor(cursor.doc_row).0.len() {
+            self.print_line_color(self.theme.background_color());
+            cursor.move_vis_down();
+        }
+
+        cursor.revert_pos();
+
+        cursor.save_current_pos();
+
+        for (_, s) in document
+            .get_line_at_cursor(cursor.doc_row)
+            .rows(self.editor_width)
+        {
+            self.print_text_colored(self.theme.command_text_color(), s);
+            cursor.move_vis_down();
+        }
+
+        cursor.revert_pos();
 
         cursor.revert_pos();
     }
