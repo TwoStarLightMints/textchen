@@ -568,8 +568,6 @@ fn main() {
                     c if editor.curr_mode == Modes::Insert
                         && (c as char == ' ' || !(c as char).is_whitespace()) =>
                     {
-                        debug_log_cursor(&cursor, &mut log_file);
-
                         // Here, c can only be a non whitespace character except for space
                         if cursor.doc_column < editor.editor_width {
                             // If adding a new character on the current row will not move past the editor's right edge
@@ -581,6 +579,8 @@ fn main() {
                             cursor.move_vis_right();
                             cursor.move_doc_right();
 
+                            let curr_num_rows = document.num_rows();
+
                             // Set the current line's string content to the gap buffer
                             document.set_line_at_cursor(
                                 cursor.doc_row,
@@ -589,13 +589,18 @@ fn main() {
                             );
 
                             // Reset the view
-                            // editor.reset_editor_view(&document, &mut cursor);
-                            editor.print_line(&mut document, &mut cursor);
+                            if curr_num_rows == document.num_rows() {
+                                editor.print_line(&mut document, &mut cursor);
+                            } else {
+                                editor.reset_editor_view(&document, &mut cursor);
+                            }
                         } else {
                             // If inserting a character will go beyond the editor's right edge (i.e. if the character should begin a new row)
 
                             // Insert the character into the gap buffer
                             gap_buf.insert(c as char);
+
+                            let curr_num_rows = document.num_rows();
 
                             // Set the current line's string content to the gap buffer
                             document.set_line_at_cursor(
@@ -624,7 +629,11 @@ fn main() {
                             cursor.move_doc_right();
 
                             // Reset the view
-                            editor.reset_editor_view(&document, &mut cursor);
+                            if curr_num_rows == document.num_rows() {
+                                editor.print_line(&mut document, &mut cursor);
+                            } else {
+                                editor.reset_editor_view(&document, &mut cursor);
+                            }
                         }
                     }
                     // Insert a character while in insert mode
