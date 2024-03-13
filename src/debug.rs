@@ -7,8 +7,8 @@ use std::fs::File;
 use std::io::Write;
 
 #[allow(dead_code)]
-pub fn debug_log_message<T: ToString>(message: T, log_file: &mut File) {
-    log_file.write(message.to_string().as_bytes()).unwrap();
+pub fn debug_log_message(message: impl AsRef<str>, log_file: &mut File) {
+    log_file.write(message.as_ref().as_bytes()).unwrap();
 }
 
 #[allow(dead_code)]
