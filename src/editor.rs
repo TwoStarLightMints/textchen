@@ -22,6 +22,7 @@ pub enum Modes {
 }
 
 pub struct Editor {
+    pub dimensions: Wh,
     pub editor_home_row: usize,
     pub editor_bottom: usize,
     pub editor_left_edge: usize,
@@ -36,7 +37,7 @@ pub struct Editor {
 }
 
 impl Editor {
-    pub fn new(dimensions: Wh, editor_left_edge: usize, editor_right_edge: usize) -> Self {
+    pub fn new(dimensions: Wh, editor_left_edge: usize, editor_right_edge_offset: usize) -> Self {
         let theme = ThemeBuilder::new()
             .title_line("31;35;53")
             .mode_line("31;35;53")
@@ -48,8 +49,8 @@ impl Editor {
             editor_home_row: 2,
             editor_bottom: dimensions.height - 2,
             editor_left_edge,
-            editor_right_edge,
-            editor_width: editor_right_edge - editor_left_edge,
+            editor_right_edge: dimensions.width - editor_right_edge_offset,
+            editor_width: (dimensions.width - editor_right_edge_offset) - editor_left_edge,
             editor_height: dimensions.height - 3,
             mode_row: dimensions.height - 1,
             command_row: dimensions.height,
@@ -57,6 +58,7 @@ impl Editor {
             // Note, I am working with only defaults right now
             theme,
             command_buf: String::new(),
+            dimensions,
         }
     }
 
@@ -334,7 +336,7 @@ impl Editor {
         cursor.revert_pos();
     }
 
-    pub fn redraw_screen(&mut self, dimensions: &Wh, document: &mut Document, cursor: &mut Cursor) {
+    pub fn redraw_screen(&mut self, document: &mut Document, cursor: &mut Cursor) {
         //! dimensions - The new dimensions of the terminal screen after resize
         //! self - The old dimensions of the editor screen
 
@@ -350,11 +352,11 @@ impl Editor {
         cursor.save_current_pos();
 
         // Recalculate the values of the self variable
-        self.editor_right_edge = dimensions.width - 2;
+        self.editor_right_edge = self.dimensions.width - 2;
         self.editor_width = self.editor_right_edge - self.editor_left_edge;
-        self.editor_height = dimensions.height - 3;
-        self.mode_row = dimensions.height - 1;
-        self.command_row = dimensions.height;
+        self.editor_height = self.dimensions.height - 3;
+        self.mode_row = self.dimensions.height - 1;
+        self.command_row = self.dimensions.height;
 
         // Clear the screen, blank canvas
         clear_screen();
