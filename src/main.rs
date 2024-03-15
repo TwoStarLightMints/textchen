@@ -568,7 +568,12 @@ fn main() {
                             cursor.move_vis_right();
                             cursor.move_doc_right();
 
-                            let curr_num_rows = document.num_rows();
+                            let curr_line_ind =
+                                document.get_index_at_cursor(cursor.doc_row).unwrap();
+
+                            let num_line_rows = document.lines[curr_line_ind]
+                                .rows(editor.editor_width)
+                                .count();
 
                             // Set the current line's string content to the gap buffer
                             document.set_line_at_cursor(
@@ -578,7 +583,11 @@ fn main() {
                             );
 
                             // Reset the view
-                            if curr_num_rows == document.num_rows() {
+                            if num_line_rows
+                                == document.lines[curr_line_ind]
+                                    .rows(editor.editor_width)
+                                    .count()
+                            {
                                 editor.print_line(&mut document, &mut cursor);
                             } else {
                                 editor.reset_editor_view(&document, &mut cursor);
@@ -589,7 +598,12 @@ fn main() {
                             // Insert the character into the gap buffer
                             gap_buf.insert(c as char);
 
-                            let curr_num_rows = document.num_rows();
+                            let curr_line_ind =
+                                document.get_index_at_cursor(cursor.doc_row).unwrap();
+
+                            let num_line_rows = document.lines[curr_line_ind]
+                                .rows(editor.editor_width)
+                                .count();
 
                             // Set the current line's string content to the gap buffer
                             document.set_line_at_cursor(
@@ -618,7 +632,11 @@ fn main() {
                             cursor.move_doc_right();
 
                             // Reset the view
-                            if curr_num_rows == document.num_rows() {
+                            if num_line_rows
+                                == document.lines[curr_line_ind]
+                                    .rows(editor.editor_width)
+                                    .count()
+                            {
                                 editor.print_line(&mut document, &mut cursor);
                             } else {
                                 editor.reset_editor_view(&document, &mut cursor);
