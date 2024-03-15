@@ -27,9 +27,7 @@ fn main() {
     // Dimensions for the terminal screen
     // Wh.width - The width of the terminal as a whole
     // Wh.height - The height of the terminal as a whole
-    let mut dimensions = term_size();
-
-    let mut editor = Editor::new(term_size(), 2, dimensions.width - 2);
+    let mut editor = Editor::new(term_size(), 2, 2);
 
     // Title row is the home row
     // row: 0, column: 0
@@ -77,8 +75,8 @@ fn main() {
 
     // Main loop for program
     loop {
-        if dimensions.check_term_resize() {
-            editor.redraw_screen(&dimensions, &mut document, &mut cursor);
+        if editor.dimensions.check_term_resize() {
+            editor.redraw_screen(&mut document, &mut cursor);
         }
 
         match char_channel.try_recv() {
@@ -426,15 +424,6 @@ fn main() {
                         // Change mode to normal
                         editor.change_mode(Modes::Normal, &mut cursor);
 
-                        // Move cursor to the command line row
-                        cursor.move_to(dimensions.height, 0);
-
-                        // Visually delete the contents of the row
-                        print!("{}\u{001b}[2K", editor.theme.command_text_color());
-
-                        // The cursor position was saved when switching to command mode, so revert to that position
-                        cursor.revert_pos();
-
                         // Clear the buffer
                         editor.command_buf.clear();
                     }
@@ -765,7 +754,7 @@ fn main() {
 
                                         cursor.save_current_pos();
 
-                                        print!("{: >1$}", "", dimensions.width);
+                                        print!("{: >1$}", "", editor.dimensions.width);
 
                                         cursor.move_to(0, 0);
 
@@ -780,7 +769,7 @@ fn main() {
                                     }
 
                                     cursor.move_to(editor.command_row, 0);
-                                    print!("{: >1$}", "", dimensions.width);
+                                    print!("{: >1$}", "", editor.dimensions.width);
 
                                     editor.change_mode(Modes::Normal, &mut cursor);
 
@@ -809,7 +798,7 @@ fn main() {
 
                                         cursor.save_current_pos();
 
-                                        print!("{: >1$}", "", dimensions.width);
+                                        print!("{: >1$}", "", editor.dimensions.width);
 
                                         cursor.move_to(0, 0);
 
