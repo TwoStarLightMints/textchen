@@ -731,8 +731,6 @@ fn main() {
                         );
 
                         editor.reset_editor_view(&document, &mut cursor);
-
-                        debug_log_document(&document, &mut log_file);
                     }
                     c if editor.curr_mode == Modes::Insert && c as char == '\t' => {
                         // For now, a tab is represented as four spaces
