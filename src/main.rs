@@ -11,6 +11,7 @@ const K_LOWER: u8 = 107;
 const L_LOWER: u8 = 108;
 const X_LOWER: u8 = 120;
 const O_LOWER: u8 = 111;
+const O_UPPER: u8 = 'O' as u8;
 const H_LOWER: u8 = 104;
 const G_LOWER: u8 = 103;
 const I_LOWER: u8 = 105;
@@ -369,7 +370,7 @@ fn main() {
                             document.add_scratch_line();
                         }
                     }
-                    // Create a new empty line
+                    // Create a new empty line below current position of the cursor
                     O_LOWER if editor.curr_mode == Modes::Normal => {
                         let mut new_line = Line::new();
 
@@ -399,6 +400,33 @@ fn main() {
                         cursor.move_doc_down();
 
                         // Add the new line to the document
+                        document.add_line_at_row(new_line, cursor.doc_row);
+
+                        // Crate an empty gap buffer since the line will be empty guaranteed
+                        gap_buf = GapBuf::new();
+
+                        // Reset view
+                        editor.reset_editor_view(&document, &mut cursor);
+                    }
+                    // Create new empty line at the current cursor position, push all other contents down
+                    O_UPPER if editor.curr_mode == Modes::Normal => {
+                        let mut new_line = Line::new();
+
+                        // Change mode to insert
+                        editor.change_mode(Modes::Insert, &mut cursor);
+
+                        // The new line will be inserted at the current position and will not change
+                        // the position of the cursor visually or within the document
+                        new_line.0.push(cursor.doc_row);
+
+                        // Move to the beginning of the current line
+                        cursor.move_to_start_line(&mut document, &editor);
+
+                        // Move the cursor visually and within the document to the leftmost position
+                        cursor.move_to_editor_left(editor.editor_left_edge);
+                        cursor.move_doc_to_editor_left();
+
+                        // Add the new line to the document at the cursor's current row
                         document.add_line_at_row(new_line, cursor.doc_row);
 
                         // Crate an empty gap buffer since the line will be empty guaranteed
@@ -703,6 +731,8 @@ fn main() {
                         );
 
                         editor.reset_editor_view(&document, &mut cursor);
+
+                        debug_log_document(&document, &mut log_file);
                     }
                     c if editor.curr_mode == Modes::Insert && c as char == '\t' => {
                         // For now, a tab is represented as four spaces
