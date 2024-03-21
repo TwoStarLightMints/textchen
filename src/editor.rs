@@ -176,16 +176,22 @@ impl Editor {
             }
         } else {
             // Number of lines in document does exceed editor height
-            for row in document
+            let vis_rows: Vec<_> = document
                 .rows(self.editor_width)
                 .skip(document.visible_rows.0)
                 .take(document.visible_rows.1 - document.visible_rows.0)
-            {
+                .collect();
+
+            for row in vis_rows.iter() {
                 self.print_line_color(self.theme.background_color());
-                self.print_text_colored(self.theme.body_text_color(), row.1);
+                self.print_text_colored(self.theme.body_text_color(), row.1.as_str());
 
                 cursor.move_vis_down();
                 cursor.move_to_editor_left(self.editor_left_edge);
+            }
+
+            if vis_rows.len() < (document.visible_rows.1 - document.visible_rows.0) {
+                self.print_line_color(self.theme.background_color());
             }
         }
 
