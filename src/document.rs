@@ -1,6 +1,7 @@
 use crate::editor::Editor;
 use std::fmt::Display;
 use std::iter::Iterator;
+use std::{fs::File, io::Write};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Line(pub Vec<usize>, pub String);
@@ -189,21 +190,35 @@ impl Document {
         //! Returns the index of the line within the Document's line vector which is located at the cursor's row
         //! relative to the document
 
-        let mut ind = 0;
+        // Beginning of the search area
+        let mut beg = 0;
+        // End of the search area
+        let mut end = self.lines.len() - 1;
 
-        for line in self.lines.iter() {
-            if line.0.contains(&(cursor_doc_row)) {
-                break;
+        // While the beginning is not equal to the end (the search area is 0)
+        while beg != end {
+            // mid is the index current element being compared
+            let mid = beg + ((end - 1) / 2);
+
+            if *self.lines[mid].0.first().unwrap() > cursor_doc_row {
+                // If the cursor's row in the document is less than the first row index of this element
+
+                // Make the current element the last element in the area
+                end = mid;
+            } else if *self.lines[mid].0.last().unwrap() < cursor_doc_row {
+                // If the cursor's row in the document is greater than the last row index of this element
+
+                // Make the current elemenent thte last element in the area
+                beg = mid;
+            } else {
+                // The cursor's row in the document is within the rows spanned by the current element
+
+                // Return this element's index
+                return Ok(mid);
             }
-
-            ind += 1;
         }
 
-        if ind == self.lines.len() {
-            Err("Line not found with given curosr document row".to_string())
-        } else {
-            Ok(ind)
-        }
+        Err("Line not found with given cursor document row".to_string())
     }
 
     pub fn set_line_at_cursor(
