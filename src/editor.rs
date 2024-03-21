@@ -275,7 +275,7 @@ impl Editor {
                 .rows(self.editor_width)
                 .take(document.visible_rows.1)
             {
-                print!("{}", row.1);
+                print!("\u{001b}[2K{}", row.1);
                 cursor.move_vis_down();
                 cursor.move_to_editor_left(self.editor_left_edge);
             }
@@ -285,10 +285,15 @@ impl Editor {
                 .skip(document.visible_rows.0)
                 .take(document.visible_rows.1 - document.visible_rows.0)
             {
-                print!("{}", row.1);
+                print!("\u{001b}[2K{}", row.1);
                 cursor.move_vis_down();
                 cursor.move_to_editor_left(self.editor_left_edge);
             }
+        }
+
+        if document.visible_rows.1 == *document.lines[document.lines.len()].0.last().unwrap() {
+            cursor.move_vis_down();
+            self.print_line_color(self.theme.background_color());
         }
 
         cursor.revert_pos();
@@ -300,7 +305,7 @@ impl Editor {
         //!
         //! Clears the editor screen and redraws the document provided, tends to be used as to refresh the screen after an edit has occurred
 
-        self.clear_document_window(cursor);
+        // self.clear_document_window(cursor);
 
         self.print_document(document, cursor);
     }
