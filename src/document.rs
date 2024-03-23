@@ -198,7 +198,7 @@ impl Document {
         // While the beginning is not equal to the end (the search area is 0)
         while beg != end {
             // mid is the index current element being compared
-            let mid = beg + ((end - 1) / 2);
+            let mid = beg + ((end - beg) / 2);
 
             if *self.lines[mid].0.first().unwrap() > cursor_doc_row {
                 // If the cursor's row in the document is less than the first row index of this element
