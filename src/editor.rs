@@ -5,8 +5,7 @@ use crate::term::get_char;
 use crate::term::{kbhit, Wh};
 use crate::term_color::{Theme, ThemeBuilder};
 use std::fs::File;
-use std::io::Read;
-use std::io::{self, Write};
+use std::io::{self, BufWriter, Read, Stdout, Write};
 use std::sync::mpsc;
 use std::sync::mpsc::Receiver;
 use std::thread;
@@ -22,6 +21,8 @@ pub enum Modes {
 }
 
 pub struct Editor {
+    /// Responsible for holding all information about terminal size, document
+    /// display window size, and printing to the screen
     pub term_dimensions: Wh,
     /// The first row on which the document will be displayed
     pub doc_disp_home_row: usize,
@@ -50,6 +51,7 @@ pub struct Editor {
     pub theme: Theme,
     /// The buffer for user entered commands
     pub command_buf: String,
+    pen: BufWriter<Stdout>,
 }
 
 impl Editor {
@@ -81,6 +83,7 @@ impl Editor {
             theme,
             command_buf: String::new(),
             term_dimensions: dimensions,
+            pen: BufWriter::new(io::stdout()),
         }
     }
 
@@ -475,6 +478,14 @@ impl Editor {
 
         // Redraw document
         self.reset_editor_view(document, cursor);
+    }
+
+    pub fn add_to_draw_buf<S: AsRef<str>>(&mut self, content: S) {
+        self.pen.write(content.as_ref().as_bytes()).unwrap();
+    }
+
+    pub fn flush_pen(&mut self) {
+        self.pen.flush().unwrap();
     }
 }
 
