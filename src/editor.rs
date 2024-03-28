@@ -22,22 +22,43 @@ pub enum Modes {
 }
 
 pub struct Editor {
-    pub dimensions: Wh,
-    pub editor_home_row: usize,
-    pub editor_bottom: usize,
-    pub editor_left_edge: usize,
-    pub editor_right_edge: usize,
-    pub editor_width: usize,
-    pub editor_height: usize,
+    pub term_dimensions: Wh,
+    /// The first row on which the document will be displayed
+    pub doc_disp_home_row: usize,
+    /// The last row on which the document will be displayed
+    pub doc_disp_bottom: usize,
+    /// The height spanned from the first possible row to the last where
+    /// the document is displayed
+    pub doc_disp_height: usize,
+    /// The offset from the left side of the terminal, first column
+    /// the document will be displayed
+    pub doc_disp_left_edge: usize,
+    /// The offset from the right side of the terminal, last column
+    /// the document will be displayed
+    pub doc_disp_right_edge: usize,
+    /// The width spanned from the first possible column to the last
+    /// where the document is displayed
+    pub doc_disp_width: usize,
+    /// The row on which the mode will be displayed
     pub mode_row: usize,
+    /// The row on which the user will type commands
     pub command_row: usize,
+    /// Stores the current mode that the editor is in
     pub curr_mode: Modes,
+    /// Stores the theme to be used for colors
+    /// TODO: Make user configurable
     pub theme: Theme,
+    /// The buffer for user entered commands
     pub command_buf: String,
 }
 
 impl Editor {
-    pub fn new(dimensions: Wh, editor_left_edge: usize, editor_right_edge_offset: usize) -> Self {
+    pub fn new(dimensions: Wh, left_edge_offset: usize, right_edge_offset: usize) -> Self {
+        //! left_edge_offset - The index of the column at which the document will start
+        //! to be displayed in the document display window
+        //! right_edge_offset - The amount of spaces from the right side of the terminal
+        //! that the document will be displayed
+
         let theme = ThemeBuilder::new()
             .title_line("31;35;53")
             .mode_line("31;35;53")
@@ -45,20 +66,21 @@ impl Editor {
             .font_body("122;162;247")
             .editor_background("36;40;59")
             .build();
+
         Self {
-            editor_home_row: 2,
-            editor_bottom: dimensions.height - 2,
-            editor_left_edge,
-            editor_right_edge: dimensions.width - editor_right_edge_offset,
-            editor_width: (dimensions.width - editor_right_edge_offset) - editor_left_edge,
-            editor_height: dimensions.height - 3,
+            doc_disp_home_row: 2,
+            doc_disp_bottom: dimensions.height - 2,
+            doc_disp_left_edge: left_edge_offset,
+            doc_disp_right_edge: dimensions.width - right_edge_offset,
+            doc_disp_width: (dimensions.width - right_edge_offset) - left_edge_offset,
+            doc_disp_height: dimensions.height - 3,
             mode_row: dimensions.height - 1,
             command_row: dimensions.height,
             curr_mode: Modes::Normal,
             // Note, I am working with only defaults right now
             theme,
             command_buf: String::new(),
-            dimensions,
+            term_dimensions: dimensions,
         }
     }
 
@@ -154,30 +176,30 @@ impl Editor {
     fn print_document(&self, document: &Document, cursor: &mut Cursor) {
         cursor.save_current_pos();
 
-        cursor.move_to(2, self.editor_left_edge);
+        cursor.move_to(2, self.doc_disp_left_edge);
 
         if document.visible_rows.0 == 0 {
             // Number of lines in document does not exceed editor height
             for row in document
-                .rows(self.editor_width)
+                .rows(self.doc_disp_width)
                 .take(document.visible_rows.1)
             {
                 self.print_line_color(self.theme.background_color());
                 self.print_text_colored(self.theme.body_text_color(), row.1);
 
                 cursor.move_vis_down();
-                cursor.move_to_editor_left(self.editor_left_edge);
+                cursor.move_to_editor_left(self.doc_disp_left_edge);
             }
 
             // Since the document is not as big as the editor window, print the last lines
-            while cursor.row <= self.editor_bottom {
+            while cursor.row <= self.doc_disp_bottom {
                 self.print_line_color(self.theme.background_color());
                 cursor.move_vis_down();
             }
         } else {
             // Number of lines in document does exceed editor height
             let vis_rows: Vec<_> = document
-                .rows(self.editor_width)
+                .rows(self.doc_disp_width)
                 .skip(document.visible_rows.0)
                 .take(document.visible_rows.1 - document.visible_rows.0)
                 .collect();
@@ -187,7 +209,7 @@ impl Editor {
                 self.print_text_colored(self.theme.body_text_color(), row.1.as_str());
 
                 cursor.move_vis_down();
-                cursor.move_to_editor_left(self.editor_left_edge);
+                cursor.move_to_editor_left(self.doc_disp_left_edge);
             }
 
             if vis_rows.len() < (document.visible_rows.1 - document.visible_rows.0) {
@@ -203,7 +225,7 @@ impl Editor {
 
         let curr_line_rows: Vec<(usize, String)> = document
             .get_line_at_cursor(cursor.doc_row)
-            .rows(self.editor_width)
+            .rows(self.doc_disp_width)
             .collect();
 
         // Get the row number of the first row in the Line, subtract the cursor's position
@@ -212,7 +234,7 @@ impl Editor {
         // because cursor.doc_row >= curr_line_rows[0].0
         let diff = cursor.doc_row - curr_line_rows[0].0;
 
-        cursor.move_to_editor_left(self.editor_left_edge);
+        cursor.move_to_editor_left(self.doc_disp_left_edge);
 
         for _ in 0..diff {
             cursor.move_vis_up();
@@ -257,7 +279,7 @@ impl Editor {
 
         cursor.move_to(2, 1);
 
-        for _ in 0..self.editor_height {
+        for _ in 0..self.doc_disp_height {
             print!("\u{001b}[2K");
 
             cursor.move_vis_down();
@@ -274,26 +296,26 @@ impl Editor {
 
         cursor.save_current_pos();
 
-        cursor.move_to(2, self.editor_left_edge);
+        cursor.move_to(2, self.doc_disp_left_edge);
 
         if document.visible_rows.0 == 0 {
             for row in document
-                .rows(self.editor_width)
+                .rows(self.doc_disp_width)
                 .take(document.visible_rows.1)
             {
                 print!("\u{001b}[2K{}", row.1);
                 cursor.move_vis_down();
-                cursor.move_to_editor_left(self.editor_left_edge);
+                cursor.move_to_editor_left(self.doc_disp_left_edge);
             }
         } else {
             for row in document
-                .rows(self.editor_width)
+                .rows(self.doc_disp_width)
                 .skip(document.visible_rows.0)
                 .take(document.visible_rows.1 - document.visible_rows.0)
             {
                 print!("\u{001b}[2K{}", row.1);
                 cursor.move_vis_down();
-                cursor.move_to_editor_left(self.editor_left_edge);
+                cursor.move_to_editor_left(self.doc_disp_left_edge);
             }
         }
 
@@ -354,20 +376,20 @@ impl Editor {
         let curr_line_index = document.get_index_at_cursor(cursor.doc_row).unwrap();
         let curr_pos = cursor.get_position_in_line(&document, self);
         let curr_num_above =
-            document.num_above_rows(self.editor_width, document.lines[curr_line_index].0[0]);
+            document.num_above_rows(self.doc_disp_width, document.lines[curr_line_index].0[0]);
 
-        let original_width = self.editor_width;
-        let original_height = self.editor_height;
+        let original_width = self.doc_disp_width;
+        let original_height = self.doc_disp_height;
 
         // Save to see if it will be at least within the right line or an adjacent one instead of only going to the start of the editor
         cursor.save_current_pos();
 
         // Recalculate the values of the self variable
-        self.editor_right_edge = self.dimensions.width - 2;
-        self.editor_width = self.editor_right_edge - self.editor_left_edge;
-        self.editor_height = self.dimensions.height - 3;
-        self.mode_row = self.dimensions.height - 1;
-        self.command_row = self.dimensions.height;
+        self.doc_disp_right_edge = self.term_dimensions.width - 2;
+        self.doc_disp_width = self.doc_disp_right_edge - self.doc_disp_left_edge;
+        self.doc_disp_height = self.term_dimensions.height - 3;
+        self.mode_row = self.term_dimensions.height - 1;
+        self.command_row = self.term_dimensions.height;
 
         // Clear the screen, blank canvas
         clear_screen();
@@ -382,17 +404,17 @@ impl Editor {
         // Redraw mode
         self.print_mode_row(cursor);
 
-        document.recalculate_indices(self.editor_width);
+        document.recalculate_indices(self.doc_disp_width);
 
         // If cursor_half is true, the cursor is located in the top half of the editor, else
         // it is in the bottom half
-        let cursor_half = (cursor.row - 2) < self.editor_height / 2;
+        let cursor_half = (cursor.row - 2) < self.doc_disp_height / 2;
 
-        if original_width > self.editor_width {
+        if original_width > self.doc_disp_width {
             // If the original width is greater than the new width (the screen is shrinking horizontally)
 
             let new_num_above =
-                document.num_above_rows(self.editor_width, document.lines[curr_line_index].0[0]);
+                document.num_above_rows(self.doc_disp_width, document.lines[curr_line_index].0[0]);
 
             if new_num_above > curr_num_above {
                 // If the number of lines above the current line is greater than the original number of lines
@@ -402,9 +424,9 @@ impl Editor {
                     document.push_vis_down();
                 }
             }
-        } else if self.editor_width > original_width {
+        } else if self.doc_disp_width > original_width {
             let new_num_above =
-                document.num_above_rows(self.editor_width, document.lines[curr_line_index].0[0]);
+                document.num_above_rows(self.doc_disp_width, document.lines[curr_line_index].0[0]);
 
             if curr_num_above > new_num_above {
                 for _ in 0..(curr_num_above - new_num_above) {
@@ -413,38 +435,38 @@ impl Editor {
             }
         }
 
-        if original_height > self.editor_height {
+        if original_height > self.doc_disp_height {
             // If the original height is greater than the new height (the screen is shrinking vertically)
 
             if cursor_half {
                 // If the cursor is in the first half of the editor
 
-                document.visible_rows.1 -= original_height - self.editor_height;
+                document.visible_rows.1 -= original_height - self.doc_disp_height;
             } else {
                 // If the cursor is in the second half of the editor
 
-                document.visible_rows.0 += original_height - self.editor_height;
+                document.visible_rows.0 += original_height - self.doc_disp_height;
             }
-        } else if self.editor_height > original_height {
+        } else if self.doc_disp_height > original_height {
             // If the new height is greater than the original height (the screen is growing vertically)
 
             if cursor_half {
                 // If the cursor is in the first half of the editor
 
                 if document.visible_rows.1 <= *document.lines.last().unwrap().0.last().unwrap() {
-                    document.visible_rows.1 += self.editor_height - original_height;
+                    document.visible_rows.1 += self.doc_disp_height - original_height;
                 } else {
                     if document.visible_rows.0 != 0 {
-                        document.visible_rows.0 -= self.editor_height - original_height;
+                        document.visible_rows.0 -= self.doc_disp_height - original_height;
                     }
                 }
             } else {
                 // If the cursor is in the second half of the editor
 
                 if document.visible_rows.0 != 0 {
-                    document.visible_rows.0 -= self.editor_height - original_height;
+                    document.visible_rows.0 -= self.doc_disp_height - original_height;
                 } else {
-                    document.visible_rows.1 += self.editor_height - original_height;
+                    document.visible_rows.1 += self.doc_disp_height - original_height;
                 }
             }
         }
@@ -488,7 +510,7 @@ pub fn same_line_different_row_bump(
         cursor.move_right();
     } else if (curr_line != next_line && next_line.0[0] > curr_line.0[0] && cursor.doc_column == 1)
         || (curr_line == next_line
-            && cursor_pos % editor_dim.editor_width == 1
+            && cursor_pos % editor_dim.doc_disp_width == 1
             && cursor.doc_row == next_line.0[0])
     {
         // If either:

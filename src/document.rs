@@ -148,7 +148,7 @@ impl Document {
             return Self {
                 file_name,
                 lines: vec![line],
-                visible_rows: (0, editor_dim.editor_height),
+                visible_rows: (0, editor_dim.doc_disp_height),
             };
         }
 
@@ -156,7 +156,8 @@ impl Document {
         let mut lines: Vec<Line> = Vec::new();
 
         for line in content.lines() {
-            let new_line = Line::from_str(line.to_string(), &mut curr_ind, editor_dim.editor_width);
+            let new_line =
+                Line::from_str(line.to_string(), &mut curr_ind, editor_dim.doc_disp_width);
 
             lines.push(new_line);
         }
@@ -164,7 +165,7 @@ impl Document {
         Self {
             file_name,
             lines,
-            visible_rows: (0, editor_dim.editor_height),
+            visible_rows: (0, editor_dim.doc_disp_height),
         }
     }
 

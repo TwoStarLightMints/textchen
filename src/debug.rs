@@ -37,7 +37,7 @@ pub fn debug_log_dimensions(dimensions: &Wh, editor_dim: &Editor, log_file: &mut
         .write(
             format!(
                 "Terminal width: {}, Terminal height: {}\nEditor bottom: {}, Editor width: {}, Editor height: {}, Mode row: {}, Command row: {}\n",
-                dimensions.width, dimensions.height, editor_dim.editor_bottom, editor_dim.editor_width, editor_dim.editor_height, editor_dim.mode_row, editor_dim.command_row
+                dimensions.width, dimensions.height, editor_dim.doc_disp_bottom, editor_dim.doc_disp_width, editor_dim.doc_disp_height, editor_dim.mode_row, editor_dim.command_row
             )
             .as_bytes(),
         )
