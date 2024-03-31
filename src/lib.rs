@@ -3,5 +3,6 @@ pub mod debug;
 pub mod document;
 pub mod editor;
 pub mod gapbuf;
+pub mod rope;
 pub mod term;
 pub mod term_color;
