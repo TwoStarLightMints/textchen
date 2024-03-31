@@ -4,6 +4,7 @@ use crate::term::clear_screen;
 use crate::term::get_char;
 use crate::term::{kbhit, Wh};
 use crate::term_color::{Theme, ThemeBuilder};
+use std::cell::RefCell;
 use std::fs::File;
 use std::io::{self, BufWriter, Read, Stdout, Write};
 use std::sync::mpsc;
@@ -51,7 +52,7 @@ pub struct Editor {
     pub theme: Theme,
     /// The buffer for user entered commands
     pub command_buf: String,
-    pen: BufWriter<Stdout>,
+    pen: RefCell<BufWriter<Stdout>>,
 }
 
 impl Editor {
@@ -83,7 +84,7 @@ impl Editor {
             theme,
             command_buf: String::new(),
             term_dimensions: dimensions,
-            pen: BufWriter::new(io::stdout()),
+            pen: RefCell::new(BufWriter::new(io::stdout())),
         }
     }
 
@@ -486,6 +487,18 @@ impl Editor {
 
     pub fn flush_pen(&mut self) {
         self.pen.flush().unwrap();
+    }
+
+    fn home_row() -> usize {
+        2
+    }
+
+    fn doc_disp_bottom(&self) -> usize {
+        self.term_dimensions.height - 2
+    }
+
+    fn doc_disp_right_edge(&self) -> usize {
+        self.term_dimensions.width - self.right_edge_offset
     }
 }
 
