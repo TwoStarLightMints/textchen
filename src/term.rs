@@ -76,32 +76,22 @@ pub fn term_size() -> Wh {
     Wh::from_c(from_c)
 }
 
-pub fn move_cursor_home() {
-    print!("\u{001b}[H");
-    io::stdout().flush().unwrap();
+pub fn move_cursor_home() -> &'static str {
+    "\u{001b}[H"
 }
 
-pub fn switch_to_alt_buf() {
-    print!("\u{001b}[?1049h");
-    io::stdout().flush().unwrap();
+pub fn switch_to_alt_buf() -> &'static str {
+    "\u{001b}[?1049h"
 }
 
-pub fn return_to_normal_buf() {
-    print!("\u{001b}[?1049l");
-    io::stdout().flush().unwrap();
+pub fn return_to_normal_buf() -> &'static str {
+    "\u{001b}[?1049l"
 }
 
-pub fn clear_screen() {
-    print!("\u{001b}[2J");
-    io::stdout().flush().unwrap();
+pub fn clear_screen() -> &'static str {
+    "\u{001b}[2J"
 }
 
-pub fn move_cursor_to(row: usize, column: usize) {
-    print!("\u{001b}[{};{}H", row, column);
-    io::stdout().flush().unwrap();
-}
-
-pub fn print_flush(message: &str) {
-    print!("{message}");
-    io::stdout().flush().unwrap();
+pub fn move_cursor_to(row: usize, column: usize) -> String {
+    format!("\u{001b}[{};{}H", row, column)
 }
