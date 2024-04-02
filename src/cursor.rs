@@ -138,26 +138,26 @@ impl Cursor {
                 // less than the last row of the current line
 
                 self.move_to(
-                    (curr_line_final_row - document.visible_rows.0) + editor.doc_disp_home_row,
-                    (curr_line.1.len() % editor.doc_disp_width) + editor.doc_disp_left_edge,
+                    (curr_line_final_row - document.visible_rows.0) + editor.doc_disp_home_row(),
+                    (curr_line.1.len() % editor.doc_disp_width()) + editor.doc_disp_left_edge(),
                 );
 
                 self.move_doc_to(
                     curr_line_final_row,
-                    curr_line.1.len() % editor.doc_disp_width,
+                    curr_line.1.len() % editor.doc_disp_width(),
                 );
             } else {
                 // If the last row of the current line is within the visible rows inclusive of the document and the last row of the current line
                 // is greater than or equal to the last visible row
 
                 self.move_to(
-                    editor.doc_disp_height,
-                    curr_line.1.len() % editor.doc_disp_width + editor.doc_disp_left_edge,
+                    editor.doc_disp_height(),
+                    curr_line.1.len() % editor.doc_disp_width() + editor.doc_disp_left_edge(),
                 );
 
                 self.move_doc_to(
                     curr_line_final_row,
-                    curr_line.1.len() % editor.doc_disp_width,
+                    curr_line.1.len() % editor.doc_disp_width(),
                 );
 
                 let current_last_vis_row = document.visible_rows.1;
@@ -179,14 +179,17 @@ impl Cursor {
 
         if cursor_pos != 0 {
             if ((document.visible_rows.0 + 2)..document.visible_rows.1).contains(&curr_line.0[0]) {
-                self.move_to_editor_left(editor.doc_disp_left_edge);
+                self.move_to_editor_left(editor.doc_disp_left_edge());
                 self.move_doc_to_editor_left();
 
-                self.move_to(self.row - (cursor_pos / editor.doc_disp_width), self.column);
+                self.move_to(
+                    self.row - (cursor_pos / editor.doc_disp_width()),
+                    self.column,
+                );
 
                 self.move_doc_to(curr_line.0[0], self.doc_column);
             } else {
-                self.move_to_editor_left(editor.doc_disp_left_edge);
+                self.move_to_editor_left(editor.doc_disp_left_edge());
                 self.move_doc_to_editor_left();
 
                 let current_first_vis_row = document.visible_rows.0;
@@ -199,7 +202,7 @@ impl Cursor {
                     curr_line_first_row += 1;
                 }
 
-                self.move_to(editor.doc_disp_home_row, self.column);
+                self.move_to(editor.doc_disp_home_row(), self.column);
 
                 editor.reset_editor_view(document, self);
             }
@@ -220,11 +223,11 @@ impl Cursor {
         // on the right side) plus the editor's left edge to start the counting from within
         // the editor's window, and then add the "row" to give the necessary bump in movement
         let new_column = if new_pos == 0 {
-            editor_dim.doc_disp_left_edge
+            editor_dim.doc_disp_left_edge()
         } else {
-            new_pos % (editor_dim.doc_disp_width + 1)
-                + editor_dim.doc_disp_left_edge
-                + (new_pos / (editor_dim.doc_disp_width + 1))
+            new_pos % (editor_dim.doc_disp_width() + 1)
+                + editor_dim.doc_disp_left_edge()
+                + (new_pos / (editor_dim.doc_disp_width() + 1))
         };
 
         // For calculating the cursor's position within the document, use the current line to
@@ -232,14 +235,14 @@ impl Cursor {
         // add the calculated row to that index to get the new document row, then use the
         // above calculated new column value minus the editor's left edge
         self.move_doc_to(
-            current_line.0[0] + (new_pos / (editor_dim.doc_disp_width + 1)),
-            new_column - editor_dim.doc_disp_left_edge,
+            current_line.0[0] + (new_pos / (editor_dim.doc_disp_width() + 1)),
+            new_column - editor_dim.doc_disp_left_edge(),
         );
 
-        let new_row = (self.doc_row - document.visible_rows.0) + editor_dim.doc_disp_home_row;
+        let new_row = (self.doc_row - document.visible_rows.0) + editor_dim.doc_disp_home_row();
 
-        let safe_row = if new_row >= editor_dim.doc_disp_bottom - 1 {
-            editor_dim.doc_disp_bottom - 1
+        let safe_row = if new_row >= editor_dim.doc_disp_bottom() - 1 {
+            editor_dim.doc_disp_bottom() - 1
         } else {
             new_row
         };
@@ -287,7 +290,7 @@ impl Cursor {
             .iter()
             .position(|i| *i == self.doc_row)
             .unwrap()
-            * editor_dim.doc_disp_width)
+            * editor_dim.doc_disp_width())
             + self.doc_column
     }
 
@@ -305,6 +308,6 @@ impl Cursor {
     fn update_pos(&self) {
         //! Used to set the cursor's visual position to the stored row and column
 
-        move_cursor_to(self.row, self.column)
+        move_cursor_to(self.row, self.column);
     }
 }
