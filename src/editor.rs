@@ -27,26 +27,6 @@ pub struct Editor {
     pub term_dimensions: Wh,
     pub left_edge_offset: usize,
     pub right_edge_offset: usize,
-    /// The first row on which the document will be displayed
-    pub doc_disp_home_row: usize,
-    /// The last row on which the document will be displayed
-    pub doc_disp_bottom: usize,
-    /// The height spanned from the first possible row to the last where
-    /// the document is displayed
-    pub doc_disp_height: usize,
-    /// The offset from the left side of the terminal, first column
-    /// the document will be displayed
-    pub doc_disp_left_edge: usize,
-    /// The offset from the right side of the terminal, last column
-    /// the document will be displayed
-    pub doc_disp_right_edge: usize,
-    /// The width spanned from the first possible column to the last
-    /// where the document is displayed
-    pub doc_disp_width: usize,
-    /// The row on which the mode will be displayed
-    pub mode_row: usize,
-    /// The row on which the user will type commands
-    pub command_row: usize,
     /// Stores the current mode that the editor is in
     pub curr_mode: Modes,
     /// Stores the theme to be used for colors
@@ -73,16 +53,8 @@ impl Editor {
             .build();
 
         Self {
-            doc_disp_home_row: 2,
-            doc_disp_bottom: dimensions.height - 2,
             left_edge_offset,
             right_edge_offset,
-            doc_disp_left_edge: left_edge_offset,
-            doc_disp_right_edge: dimensions.width - right_edge_offset,
-            doc_disp_width: (dimensions.width - right_edge_offset) - left_edge_offset,
-            doc_disp_height: dimensions.height - 3,
-            mode_row: dimensions.height - 1,
-            command_row: dimensions.height,
             curr_mode: Modes::Normal,
             // Note, I am working with only defaults right now
             theme,
@@ -496,27 +468,47 @@ impl Editor {
         self.pen.borrow_mut().flush().unwrap();
     }
 
-    fn home_row() -> usize {
+    fn doc_disp_home_row() -> usize {
+        //! The first row on which the document will be displayed
         2
     }
 
+    fn doc_disp_height(&self) -> usize {
+        //! The height spanned from the first possible row to the last where
+        //! the document is displayed
+        self.term_dimensions.height - 3
+    }
+
     fn doc_disp_bottom(&self) -> usize {
+        //! The last row on which the document will be displayed
         self.term_dimensions.height - 2
     }
 
     fn doc_disp_right_edge(&self) -> usize {
+        //! The offset from the right side of the terminal, last column
+        //! the document will be displayed
         self.term_dimensions.width - self.right_edge_offset
     }
 
+    fn doc_disp_left_edge(&self) -> usize {
+        //! The offset from the left side of the terminal, first column
+        //! the document will be displayed
+        self.left_edge_offset
+    }
+
     fn doc_disp_width(&self) -> usize {
+        //! The width spanned from the first possible column to the last
+        //! where the document is displayed
         (self.term_dimensions.width - self.right_edge_offset) - self.left_edge_offset
     }
 
     fn mode_row(&self) -> usize {
+        //! The row on which the mode will be displayed
         self.term_dimensions.height - 1
     }
 
     fn command_row(&self) -> usize {
+        //! The row on which the user will type commands
         self.term_dimensions.height
     }
 }
