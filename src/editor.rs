@@ -34,7 +34,8 @@ pub struct Editor {
     pub theme: Theme,
     /// The buffer for user entered commands
     pub command_buf: String,
-    pen: RefCell<BufWriter<Stdout>>,
+    writer: Cursor,
+    buffer: RefCell<BufWriter<Stdout>>,
 }
 
 impl Editor {
@@ -60,7 +61,7 @@ impl Editor {
             theme,
             command_buf: String::new(),
             term_dimensions: dimensions,
-            pen: RefCell::new(BufWriter::new(io::stdout())),
+            buffer: RefCell::new(BufWriter::new(io::stdout())),
         }
     }
 
@@ -451,14 +452,14 @@ impl Editor {
     }
 
     pub fn add_to_draw_buf<S: AsRef<str>>(&self, content: S) {
-        self.pen
+        self.buffer
             .borrow_mut()
             .write(content.as_ref().as_bytes())
             .unwrap();
     }
 
     pub fn flush_pen(&self) {
-        self.pen.borrow_mut().flush().unwrap();
+        self.buffer.borrow_mut().flush().unwrap();
     }
 
     pub fn doc_disp_home_row(&self) -> usize {
