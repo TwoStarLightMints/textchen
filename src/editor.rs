@@ -25,6 +25,8 @@ pub struct Editor {
     /// Responsible for holding all information about terminal size, document
     /// display window size, and printing to the screen
     pub term_dimensions: Wh,
+    pub left_edge_offset: usize,
+    pub right_edge_offset: usize,
     /// The first row on which the document will be displayed
     pub doc_disp_home_row: usize,
     /// The last row on which the document will be displayed
@@ -73,6 +75,8 @@ impl Editor {
         Self {
             doc_disp_home_row: 2,
             doc_disp_bottom: dimensions.height - 2,
+            left_edge_offset,
+            right_edge_offset,
             doc_disp_left_edge: left_edge_offset,
             doc_disp_right_edge: dimensions.width - right_edge_offset,
             doc_disp_width: (dimensions.width - right_edge_offset) - left_edge_offset,
@@ -481,12 +485,15 @@ impl Editor {
         self.reset_editor_view(document, cursor);
     }
 
-    pub fn add_to_draw_buf<S: AsRef<str>>(&mut self, content: S) {
-        self.pen.write(content.as_ref().as_bytes()).unwrap();
+    pub fn add_to_draw_buf<S: AsRef<str>>(&self, content: S) {
+        self.pen
+            .borrow_mut()
+            .write(content.as_ref().as_bytes())
+            .unwrap();
     }
 
-    pub fn flush_pen(&mut self) {
-        self.pen.flush().unwrap();
+    pub fn flush_pen(&self) {
+        self.pen.borrow_mut().flush().unwrap();
     }
 
     fn home_row() -> usize {
@@ -499,6 +506,18 @@ impl Editor {
 
     fn doc_disp_right_edge(&self) -> usize {
         self.term_dimensions.width - self.right_edge_offset
+    }
+
+    fn doc_disp_width(&self) -> usize {
+        (self.term_dimensions.width - self.right_edge_offset) - self.left_edge_offset
+    }
+
+    fn mode_row(&self) -> usize {
+        self.term_dimensions.height - 1
+    }
+
+    fn command_row(&self) -> usize {
+        self.term_dimensions.height
     }
 }
 
