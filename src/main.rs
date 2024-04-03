@@ -282,6 +282,9 @@ fn main() {
                     G_LOWER if editor.curr_mode == Modes::Normal => {
                         editor.change_mode(Modes::MoveTo);
 
+                        // This flush is necessary because otherwise the new mode is not printed
+                        editor.flush_pen();
+
                         let new_c = get_char();
 
                         if new_c == 'l' {
@@ -289,9 +292,11 @@ fn main() {
 
                             editor.change_mode(Modes::Normal);
                         } else if new_c == 'h' {
-                            editor.move_cursor_to_start_line(&mut document);
+                            editor.move_cursor_to_start_line(&mut document); // <============================================
 
                             editor.change_mode(Modes::Normal);
+
+                            editor.reset_editor_view(&document);
                         } else if new_c == 'g' {
                             editor.move_cursor_vis_to(
                                 editor.doc_disp_home_row(),
