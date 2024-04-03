@@ -641,9 +641,8 @@ fn main() {
                             // Move the cursor to the right
                             editor.move_cursor_right();
 
-                            let curr_line_ind = document
-                                .get_index_at_cursor(editor.get_cursor_doc_row())
-                                .unwrap();
+                            let curr_line_ind =
+                                document.get_index_at_cursor(editor.get_cursor_doc_row());
 
                             let num_line_rows = document.lines[curr_line_ind]
                                 .rows(editor.doc_disp_width())
@@ -672,9 +671,8 @@ fn main() {
                             // Insert the character into the gap buffer
                             gap_buf.insert(c as char);
 
-                            let curr_line_ind = document
-                                .get_index_at_cursor(editor.get_cursor_doc_row())
-                                .unwrap();
+                            let curr_line_ind =
+                                document.get_index_at_cursor(editor.get_cursor_doc_row());
 
                             let num_line_rows = document.lines[curr_line_ind]
                                 .rows(editor.doc_disp_width())
