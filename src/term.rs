@@ -1,5 +1,3 @@
-use std::io::{self, Write};
-
 #[allow(dead_code)]
 use std::ffi::{c_char, c_uint};
 
