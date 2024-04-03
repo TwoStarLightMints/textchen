@@ -320,20 +320,6 @@ fn main() {
                                 (document.num_rows() + 1) - editor.doc_disp_height();
                             document.visible_rows.1 = document.num_rows();
 
-                            File::options()
-                                .append(true)
-                                .create(true)
-                                .open("log.txt")
-                                .unwrap()
-                                .write(
-                                    format!(
-                                        "First vis: {}, Last vis: {}",
-                                        document.visible_rows.0, document.visible_rows.1
-                                    )
-                                    .as_bytes(),
-                                )
-                                .unwrap();
-
                             editor.reset_editor_view(&document);
 
                             editor.change_mode(Modes::Normal);
