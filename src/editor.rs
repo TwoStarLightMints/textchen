@@ -360,9 +360,7 @@ impl Editor {
         //! dimensions - The new dimensions of the terminal screen after resize
         //! self - The old dimensions of the editor screen
 
-        let curr_line_index = document
-            .get_index_at_cursor(self.get_cursor_doc_row())
-            .unwrap();
+        let curr_line_index = document.get_index_at_cursor(self.get_cursor_doc_row());
         let curr_pos = self
             .writer
             .borrow_mut()
