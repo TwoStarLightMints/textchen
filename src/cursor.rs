@@ -226,7 +226,7 @@ impl Cursor {
                 let mut curr_line_first_row = curr_line.0[0];
 
                 while current_first_vis_row > curr_line_first_row {
-                    document.push_vis_up();
+                    document.push_vis_up(editor.doc_disp_height());
 
                     curr_line_first_row += 1;
                 }

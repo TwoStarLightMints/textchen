@@ -393,17 +393,21 @@ impl Document {
         //! Manipulate the visible rows of the document in such a way as to give the appearance of
         //! pushing the view down
 
-        if self.visible_rows.1 <= self.num_rows() {
+        if self.visible_rows.1 < self.num_rows() {
             self.visible_rows.0 += 1;
             self.visible_rows.1 += 1;
+        } else if self.visible_rows.1 == self.num_rows() {
+            self.visible_rows.0 += 1;
         }
     }
 
-    pub fn push_vis_up(&mut self) {
+    pub fn push_vis_up(&mut self, doc_disp_height: usize) {
         //! Manipulate the visible rows of the document in such a way as to give the appearance of
         //! pushing the view up
 
-        if self.visible_rows.0 > 0 {
+        if doc_disp_height > (self.visible_rows.1 - self.visible_rows.0) {
+            self.visible_rows.0 -= 1;
+        } else if self.visible_rows.0 > 0 {
             self.visible_rows.0 -= 1;
             self.visible_rows.1 -= 1;
         }

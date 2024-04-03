@@ -194,7 +194,7 @@ fn main() {
                                 // If the cursor is visually below the editor's home row
 
                                 editor.move_cursor_doc_up();
-                                document.push_vis_up();
+                                document.push_vis_up(editor.doc_disp_height());
 
                                 editor.reset_editor_view(&document);
 
@@ -267,7 +267,7 @@ fn main() {
                             } else {
                                 // If the document's visible rows does not include the first row
 
-                                document.push_vis_up();
+                                document.push_vis_up(editor.doc_disp_height());
 
                                 editor.reset_editor_view(&document);
                             }
@@ -306,7 +306,6 @@ fn main() {
 
                             editor.change_mode(Modes::Normal);
                         } else if new_c == 'e' {
-                            todo!("Fix not clearing screen properly");
                             editor.move_cursor_vis_to(
                                 editor.doc_disp_height(),
                                 editor.doc_disp_left_edge(),
@@ -320,6 +319,20 @@ fn main() {
                             document.visible_rows.0 =
                                 (document.num_rows() + 1) - editor.doc_disp_height();
                             document.visible_rows.1 = document.num_rows();
+
+                            File::options()
+                                .append(true)
+                                .create(true)
+                                .open("log.txt")
+                                .unwrap()
+                                .write(
+                                    format!(
+                                        "First vis: {}, Last vis: {}",
+                                        document.visible_rows.0, document.visible_rows.1
+                                    )
+                                    .as_bytes(),
+                                )
+                                .unwrap();
 
                             editor.reset_editor_view(&document);
 
@@ -335,7 +348,6 @@ fn main() {
 
                             // The key combination xd will delete a line
                             // Remove the line from the document
-                            // document.remove_index_from_line(editor.get_cursor_vis_row());
                             document.remove_line_from_doc(
                                 editor.get_cursor_doc_row(),
                                 editor.doc_disp_width(),
@@ -363,7 +375,7 @@ fn main() {
                                         .clone();
 
                                     while curr_line_inds[0] != document.visible_rows.0 {
-                                        document.push_vis_up();
+                                        document.push_vis_up(editor.doc_disp_height());
                                     }
                                 }
                             }
@@ -533,7 +545,7 @@ fn main() {
                             } else {
                                 // If the document's visible rows does not include the first row
 
-                                document.push_vis_up();
+                                document.push_vis_up(editor.doc_disp_height());
                             }
 
                             // Move the cursor to the end of the previous row
@@ -602,7 +614,7 @@ fn main() {
                                 editor.doc_disp_width(),
                             );
 
-                            document.push_vis_up();
+                            document.push_vis_up(editor.doc_disp_height());
 
                             // Move to the previous line
                             editor.move_cursor_doc_up();
