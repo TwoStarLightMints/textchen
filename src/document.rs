@@ -171,22 +171,16 @@ impl Document {
     pub fn get_str_at_cursor(&self, cursor_doc_row: usize) -> &str {
         //! Returns the string content of the line which is located at the cursor's row relative to the document
 
-        match self.get_index_at_cursor(cursor_doc_row) {
-            Ok(ind) => &self.lines[ind].1,
-            Err(message) => panic!("{message}"),
-        }
+        &self.lines[self.get_index_at_cursor(cursor_doc_row)].1
     }
 
     pub fn get_line_at_cursor(&self, cursor_doc_row: usize) -> &Line {
         //! Returns the entire line which is located at the cursor's row relative to the document
 
-        match self.get_index_at_cursor(cursor_doc_row) {
-            Ok(ind) => &self.lines[ind],
-            Err(message) => panic!("{message}"),
-        }
+        &self.lines[self.get_index_at_cursor(cursor_doc_row)]
     }
 
-    pub fn get_index_at_cursor(&self, cursor_doc_row: usize) -> Result<usize, String> {
+    pub fn get_index_at_cursor(&self, cursor_doc_row: usize) -> usize {
         //! Returns the index of the line within the Document's line vector which is located at the cursor's row
         //! relative to the document
 
@@ -195,30 +189,33 @@ impl Document {
         // End of the search area
         let mut end = self.lines.len() - 1;
 
+        let mut mid = beg + ((end - beg) / 2);
+
         // While the beginning is not equal to the end (the search area is 0)
         while beg != end {
             // mid is the index current element being compared
-            let mid = beg + ((end - beg) / 2);
 
             if *self.lines[mid].0.first().unwrap() > cursor_doc_row {
                 // If the cursor's row in the document is less than the first row index of this element
 
                 // Make the current element the last element in the area
-                end = mid;
+                end = mid - 1;
             } else if *self.lines[mid].0.last().unwrap() < cursor_doc_row {
                 // If the cursor's row in the document is greater than the last row index of this element
 
                 // Make the current elemenent thte last element in the area
-                beg = mid;
+                beg = mid + 1;
             } else {
                 // The cursor's row in the document is within the rows spanned by the current element
 
                 // Return this element's index
-                return Ok(mid);
+                break;
             }
+
+            mid = beg + ((end - beg) / 2);
         }
 
-        Err("Line not found with given cursor document row".to_string())
+        mid
     }
 
     pub fn set_line_at_cursor(
@@ -230,7 +227,7 @@ impl Document {
         //! Sets the line's string value at cursor_row to new_line and recalculates the line's indices
         //! as well as the following lines according to the editor_width
 
-        let line_ind = self.get_index_at_cursor(cursor_doc_row).unwrap();
+        let line_ind = self.get_index_at_cursor(cursor_doc_row);
 
         self.lines[line_ind].1 = new_str;
 
@@ -238,7 +235,7 @@ impl Document {
     }
 
     pub fn append_to_line(&mut self, cursor_doc_row: usize, suffix: &str, editor_width: usize) {
-        let line_ind = self.get_index_at_cursor(cursor_doc_row).unwrap();
+        let line_ind = self.get_index_at_cursor(cursor_doc_row);
 
         self.lines[line_ind].1 += suffix;
 
@@ -396,9 +393,11 @@ impl Document {
         //! Manipulate the visible rows of the document in such a way as to give the appearance of
         //! pushing the view down
 
-        if self.visible_rows.1 < self.num_rows() + 1 {
+        if self.visible_rows.1 <= self.num_rows() {
             self.visible_rows.0 += 1;
             self.visible_rows.1 += 1;
+        } else {
+            self.visible_rows.0 += 1;
         }
     }
 
@@ -406,7 +405,9 @@ impl Document {
         //! Manipulate the visible rows of the document in such a way as to give the appearance of
         //! pushing the view up
 
-        if self.visible_rows.0 > 0 {
+        if self.visible_rows.0 > 0 && self.num_rows() > self.visible_rows.1 - self.visible_rows.0 {
+            self.visible_rows.0 -= 1;
+        } else if self.visible_rows.0 > 0 {
             self.visible_rows.0 -= 1;
             self.visible_rows.1 -= 1;
         }
