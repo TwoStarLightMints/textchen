@@ -396,8 +396,6 @@ impl Document {
         if self.visible_rows.1 <= self.num_rows() {
             self.visible_rows.0 += 1;
             self.visible_rows.1 += 1;
-        } else {
-            self.visible_rows.0 += 1;
         }
     }
 
@@ -405,9 +403,7 @@ impl Document {
         //! Manipulate the visible rows of the document in such a way as to give the appearance of
         //! pushing the view up
 
-        if self.visible_rows.0 > 0 && self.num_rows() > self.visible_rows.1 - self.visible_rows.0 {
-            self.visible_rows.0 -= 1;
-        } else if self.visible_rows.0 > 0 {
+        if self.visible_rows.0 > 0 {
             self.visible_rows.0 -= 1;
             self.visible_rows.1 -= 1;
         }
