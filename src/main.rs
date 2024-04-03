@@ -306,6 +306,7 @@ fn main() {
 
                             editor.change_mode(Modes::Normal);
                         } else if new_c == 'e' {
+                            todo!("Fix not clearing screen properly");
                             editor.move_cursor_vis_to(
                                 editor.doc_disp_height(),
                                 editor.doc_disp_left_edge(),
