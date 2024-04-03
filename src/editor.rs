@@ -156,7 +156,7 @@ impl Editor {
 
         self.move_cursor_vis_to(2, self.doc_disp_left_edge());
 
-        if document.visible_rows.0 == 0 {
+        if document.visible_rows.0 == 0 && document.visible_rows.1 < self.doc_disp_bottom() {
             // Number of lines in document does not exceed editor height
             for row in document
                 .rows(self.doc_disp_width())
@@ -190,7 +190,7 @@ impl Editor {
                 self.move_cursor_vis_editor_left();
             }
 
-            if vis_rows.len() < (document.visible_rows.1 - document.visible_rows.0) {
+            if vis_rows.len() < self.doc_disp_height() {
                 self.print_line_color(self.theme.background_color());
             }
         }
@@ -413,7 +413,7 @@ impl Editor {
 
             if curr_num_above > new_num_above {
                 for _ in 0..(curr_num_above - new_num_above) {
-                    document.push_vis_up();
+                    document.push_vis_up(self.doc_disp_height());
                 }
             }
         }
