@@ -4,6 +4,8 @@ use std::io::Write;
 use textchen::{document::*, editor::*, gapbuf::*, term::*};
 
 // ==== ASCII KEY CODE VALUES ====
+// Note: I use the ascii values as the keys so that it is more simple
+// to check against special keys such as Escape, Backspace, etc.
 const J_LOWER: u8 = 106;
 const K_LOWER: u8 = 107;
 const L_LOWER: u8 = 108;
