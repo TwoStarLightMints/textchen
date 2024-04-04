@@ -288,51 +288,6 @@ impl Editor {
         self.revert_cursor_vis_pos();
     }
 
-    pub fn display_document(&self, document: &Document) {
-        //! document - Document being edited
-        //! cursor - Get control of cursor
-        //!
-        //! Displays the document that is currently being edited to the screen, handles drawing within given bounds
-
-        self.save_cursor_vis_pos();
-
-        self.writer
-            .borrow_mut()
-            .move_to(2, self.doc_disp_left_edge());
-
-        if document.visible_rows.0 == 0 {
-            for row in document
-                .rows(self.doc_disp_width())
-                .take(document.visible_rows.1)
-            {
-                print!("\u{001b}[2K{}", row.1);
-                self.move_cursor_vis_down();
-                self.writer
-                    .borrow_mut()
-                    .move_to_editor_left(self.doc_disp_left_edge());
-            }
-        } else {
-            for row in document
-                .rows(self.doc_disp_width())
-                .skip(document.visible_rows.0)
-                .take(document.visible_rows.1 - document.visible_rows.0)
-            {
-                print!("\u{001b}[2K{}", row.1);
-                self.move_cursor_vis_down();
-                self.writer
-                    .borrow_mut()
-                    .move_to_editor_left(self.doc_disp_left_edge());
-            }
-        }
-
-        if document.visible_rows.1 == *document.lines[document.lines.len()].0.last().unwrap() {
-            self.move_cursor_vis_down();
-            self.print_line_color(self.theme.background_color());
-        }
-
-        self.revert_cursor_vis_pos();
-    }
-
     pub fn reset_editor_view(&self, document: &Document) {
         //! document - Document being edited
         //! cursor - Get control of cursor
