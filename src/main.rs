@@ -555,7 +555,9 @@ fn main() {
                         } else if cursor_pos == 0
                             && editor.get_cursor_vis_row() != editor.doc_disp_home_row()
                         {
-                            // If the cursor is at the first positon of the line and it is not in the first line of the document (note: cursor's doc row field is not used during checking because editor_top starts at the same index that cursor's row starts at)
+                            // If the cursor is at the first positon of the line and it is not in the first line of the document
+                            // (note: cursor's doc row field is not used during checking because editor_top starts at the same
+                            // index that cursor's row starts at)
 
                             // Get the current line's string
                             let curr_str = document
