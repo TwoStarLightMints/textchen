@@ -281,17 +281,7 @@ impl Document {
     }
 
     pub fn remove_line_from_doc(&mut self, cursor_doc_row: usize, editor_width: usize) {
-        let mut ind_to_remove = 0;
-
-        for line in self.lines.iter() {
-            if line.0.contains(&(cursor_doc_row)) {
-                break;
-            }
-
-            ind_to_remove += 1;
-        }
-
-        self.lines.remove(ind_to_remove);
+        self.lines.remove(self.get_index_at_cursor(cursor_doc_row));
 
         self.recalculate_indices(editor_width);
     }
