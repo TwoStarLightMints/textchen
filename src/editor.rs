@@ -353,7 +353,7 @@ impl Editor {
 
         // Redraw document title
         self.move_cursor_vis_to(0, 0);
-        print!("{}", document.file_name);
+        self.add_to_draw_buf(format!("{}", document.file_name));
 
         // Return to the previous cursor position
         self.revert_cursor_vis_pos();
