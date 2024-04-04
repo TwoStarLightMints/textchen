@@ -1,7 +1,7 @@
 use std::env;
 use std::fs::{self, File};
 use std::io::Write;
-use textchen::{document::*, editor::*, gapbuf::*, term::*};
+use textchen::{document::*, editor::*, gapbuf::*};
 
 // ==== ASCII KEY CODE VALUES ====
 const J_LOWER: u8 = 106;
@@ -44,8 +44,6 @@ fn main() {
 
     // Initialize the gap buffer, it will be replaced later when editing actual text
     let mut gap_buf = GapBuf::new();
-
-    editor.change_mode(Modes::Normal);
 
     // Set the terminal to raw input mode
     #[cfg(target_os = "linux")]
@@ -861,8 +859,6 @@ fn main() {
                                     editor.change_mode(Modes::Normal);
                                 }
                                 "q" => {
-                                    clear_screen();
-                                    move_cursor_home();
                                     break;
                                 }
                                 "wq" => {
