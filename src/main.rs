@@ -863,27 +863,13 @@ fn main() {
                                 }
                                 "wq" => {
                                     if let Some(file_name) = input_iter.next() {
-                                        match fs::rename(&document.file_name, file_name) {
-                                            _ => (),
-                                        }
-
                                         let mut out_file = File::create(file_name).unwrap();
 
                                         out_file.write(document.to_string().as_bytes()).unwrap();
 
                                         document.file_name = file_name.to_string();
 
-                                        editor.move_cursor_vis_to(0, 0);
-
-                                        editor.save_cursor_vis_pos();
-
-                                        print!("{: >1$}", "", editor.term_dimensions.width);
-
-                                        editor.move_cursor_vis_to(0, 0);
-
-                                        print!("{}", document.file_name);
-
-                                        editor.revert_cursor_vis_pos();
+                                        editor.redraw_screen(&mut document);
                                     } else {
                                         let mut out_file =
                                             File::create(&document.file_name).unwrap();
