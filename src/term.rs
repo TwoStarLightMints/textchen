@@ -12,19 +12,6 @@ impl Wh {
         let height = c_vals.height as usize;
         Self { width, height }
     }
-
-    pub fn check_term_resize(&mut self) -> bool {
-        let checker = term_size();
-
-        if checker.width != self.width || checker.height != self.height {
-            self.width = checker.width;
-            self.height = checker.height;
-
-            return true;
-        }
-
-        false
-    }
 }
 
 #[repr(C)]

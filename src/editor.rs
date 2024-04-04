@@ -83,6 +83,21 @@ impl Editor {
         self.add_to_draw_buf(format!("{}{}", color.as_ref(), message.as_ref()));
     }
 
+    pub fn check_resize(&mut self) -> bool {
+        let checker = term_size();
+
+        if checker.width != self.term_dimensions.width
+            || checker.height != self.term_dimensions.height
+        {
+            self.term_dimensions.width = checker.width;
+            self.term_dimensions.height = checker.height;
+
+            return true;
+        }
+
+        false
+    }
+
     fn print_title(&self, document: &Document) {
         self.save_cursor_vis_pos();
 

@@ -54,7 +54,7 @@ fn main() {
 
     // Main loop for program
     loop {
-        if editor.term_dimensions.check_term_resize() {
+        if editor.check_resize() {
             editor.redraw_screen(&mut document);
         }
 
