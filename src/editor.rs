@@ -151,6 +151,18 @@ impl Editor {
         self.revert_cursor_vis_pos();
     }
 
+    pub fn clear_command_row(&self) {
+        self.save_cursor_vis_pos();
+
+        self.move_cursor_vis_to(self.command_row(), 1);
+
+        self.print_line_color(self.theme.background_color());
+
+        self.command_buf.borrow_mut().clear();
+
+        self.revert_cursor_vis_pos();
+    }
+
     fn print_document(&self, document: &Document) {
         self.save_cursor_vis_pos();
 

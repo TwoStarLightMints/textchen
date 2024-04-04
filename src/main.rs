@@ -473,11 +473,12 @@ fn main() {
                     }
                     // Cancel entering a command
                     ESC if editor.curr_mode == Modes::Command => {
+                        editor.clear_command_row();
+
                         // Change mode to normal
                         editor.change_mode(Modes::Normal);
 
-                        // Clear the buffer
-                        editor.command_buf.borrow_mut().clear();
+                        editor.revert_cursor_vis_pos();
                     }
                     // Delete a character while in insert mode
                     BCKSP if editor.curr_mode == Modes::Insert => {
@@ -867,14 +868,11 @@ fn main() {
                                         out_file.write(document.to_string().as_bytes()).unwrap();
                                     }
 
-                                    editor.move_cursor_vis_to(editor.command_row(), 0);
-                                    print!("{: >1$}", "", editor.term_dimensions.width);
-
-                                    editor.change_mode(Modes::Normal);
+                                    editor.clear_command_row();
 
                                     editor.revert_cursor_vis_pos();
 
-                                    editor.command_buf.borrow_mut().clear();
+                                    editor.change_mode(Modes::Normal);
                                 }
                                 "q" => {
                                     clear_screen();
