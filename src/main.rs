@@ -110,13 +110,7 @@ fn main() {
                             editor.move_cursor_to_end_line(&mut document);
                         }
 
-                        same_line_different_row_bump(
-                            cursor_pos,
-                            &editor,
-                            document.get_line_at_cursor(editor.get_cursor_doc_row() - 1),
-                            document.get_line_at_cursor(editor.get_cursor_doc_row()),
-                            &document,
-                        );
+                        editor.same_line_different_row_bump(&document);
                     }
                     // Move right
                     L_LOWER if editor.curr_mode == Modes::Normal => {
@@ -234,17 +228,7 @@ fn main() {
                             }
                         }
 
-                        same_line_different_row_bump(
-                            cursor_pos,
-                            &editor,
-                            if editor.get_cursor_doc_row() > 0 {
-                                document.get_line_at_cursor(editor.get_cursor_doc_row() - 1)
-                            } else {
-                                document.get_line_at_cursor(editor.get_cursor_doc_row())
-                            },
-                            document.get_line_at_cursor(editor.get_cursor_doc_row()),
-                            &document,
-                        );
+                        editor.same_line_different_row_bump(&document);
                     }
                     // Move left
                     H_LOWER if editor.curr_mode == Modes::Normal => {

@@ -635,51 +635,39 @@ impl Editor {
     pub fn move_cursor_doc_editor_left(&self) {
         self.writer.borrow_mut().move_doc_to_editor_left();
     }
-}
 
-// ==================== CURSOR HELPER FUNCTIONS ====================
+    pub fn same_line_different_row_bump(&self, document: &Document) {
+        //! cursor_pos : This position is the position before having moved the cursor
+        //! curr_line : This is the line before moving
+        //! next_line : This is the line *AFTER* moving
+        //!
+        //! This function is used to move a cursor to the appropriate position within a line when moving vertically
+        //! "Appropriate" here means that if the cursor is in a row of a line other than the beginning line, the very first position the
+        //! cursor should be able to take is on top of the second character of the row
 
-pub fn same_line_different_row_bump(
-    cursor_pos: usize,
-    editor: &Editor,
-    curr_line: &Line,
-    next_line: &Line,
-    document: &Document,
-) {
-    //! cursor_pos : This position is the position before having moved the cursor
-    //! curr_line : This is the line before moving
-    //! next_line : This is the line *AFTER* moving
-    //!
-    //! This function is used to move a cursor to the appropriate position within a line when moving vertically
-    //! "Appropriate" here means that if the cursor is in a row of a line other than the beginning line, the very first position the
-    //! cursor should be able to take is on top of the second character of the row
+        let curr_line = document.get_line_at_cursor(self.get_cursor_pos_in_line(document));
 
-    if cursor_pos == 0
-        && ((curr_line == next_line
-            && curr_line.0.len() > 1
-            && cursor_pos != editor.get_cursor_pos_in_line(document))
-            || (next_line.0.len() > 1 && editor.get_cursor_doc_row() != next_line.0[0]))
-    {
-        // If the cursor's position is 0 (first position in line) and either:
-        //     The current line is the same as the next line, the current line is a multiline, and the cursor's current position is not equal
-        //     to the new position of the cursor
-        //     The next line is a multiline and the cursor's row in relation to the document is not equal to the next line's first row index
+        if self.get_cursor_pos_in_line(document) / self.doc_disp_width()
+            == *curr_line.0.first().unwrap()
+        {
+            // If after the cursor moved it is at the first row in the line
 
-        editor.move_cursor_right();
-    } else if (curr_line != next_line
-        && next_line.0[0] > curr_line.0[0]
-        && editor.get_cursor_doc_col() == 1)
-        || (curr_line == next_line
-            && cursor_pos % editor.doc_disp_width() == 1
-            && editor.get_cursor_doc_row() == next_line.0[0])
-    {
-        // If either:
-        //     The current line is not the next line and the next line's first row index is less than the current line's first index and the
-        //     cursor's column in relation to the document is 1
-        //     The current line is the next line and the cursor's positon mod the editor's width is 1 and the cursor's row in relation to
-        //     the document is equal to the next line's first row index
+            if self.get_cursor_doc_col() == 1 {
+                // The cursor is now at index 1 of the line, so it needs to be moved to the left to give the
+                // proper bump effect
 
-        editor.move_cursor_left();
+                self.move_cursor_left();
+            }
+        } else {
+            // If after the cursor moved it is on any other row
+
+            if self.get_cursor_doc_col() == 0 {
+                // The cursor is now touching the left edge of the doc display area and in any of the rows
+                // that are not the first row, so we need to bump it to the right
+
+                self.move_cursor_right();
+            }
+        }
     }
 }
 
