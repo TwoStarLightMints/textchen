@@ -611,11 +611,9 @@ impl Editor {
     }
 
     pub fn move_cursor_vis_to_editor_right(&self) {
-        self.add_to_draw_buf(
-            self.writer
-                .borrow_mut()
-                .move_to(self.writer.borrow().row, self.doc_disp_right_edge()),
-        )
+        let curr_row = self.get_cursor_vis_row();
+
+        self.move_cursor_vis_to(curr_row, self.doc_disp_right_edge());
     }
 
     pub fn move_cursor_to_start_line(&self, document: &mut Document) {
