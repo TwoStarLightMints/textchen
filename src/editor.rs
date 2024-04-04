@@ -12,7 +12,7 @@ use std::sync::mpsc;
 use std::sync::mpsc::Receiver;
 use std::thread;
 
-// ==================== MODE FUNCTIONS AND DEFINITIONS ====================
+// ==================== MODE FUNCTIONS AND DEFINITIONS ================
 
 #[derive(Clone, Copy, PartialEq, Eq)]
 pub enum Modes {
@@ -71,6 +71,8 @@ impl Editor {
 
     // ==================== DISPLAY METHODS FOR EDITOR ====================
 
+    // -------------------- COLOR APPLYING METHODS ------------------------
+
     fn reset_color(&self) {
         self.add_to_draw_buf("\u{001b}[0m");
     }
@@ -83,20 +85,7 @@ impl Editor {
         self.add_to_draw_buf(format!("{}{}", color.as_ref(), message.as_ref()));
     }
 
-    pub fn check_resize(&mut self) -> bool {
-        let checker = term_size();
-
-        if checker.width != self.term_dimensions.width
-            || checker.height != self.term_dimensions.height
-        {
-            self.term_dimensions.width = checker.width;
-            self.term_dimensions.height = checker.height;
-
-            return true;
-        }
-
-        false
-    }
+    // --------------------- PRINTING METHODS ------------------------------
 
     fn print_title(&self, document: &Document) {
         self.save_cursor_vis_pos();
@@ -146,37 +135,6 @@ impl Editor {
         self.print_line_color(self.theme.background_color());
 
         self.reset_color();
-
-        self.revert_cursor_vis_pos();
-    }
-
-    pub fn change_mode(&mut self, new_mode: Modes) {
-        //! curr - Current mode stored in the state of the application
-        //! new_mode - The new mode which will be stored in the state of the application
-        //! mode_row - The row at which the mode will be printed
-        //! cursor - Get control of cursor
-        //!
-        //! Changes the current mode of the editor to a new target mode, handles changing state and drawing to screen
-
-        self.curr_mode = new_mode;
-
-        self.save_cursor_vis_pos();
-
-        self.move_cursor_vis_to(self.mode_row(), 0);
-
-        self.print_mode_row();
-
-        self.revert_cursor_vis_pos();
-    }
-
-    pub fn clear_command_row(&self) {
-        self.save_cursor_vis_pos();
-
-        self.move_cursor_vis_to(self.command_row(), 1);
-
-        self.print_line_color(self.theme.background_color());
-
-        self.command_buf.borrow_mut().clear();
 
         self.revert_cursor_vis_pos();
     }
@@ -329,11 +287,6 @@ impl Editor {
         }
     }
 
-    pub fn pop_command_buf(&self) {
-        self.command_buf.borrow_mut().pop();
-        self.print_text_colored(self.theme.command_text_color(), " ");
-    }
-
     pub fn print_command_message(&self, message: impl AsRef<str>) {
         self.save_cursor_vis_pos();
 
@@ -449,6 +402,8 @@ impl Editor {
         self.reset_editor_view(document);
     }
 
+    // -------------------- PRINT BUFFER MANIPULATION ---------------------
+
     pub fn add_to_draw_buf<S: AsRef<str>>(&self, content: S) {
         self.buffer
             .borrow_mut()
@@ -460,61 +415,13 @@ impl Editor {
         self.buffer.borrow_mut().flush().unwrap();
     }
 
-    // ============================== DIMENSIONS ====================================================
-
-    pub fn doc_disp_home_row(&self) -> usize {
-        //! The first row on which the document will be displayed
-        2
-    }
-
-    pub fn doc_disp_height(&self) -> usize {
-        //! The height spanned from the first possible row to the last where
-        //! the document is displayed
-        self.term_dimensions.height - 3
-    }
-
-    pub fn doc_disp_bottom(&self) -> usize {
-        //! The last row on which the document will be displayed
-        self.term_dimensions.height - 2
-    }
-
-    pub fn doc_disp_right_edge(&self) -> usize {
-        //! The offset from the right side of the terminal, last column
-        //! the document will be displayed
-        self.term_dimensions.width - self.right_edge_offset
-    }
-
-    pub fn doc_disp_left_edge(&self) -> usize {
-        //! The offset from the left side of the terminal, first column
-        //! the document will be displayed
-        self.left_edge_offset
-    }
-
-    pub fn doc_disp_width(&self) -> usize {
-        //! The width spanned from the first possible column to the last
-        //! where the document is displayed
-        (self.term_dimensions.width - self.right_edge_offset) - self.left_edge_offset
-    }
-
-    pub fn mode_row(&self) -> usize {
-        //! The row on which the mode will be displayed
-        self.term_dimensions.height - 1
-    }
-
-    pub fn command_row(&self) -> usize {
-        //! The row on which the user will type commands
-        self.term_dimensions.height
-    }
-
-    // ======================== CURSOR WRAPPER FUNCTIONS ============================================
+    // ==================== CURSOR WRAPPER FUNCTIONS ======================
 
     pub fn get_cursor_pos_in_line(&self, document: &Document) -> usize {
         self.writer.borrow().get_position_in_line(document, self)
     }
 
-    pub fn get_cursor_column_in_doc_disp(&self) -> usize {
-        self.writer.borrow().column - self.doc_disp_left_edge()
-    }
+    // -------------------- CURSOR INFORMATION RETRIEVAL ------------------
 
     pub fn get_cursor_vis_row(&self) -> usize {
         self.writer.borrow().row
@@ -532,6 +439,8 @@ impl Editor {
         self.writer.borrow().doc_column
     }
 
+    // -------------------- CURSOR HISTORY MANIPULATION -------------------
+
     pub fn save_cursor_vis_pos(&self) {
         self.writer.borrow_mut().save_current_pos();
     }
@@ -540,13 +449,10 @@ impl Editor {
         self.add_to_draw_buf(self.writer.borrow_mut().revert_pos());
     }
 
-    pub fn move_cursor_vis_to(&self, new_row: usize, new_column: usize) {
-        self.add_to_draw_buf(self.writer.borrow_mut().move_to(new_row, new_column));
-    }
-    pub fn move_cursor_doc_to(&self, new_doc_row: usize, new_doc_col: usize) {
-        self.writer
-            .borrow_mut()
-            .move_doc_to(new_doc_row, new_doc_col);
+    // -------------------- CURSOR RELATIVE TO DOCUMENT -------------------
+
+    pub fn get_cursor_column_in_doc_disp(&self) -> usize {
+        self.writer.borrow().column - self.doc_disp_left_edge()
     }
 
     pub fn move_cursor_to_pos(&self, new_pos: usize, current_line: &Line, document: &Document) {
@@ -556,6 +462,25 @@ impl Editor {
             document,
             self,
         ));
+    }
+
+    pub fn move_cursor_to_start_line(&self, document: &mut Document) {
+        self.add_to_draw_buf(self.writer.borrow_mut().move_to_start_line(document, self));
+    }
+
+    pub fn move_cursor_to_end_line(&self, document: &mut Document) {
+        self.add_to_draw_buf(self.writer.borrow_mut().move_to_end_line(document, self));
+    }
+
+    // -------------------- CURSOR MOVEMENT -------------------------------
+
+    pub fn move_cursor_vis_to(&self, new_row: usize, new_column: usize) {
+        self.add_to_draw_buf(self.writer.borrow_mut().move_to(new_row, new_column));
+    }
+    pub fn move_cursor_doc_to(&self, new_doc_row: usize, new_doc_col: usize) {
+        self.writer
+            .borrow_mut()
+            .move_doc_to(new_doc_row, new_doc_col);
     }
 
     pub fn move_cursor_down(&self) {
@@ -616,14 +541,6 @@ impl Editor {
         self.move_cursor_vis_to(curr_row, self.doc_disp_right_edge());
     }
 
-    pub fn move_cursor_to_start_line(&self, document: &mut Document) {
-        self.add_to_draw_buf(self.writer.borrow_mut().move_to_start_line(document, self));
-    }
-
-    pub fn move_cursor_to_end_line(&self, document: &mut Document) {
-        self.add_to_draw_buf(self.writer.borrow_mut().move_to_end_line(document, self));
-    }
-
     pub fn move_cursor_vis_editor_left(&self) {
         self.add_to_draw_buf(
             self.writer
@@ -669,9 +586,112 @@ impl Editor {
             }
         }
     }
+
+    // ==================== DIMENSIONS ====================================
+
+    // -------------------- DIMENSION INFORMATION -------------------------
+
+    pub fn doc_disp_home_row(&self) -> usize {
+        //! The first row on which the document will be displayed
+        2
+    }
+
+    pub fn doc_disp_height(&self) -> usize {
+        //! The height spanned from the first possible row to the last where
+        //! the document is displayed
+        self.term_dimensions.height - 3
+    }
+
+    pub fn doc_disp_bottom(&self) -> usize {
+        //! The last row on which the document will be displayed
+        self.term_dimensions.height - 2
+    }
+
+    pub fn doc_disp_right_edge(&self) -> usize {
+        //! The offset from the right side of the terminal, last column
+        //! the document will be displayed
+        self.term_dimensions.width - self.right_edge_offset
+    }
+
+    pub fn doc_disp_left_edge(&self) -> usize {
+        //! The offset from the left side of the terminal, first column
+        //! the document will be displayed
+        self.left_edge_offset
+    }
+
+    pub fn doc_disp_width(&self) -> usize {
+        //! The width spanned from the first possible column to the last
+        //! where the document is displayed
+        (self.term_dimensions.width - self.right_edge_offset) - self.left_edge_offset
+    }
+
+    pub fn mode_row(&self) -> usize {
+        //! The row on which the mode will be displayed
+        self.term_dimensions.height - 1
+    }
+
+    pub fn command_row(&self) -> usize {
+        //! The row on which the user will type commands
+        self.term_dimensions.height
+    }
+
+    // -------------------- DIMENSION MANIPULATION ------------------------
+
+    pub fn check_resize(&mut self) -> bool {
+        let checker = term_size();
+
+        if checker.width != self.term_dimensions.width
+            || checker.height != self.term_dimensions.height
+        {
+            self.term_dimensions.width = checker.width;
+            self.term_dimensions.height = checker.height;
+
+            return true;
+        }
+
+        false
+    }
+
+    // ============================== COMMAND =============================
+
+    pub fn change_mode(&mut self, new_mode: Modes) {
+        //! curr - Current mode stored in the state of the application
+        //! new_mode - The new mode which will be stored in the state of the application
+        //! mode_row - The row at which the mode will be printed
+        //! cursor - Get control of cursor
+        //!
+        //! Changes the current mode of the editor to a new target mode, handles changing state and drawing to screen
+
+        self.curr_mode = new_mode;
+
+        self.save_cursor_vis_pos();
+
+        self.move_cursor_vis_to(self.mode_row(), 0);
+
+        self.print_mode_row();
+
+        self.revert_cursor_vis_pos();
+    }
+
+    pub fn reset_command(&self) {
+        self.save_cursor_vis_pos();
+
+        self.move_cursor_vis_to(self.command_row(), 1);
+
+        self.print_line_color(self.theme.background_color());
+
+        self.command_buf.borrow_mut().clear();
+
+        self.revert_cursor_vis_pos();
+    }
+
+    pub fn pop_command_buf(&self) {
+        self.command_buf.borrow_mut().pop();
+        self.print_text_colored(self.theme.command_text_color(), " ");
+    }
 }
 
-// ==================== DOCUMENT RETRIEVAL AND CREATION ====================
+// ==================== COMMAND ============================================
 
 pub fn create_document(file_name: Option<String>, editor_dim: &Editor) -> Document {
     if let Some(ifile) = file_name {
@@ -698,7 +718,7 @@ pub fn create_document(file_name: Option<String>, editor_dim: &Editor) -> Docume
     }
 }
 
-// ==================== INPUT RETRIEVAL FUNCTION ====================
+// ==================== INPUT RETRIEVAL FUNCTION ===========================
 
 pub fn spawn_char_channel() -> Receiver<char> {
     //! (kill sender, the receiver for the character)

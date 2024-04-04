@@ -457,7 +457,7 @@ fn main() {
                     }
                     // Cancel entering a command
                     ESC if editor.curr_mode == Modes::Command => {
-                        editor.clear_command_row();
+                        editor.reset_command();
 
                         // Change mode to normal
                         editor.change_mode(Modes::Normal);
@@ -845,7 +845,7 @@ fn main() {
                                         out_file.write(document.to_string().as_bytes()).unwrap();
                                     }
 
-                                    editor.clear_command_row();
+                                    editor.reset_command();
 
                                     editor.revert_cursor_vis_pos();
 
