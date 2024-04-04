@@ -32,7 +32,7 @@ pub struct Editor {
     pub curr_mode: Modes,
     /// Stores the theme to be used for colors
     /// TODO: Make user configurable
-    pub theme: Theme,
+    theme: Theme,
     /// The buffer for user entered commands
     pub command_buf: RefCell<String>,
     writer: RefCell<Cursor>,
