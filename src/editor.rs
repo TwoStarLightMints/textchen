@@ -26,8 +26,8 @@ pub struct Editor {
     /// Responsible for holding all information about terminal size, document
     /// display window size, and printing to the screen
     pub term_dimensions: Wh,
-    pub left_edge_offset: usize,
-    pub right_edge_offset: usize,
+    left_edge_offset: usize,
+    right_edge_offset: usize,
     /// Stores the current mode that the editor is in
     pub curr_mode: Modes,
     /// Stores the theme to be used for colors
