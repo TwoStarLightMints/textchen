@@ -1,6 +1,7 @@
 use crate::cursor::*;
 use crate::document::*;
 use crate::term::get_char;
+use crate::term::term_size;
 use crate::term::{clear_screen, switch_to_alt_buf};
 use crate::term::{kbhit, Wh};
 use crate::term_color::{Theme, ThemeBuilder};
@@ -39,7 +40,7 @@ pub struct Editor {
 }
 
 impl Editor {
-    pub fn new(dimensions: Wh, left_edge_offset: usize, right_edge_offset: usize) -> Self {
+    pub fn new(left_edge_offset: usize, right_edge_offset: usize) -> Self {
         //! left_edge_offset - The index of the column at which the document will start
         //! to be displayed in the document display window
         //! right_edge_offset - The amount of spaces from the right side of the terminal
@@ -52,6 +53,8 @@ impl Editor {
             .font_body("122;162;247")
             .editor_background("36;40;59")
             .build();
+
+        let dimensions = term_size();
 
         Self {
             left_edge_offset,

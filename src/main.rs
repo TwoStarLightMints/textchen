@@ -22,7 +22,7 @@ fn main() {
     // Dimensions for the terminal screen
     // Wh.width - The width of the terminal as a whole
     // Wh.height - The height of the terminal as a whole
-    let mut editor = Editor::new(term_size(), 2, 2);
+    let mut editor = Editor::new(2, 2);
 
     // Title row is the home row
     // row: 0, column: 0
