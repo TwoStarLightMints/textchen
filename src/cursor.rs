@@ -184,8 +184,6 @@ impl Cursor {
 
                     curr_line_final_row += 1;
                 }
-
-                editor.reset_editor_view(&document);
             }
         }
 
