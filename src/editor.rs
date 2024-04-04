@@ -253,7 +253,7 @@ impl Editor {
 
     pub fn initialize_display(&self, document: &Document) {
         self.add_to_draw_buf(switch_to_alt_buf());
-        self.clear_document_window();
+        self.clear_doc_disp_window();
         self.print_title(document);
         self.print_document(document);
         self.print_mode_row();
@@ -262,7 +262,11 @@ impl Editor {
         self.flush_pen();
     }
 
-    pub fn clear_document_window(&self) {
+    fn clear_line(&self, color: impl AsRef<str>) {
+        self.add_to_draw_buf(format!("\u{001b}[2K{}", color.as_ref()));
+    }
+
+    pub fn clear_doc_disp_window(&self) {
         //! document - Document being edited
         //! cursor - Get control of cursor
         //!
@@ -273,7 +277,7 @@ impl Editor {
         self.move_cursor_vis_to(2, 1);
 
         for _ in 0..self.doc_disp_height() {
-            print!("\u{001b}[2K");
+            self.clear_line(self.theme.background_color());
 
             self.move_cursor_vis_down();
         }
@@ -332,7 +336,7 @@ impl Editor {
         //!
         //! Clears the editor screen and redraws the document provided, tends to be used as to refresh the screen after an edit has occurred
 
-        // self.clear_document_window(cursor);
+        self.clear_doc_disp_window();
 
         self.print_document(document);
     }
