@@ -411,7 +411,9 @@ fn main() {
 
                             // Move down to the next row
                             editor.move_cursor_vis_down();
-                        } else {
+                        } else if editor.get_cursor_doc_row()
+                            != *document.lines.last().unwrap().0.last().unwrap()
+                        {
                             // If the cursor's row is at the editor's height
 
                             // Push the visible rows of the document down
@@ -419,8 +421,6 @@ fn main() {
                         }
 
                         editor.move_cursor_vis_editor_left();
-
-                        editor.move_cursor_doc_editor_left();
                         editor.move_cursor_doc_down();
 
                         // Add the new line to the document
