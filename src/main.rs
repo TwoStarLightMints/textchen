@@ -482,6 +482,8 @@ fn main() {
                     BCKSP if editor.curr_mode == Modes::Insert => {
                         let cursor_pos = editor.get_cursor_pos_in_line(&document);
 
+                        let curr_num_rows = document.num_rows();
+
                         if editor.get_cursor_doc_col() > 1 || cursor_pos == 1 {
                             // If the cursor is one space away from being on top of the first column of characters (i.e. the cursor is within the line)
 
@@ -517,8 +519,6 @@ fn main() {
                                 gap_buf.to_string(),
                                 editor.doc_disp_width(),
                             );
-
-                            editor.reset_editor_view(&document);
                         } else if cursor_pos / editor.doc_disp_width() != 0 {
                             // If the cursor is not in the first row of the line
 
@@ -551,7 +551,6 @@ fn main() {
                             );
 
                             // Reset the view
-                            editor.reset_editor_view(&document);
                         } else if cursor_pos == 0
                             && editor.get_cursor_vis_row() != editor.doc_disp_home_row()
                         {
@@ -591,7 +590,6 @@ fn main() {
                             );
 
                             // Reset the view
-                            editor.reset_editor_view(&document);
                         } else if cursor_pos == 0 && document.visible_rows.0 != 0 {
                             // If the cursor is at the first positon of the line and the first visible row is not the first row of the document
 
@@ -629,6 +627,13 @@ fn main() {
                             );
 
                             // Reset the view
+                        }
+
+                        let new_num_rows = document.num_rows();
+
+                        if curr_num_rows == new_num_rows {
+                            editor.print_line(&document);
+                        } else {
                             editor.reset_editor_view(&document);
                         }
                     }
