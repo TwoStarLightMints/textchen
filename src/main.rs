@@ -1,7 +1,7 @@
 use std::env;
-use std::fs::{self, File};
+use std::fs::File;
 use std::io::Write;
-use textchen::{document::*, editor::*, gapbuf::*};
+use textchen::{document::*, editor::*, gapbuf::*, term::*};
 
 // ==== ASCII KEY CODE VALUES ====
 const J_LOWER: u8 = 106;
