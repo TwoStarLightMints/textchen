@@ -457,7 +457,7 @@ fn main() {
                     }
                     // Cancel entering a command
                     ESC if editor.curr_mode == Modes::Command => {
-                        editor.reset_command();
+                        editor.exit_command_mode::<String>(None);
 
                         // Change mode to normal
                         editor.change_mode(Modes::Normal);
@@ -806,17 +806,7 @@ fn main() {
                         // Change to command mode
                         editor.change_mode(Modes::Command);
 
-                        // Clear the buffer to ensure the new command will be empty
-                        editor.command_buf.borrow_mut().clear();
-
-                        // Save cursor position to come back to
-                        editor.save_cursor_vis_pos();
-
-                        // Move cursor to command row at first position
-                        editor.move_cursor_vis_to(editor.command_row(), 1);
-                        editor.print_char(':');
-
-                        editor.move_cursor_vis_right();
+                        editor.initialize_command_row();
                     }
                     // Execute command while in command mdoe
                     RETURN if editor.curr_mode == Modes::Command => {
@@ -845,7 +835,7 @@ fn main() {
                                         out_file.write(document.to_string().as_bytes()).unwrap();
                                     }
 
-                                    editor.reset_command();
+                                    editor.exit_command_mode::<String>(None);
 
                                     editor.revert_cursor_vis_pos();
 

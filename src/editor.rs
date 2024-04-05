@@ -287,17 +287,6 @@ impl Editor {
         }
     }
 
-    pub fn print_command_message(&self, message: impl AsRef<str>) {
-        self.save_cursor_vis_pos();
-
-        self.print_command_row();
-
-        self.move_cursor_vis_to(self.command_row(), 1);
-        self.print_text_colored(self.theme.command_text_color(), message);
-
-        self.revert_cursor_vis_pos();
-    }
-
     pub fn redraw_screen(&mut self, document: &mut Document) {
         //! dimensions - The new dimensions of the terminal screen after resize
         //! self - The old dimensions of the editor screen
@@ -652,7 +641,7 @@ impl Editor {
         false
     }
 
-    // ============================== COMMAND =============================
+    // ============================== MODE ================================
 
     pub fn change_mode(&mut self, new_mode: Modes) {
         //! curr - Current mode stored in the state of the application
@@ -673,12 +662,38 @@ impl Editor {
         self.revert_cursor_vis_pos();
     }
 
-    pub fn reset_command(&self) {
+    // ============================== COMMAND =============================
+
+    pub fn initialize_command_row(&self) {
         self.save_cursor_vis_pos();
 
         self.move_cursor_vis_to(self.command_row(), 1);
 
         self.print_line_color(self.theme.background_color());
+
+        self.print_char(':');
+
+        self.move_cursor_vis_right();
+    }
+
+    pub fn print_command_message(&self, message: impl AsRef<str>) {
+        self.save_cursor_vis_pos();
+
+        self.print_command_row();
+
+        self.move_cursor_vis_to(self.command_row(), 1);
+        self.print_text_colored(self.theme.command_text_color(), message);
+
+        self.revert_cursor_vis_pos();
+    }
+
+    pub fn exit_command_mode<S: AsRef<str>>(&self, message: Option<S>) {
+        self.save_cursor_vis_pos();
+
+        match message.as_ref() {
+            Some(m) => self.print_command_message(m),
+            None => self.print_command_message(""),
+        };
 
         self.command_buf.borrow_mut().clear();
 
