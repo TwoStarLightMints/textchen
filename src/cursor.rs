@@ -302,7 +302,7 @@ impl Cursor {
     }
 
     // =================== Cursor Position Retrieval Functions ===================
-    pub fn get_position_in_line(&self, document: &Document, editor_dim: &Editor) -> usize {
+    pub fn get_position_in_line(&self, document: &Document, editor: &Editor) -> usize {
         // document.get_line_at_cursor(cursor.row).0.iter().position(|i| *i == cursor.row - 2) * editor_right : skip x amount of lines, refer to this line as skip_amount
         // skip_amount + cursor.column
 
@@ -313,13 +313,7 @@ impl Cursor {
         // /\ * editor_width : The above times the editor's width will give the amount of spaces to skip given the row of the cursor in relation to the document
         // /\ + doc_column : This will be the position of the cursor within the line
 
-        (document
-            .get_line_at_cursor(self.doc_row)
-            .0
-            .iter()
-            .position(|i| *i == self.doc_row)
-            .unwrap()
-            * editor_dim.doc_disp_width())
+        ((self.doc_row - document.get_line_at_cursor(self.doc_row).0[0]) * editor.doc_disp_width())
             + self.doc_column
     }
 
