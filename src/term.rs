@@ -73,7 +73,7 @@ pub fn return_to_normal_buf() -> &'static str {
     "\u{001b}[?1049l"
 }
 
-pub fn clear_screen() -> &'static str {
+pub fn clear_line() -> &'static str {
     "\u{001b}[2J"
 }
 
