@@ -198,12 +198,14 @@ impl Cursor {
 
         if cursor_pos / editor.doc_disp_width() != 0 {
             // If the cursor is not in the first row of the line
-            if ((document.visible_rows.0 + 2)..document.visible_rows.1).contains(&curr_line.0[0]) {
+
+            if document.visible_rows.0 < curr_line.0[0] || document.visible_rows.0 == 0 {
+                // If the current line's first index is strictly less than the first visible row, or the first visible row is the
+                // first row of the document, i.e. the first row of the current line is visible or the first row of the document is visible
+
                 move_str += self
                     .move_to_editor_left(editor.doc_disp_left_edge())
                     .as_str();
-
-                self.move_doc_to_editor_left();
 
                 move_str += self
                     .move_to(
@@ -212,7 +214,7 @@ impl Cursor {
                     )
                     .as_str();
 
-                self.move_doc_to(curr_line.0[0], self.doc_column);
+                self.move_doc_to(curr_line.0[0], 0);
             } else {
                 move_str += self
                     .move_to_editor_left(editor.doc_disp_left_edge())
