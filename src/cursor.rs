@@ -235,6 +235,8 @@ impl Cursor {
                 move_str += self
                     .move_to(editor.doc_disp_home_row(), self.column)
                     .as_str();
+
+                editor.reset_editor_view(document);
             }
         } else {
             self.move_doc_to_editor_left();
