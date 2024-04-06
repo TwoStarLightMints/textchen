@@ -196,7 +196,8 @@ impl Cursor {
 
         let mut move_str = String::new();
 
-        if cursor_pos != 0 {
+        if cursor_pos / editor.doc_disp_width() != 0 {
+            // If the cursor is not in the first row of the line
             if ((document.visible_rows.0 + 2)..document.visible_rows.1).contains(&curr_line.0[0]) {
                 move_str += self
                     .move_to_editor_left(editor.doc_disp_left_edge())
@@ -233,6 +234,12 @@ impl Cursor {
                     .move_to(editor.doc_disp_home_row(), self.column)
                     .as_str();
             }
+        } else {
+            self.move_doc_to_editor_left();
+
+            move_str += self
+                .move_to_editor_left(editor.doc_disp_left_edge())
+                .as_str();
         }
 
         move_str
