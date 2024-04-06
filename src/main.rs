@@ -56,9 +56,7 @@ fn main() {
 
     // Main loop for program
     loop {
-        if editor.check_resize() {
-            editor.redraw_screen(&mut document);
-        }
+        editor.check_resize(&mut document);
 
         match char_channel.try_recv() {
             Ok(c) => {
@@ -279,8 +277,6 @@ fn main() {
                             editor.move_cursor_to_start_line(&mut document); // <============================================
 
                             editor.change_mode(Modes::Normal);
-
-                            editor.reset_editor_view(&document);
                         } else if new_c == 'g' {
                             editor.move_cursor_vis_to(
                                 editor.doc_disp_home_row(),
