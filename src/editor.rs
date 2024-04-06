@@ -1,8 +1,8 @@
 use crate::cursor::*;
 use crate::document::*;
 use crate::term::get_char;
+use crate::term::switch_to_alt_buf;
 use crate::term::term_size;
-use crate::term::{clear_screen, switch_to_alt_buf};
 use crate::term::{kbhit, Wh};
 use crate::term_color::{Theme, ThemeBuilder};
 use std::cell::RefCell;
@@ -25,7 +25,7 @@ pub enum Modes {
 pub struct Editor {
     /// Responsible for holding all information about terminal size, document
     /// display window size, and printing to the screen
-    pub term_dimensions: Wh,
+    term_dimensions: Wh,
     left_edge_offset: usize,
     right_edge_offset: usize,
     /// Stores the current mode that the editor is in
@@ -291,104 +291,11 @@ impl Editor {
         //! dimensions - The new dimensions of the terminal screen after resize
         //! self - The old dimensions of the editor screen
 
-        let curr_line_index = document.get_index_at_cursor(self.get_cursor_doc_row());
-        let curr_pos = self
-            .writer
-            .borrow_mut()
-            .get_position_in_line(&document, self);
-        let curr_num_above =
-            document.num_above_rows(self.doc_disp_width(), document.lines[curr_line_index].0[0]);
-
-        let original_width = self.doc_disp_width();
-        let original_height = self.doc_disp_height();
-
-        // Save to see if it will be at least within the right line or an adjacent one instead of only going to the start of the editor
-        self.save_cursor_vis_pos();
-
-        // Clear the screen, blank canvas
-        clear_screen();
-
-        // Redraw document title
-        self.move_cursor_vis_to(0, 0);
-        self.add_to_draw_buf(format!("{}", document.file_name));
-
-        // Return to the previous cursor position
-        self.revert_cursor_vis_pos();
-
-        // Redraw mode
-        self.print_mode_row();
-
         document.recalculate_indices(self.doc_disp_width());
 
-        // If cursor_half is true, the cursor is located in the top half of the editor, else
-        // it is in the bottom half
-        let cursor_half = (self.get_cursor_vis_row() - 2) < self.doc_disp_height() / 2;
+        document.visible_rows.1 = document.visible_rows.0 + self.doc_disp_height();
 
-        if original_width > self.doc_disp_width() {
-            // If the original width is greater than the new width (the screen is shrinking horizontally)
-
-            let new_num_above = document
-                .num_above_rows(self.doc_disp_width(), document.lines[curr_line_index].0[0]);
-
-            if new_num_above > curr_num_above {
-                // If the number of lines above the current line is greater than the original number of lines
-                // that were above the current line
-
-                for _ in 0..(new_num_above - curr_num_above) {
-                    document.push_vis_down();
-                }
-            }
-        } else if self.doc_disp_width() > original_width {
-            let new_num_above = document
-                .num_above_rows(self.doc_disp_width(), document.lines[curr_line_index].0[0]);
-
-            if curr_num_above > new_num_above {
-                for _ in 0..(curr_num_above - new_num_above) {
-                    document.push_vis_up(self.doc_disp_height());
-                }
-            }
-        }
-
-        if original_height > self.doc_disp_height() {
-            // If the original height is greater than the new height (the screen is shrinking vertically)
-
-            if cursor_half {
-                // If the cursor is in the first half of the editor
-
-                document.visible_rows.1 -= original_height - self.doc_disp_height();
-            } else {
-                // If the cursor is in the second half of the editor
-
-                document.visible_rows.0 += original_height - self.doc_disp_height();
-            }
-        } else if self.doc_disp_height() > original_height {
-            // If the new height is greater than the original height (the screen is growing vertically)
-
-            if cursor_half {
-                // If the cursor is in the first half of the editor
-
-                if document.visible_rows.1 <= *document.lines.last().unwrap().0.last().unwrap() {
-                    document.visible_rows.1 += self.doc_disp_height() - original_height;
-                } else {
-                    if document.visible_rows.0 != 0 {
-                        document.visible_rows.0 -= self.doc_disp_height() - original_height;
-                    }
-                }
-            } else {
-                // If the cursor is in the second half of the editor
-
-                if document.visible_rows.0 != 0 {
-                    document.visible_rows.0 -= self.doc_disp_height() - original_height;
-                } else {
-                    document.visible_rows.1 += self.doc_disp_height() - original_height;
-                }
-            }
-        }
-
-        self.move_cursor_to_pos(curr_pos, &document.lines[curr_line_index], &document);
-
-        // Redraw document
-        self.reset_editor_view(document);
+        self.initialize_display(document);
     }
 
     // -------------------- PRINT BUFFER MANIPULATION ---------------------
@@ -626,19 +533,16 @@ impl Editor {
 
     // -------------------- DIMENSION MANIPULATION ------------------------
 
-    pub fn check_resize(&mut self) -> bool {
+    pub fn check_resize(&mut self, document: &mut Document) {
         let checker = term_size();
 
         if checker.width != self.term_dimensions.width
             || checker.height != self.term_dimensions.height
         {
-            self.term_dimensions.width = checker.width;
-            self.term_dimensions.height = checker.height;
+            self.term_dimensions = checker;
 
-            return true;
+            self.redraw_screen(document);
         }
-
-        false
     }
 
     // ============================== MODE ================================
