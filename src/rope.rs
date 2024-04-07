@@ -2,7 +2,7 @@
 
 use std::{cell::RefCell, rc::Rc};
 
-#[derive(Clone)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct RopeNode {
     /// If a node is a leaf, the weight is 0, otherwise it is the length of the str_piece
     weight: usize,
@@ -68,6 +68,7 @@ impl From<String> for RopeNode {
     }
 }
 
+#[derive(Debug, PartialEq, Eq)]
 pub struct Rope {
     root: Rc<RefCell<RopeNode>>,
 }
@@ -138,5 +139,60 @@ impl Rope {
                 pieces.into_iter().map(|p| RopeNode::from(p)).collect(),
             ))),
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn from_string_to_rope() {
+        let test_str = String::from("Hello,_World!");
+
+        let test_rope = Rope::from_str(test_str, 4);
+
+        println!("{test_rope:#?}");
+
+        let control = Rope {
+            root: Rc::new(RefCell::new(RopeNode {
+                weight: 6,
+                lhs: Some(Rc::new(RefCell::new(RopeNode {
+                    weight: 3,
+                    lhs: Some(Rc::new(RefCell::new(RopeNode {
+                        weight: 3,
+                        lhs: None,
+                        rhs: None,
+                        str_piece: Some("Hel".to_string()),
+                    }))),
+                    rhs: Some(Rc::new(RefCell::new(RopeNode {
+                        weight: 3,
+                        lhs: None,
+                        rhs: None,
+                        str_piece: Some("lo,".to_string()),
+                    }))),
+                    str_piece: None,
+                }))),
+                rhs: Some(Rc::new(RefCell::new(RopeNode {
+                    weight: 3,
+                    lhs: Some(Rc::new(RefCell::new(RopeNode {
+                        weight: 3,
+                        lhs: None,
+                        rhs: None,
+                        str_piece: Some("_Wo".to_string()),
+                    }))),
+                    rhs: Some(Rc::new(RefCell::new(RopeNode {
+                        weight: 4,
+                        lhs: None,
+                        rhs: None,
+                        str_piece: Some("rld!".to_string()),
+                    }))),
+                    str_piece: None,
+                }))),
+                str_piece: None,
+            })),
+        };
+
+        assert_eq!(test_rope, control);
     }
 }
