@@ -20,6 +20,7 @@ pub enum Modes {
     Insert,
     Command,
     MoveTo,
+    Visual,
 }
 
 pub struct Editor {
@@ -37,6 +38,7 @@ pub struct Editor {
     pub command_buf: RefCell<String>,
     writer: RefCell<Cursor>,
     buffer: RefCell<BufWriter<Stdout>>,
+    paste_register: RefCell<String>,
 }
 
 impl Editor {
@@ -66,6 +68,7 @@ impl Editor {
             term_dimensions: dimensions,
             buffer: RefCell::new(BufWriter::new(io::stdout())),
             writer: RefCell::new(Cursor::new()),
+            paste_register: RefCell::new(String::new()),
         }
     }
 
@@ -118,6 +121,7 @@ impl Editor {
                     Modes::Insert => "INS",
                     Modes::Command => "COM",
                     Modes::MoveTo => "MOV",
+                    Modes::Visual => "VIS",
                 }
             ),
         );
@@ -283,7 +287,9 @@ impl Editor {
                 }
                 self.print_text_colored(self.theme.command_text_color(), c.to_string());
             }
-            Modes::Normal | Modes::MoveTo => unreachable!("Not scientifically possible!"),
+            Modes::Normal | Modes::MoveTo | Modes::Visual => {
+                unreachable!("Not scientifically possible!")
+            }
         }
     }
 
