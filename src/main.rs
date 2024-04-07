@@ -15,6 +15,9 @@ const O_UPPER: u8 = 'O' as u8;
 const H_LOWER: u8 = 104;
 const G_LOWER: u8 = 103;
 const I_LOWER: u8 = 105;
+const V_LOWER: u8 = 'v' as u8;
+const Y_LOWER: u8 = 'y' as u8;
+const P_LOWER: u8 = 'p' as u8;
 const COLON: u8 = 58;
 const ESC: u8 = 27;
 const BCKSP: u8 = if cfg!(target_os = "linux") { 127 } else { 8 };
@@ -796,6 +799,10 @@ fn main() {
                         );
 
                         editor.reset_editor_view(&document);
+                    }
+                    // Enter visual mode
+                    V_LOWER if editor.curr_mode == Modes::Normal => {
+                        editor.change_mode(Modes::Visual);
                     }
                     // Enter command mode
                     COLON if editor.curr_mode == Modes::Normal => {
