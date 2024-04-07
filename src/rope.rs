@@ -140,6 +140,8 @@ impl Rope {
             ))),
         }
     }
+
+    pub fn collect_leaves(&self) {}
 }
 
 #[cfg(test)]
