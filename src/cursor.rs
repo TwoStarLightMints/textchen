@@ -1,13 +1,12 @@
 use crate::document::{Document, Line};
 use crate::editor::Editor;
-use std::ops::Range;
 
 pub struct Cursor {
     pub doc_row: usize,
     pub doc_column: usize,
     pub row: usize,
     pub column: usize,
-    pub selection: Range<usize>,
+    pub selection: usize,
     pub prev_row: Vec<usize>,
     pub prev_col: Vec<usize>,
 }
@@ -19,7 +18,7 @@ impl Cursor {
             doc_column: 0,
             row: 0,
             column: 0,
-            selection: 0..1,
+            selection: 1,
             prev_row: Vec::new(),
             prev_col: Vec::new(),
         }
@@ -31,7 +30,7 @@ impl Cursor {
             doc_column: 0,
             row,
             column,
-            selection: 0..1,
+            selection: 1,
             prev_row: Vec::new(),
             prev_col: Vec::new(),
         }
