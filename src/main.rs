@@ -66,7 +66,10 @@ fn main() {
                 // Get a character and match it aginst some cases as a u8
                 match c as u8 {
                     // Move down
-                    J_LOWER if editor.curr_mode == Modes::Normal => {
+                    J_LOWER
+                        if editor.curr_mode == Modes::Normal
+                            || editor.curr_mode == Modes::Visual =>
+                    {
                         // Store the position of the cursor in the original line, save on method calls
 
                         let cursor_pos = editor.get_cursor_pos_in_line(&document);
@@ -114,7 +117,10 @@ fn main() {
                         editor.same_line_different_row_bump(&document);
                     }
                     // Move right
-                    L_LOWER if editor.curr_mode == Modes::Normal => {
+                    L_LOWER
+                        if editor.curr_mode == Modes::Normal
+                            || editor.curr_mode == Modes::Visual =>
+                    {
                         // Get the current line where the cursor is at
 
                         let curr_line = document.get_line_at_cursor(editor.get_cursor_doc_row());
@@ -163,7 +169,10 @@ fn main() {
                         }
                     }
                     // Move up
-                    K_LOWER if editor.curr_mode == Modes::Normal => {
+                    K_LOWER
+                        if editor.curr_mode == Modes::Normal
+                            || editor.curr_mode == Modes::Visual =>
+                    {
                         let cursor_pos = editor.get_cursor_pos_in_line(&document);
 
                         if document.visible_rows.0 != 0 {
@@ -232,7 +241,10 @@ fn main() {
                         editor.same_line_different_row_bump(&document);
                     }
                     // Move left
-                    H_LOWER if editor.curr_mode == Modes::Normal => {
+                    H_LOWER
+                        if editor.curr_mode == Modes::Normal
+                            || editor.curr_mode == Modes::Visual =>
+                    {
                         let cursor_pos = editor.get_cursor_pos_in_line(&document);
 
                         if editor.get_cursor_column_in_doc_disp() > 1 || cursor_pos == 1 {
@@ -806,10 +818,19 @@ fn main() {
 
                         editor.set_yank_start();
                     }
-                    Y_LOWER if editor.curr_mode == Modes::Normal => {
+                    Y_LOWER
+                        if editor.curr_mode == Modes::Normal
+                            || editor.curr_mode == Modes::Visual =>
+                    {
                         editor.yank_selection(&document);
                     }
+                    ESC if editor.curr_mode == Modes::Visual => {
+                        editor.change_mode(Modes::Normal);
+
+                        editor.clear_yank();
+                    }
                     P_LOWER if editor.curr_mode == Modes::Normal => {
+                        todo!("Implement multi-character pasting");
                         let curr_num_rows = document.num_rows();
 
                         let cursor_pos = editor.get_cursor_pos_in_line(&document);
