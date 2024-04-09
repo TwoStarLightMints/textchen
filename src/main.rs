@@ -803,6 +803,81 @@ fn main() {
                     // Enter visual mode
                     V_LOWER if editor.curr_mode == Modes::Normal => {
                         editor.change_mode(Modes::Visual);
+
+                        editor.set_yank_start();
+                    }
+                    Y_LOWER if editor.curr_mode == Modes::Normal => {
+                        editor.yank_selection(&document);
+                    }
+                    P_LOWER if editor.curr_mode == Modes::Normal => {
+                        let curr_num_rows = document.num_rows();
+
+                        let cursor_pos = editor.get_cursor_pos_in_line(&document);
+                        let curr_line = document.get_str_at_cursor(editor.get_cursor_doc_row());
+
+                        let (lhs, rhs) = curr_line.split_at(cursor_pos);
+
+                        let mut lhs_str = lhs.to_string();
+
+                        lhs_str.push_str(editor.paste_register.borrow().as_str());
+
+                        document.set_line_at_cursor(
+                            editor.get_cursor_doc_row(),
+                            lhs_str + rhs,
+                            editor.doc_disp_width(),
+                        );
+
+                        let new_num_rows = document.num_rows();
+
+                        if curr_num_rows == new_num_rows {
+                            editor.print_line(&document);
+                        } else {
+                            editor.reset_editor_view(&document);
+                        }
+
+                        let curr_line = document.get_line_at_cursor(editor.get_cursor_doc_row());
+
+                        if cursor_pos < curr_line.1.len()
+                            && editor.get_cursor_doc_col() < editor.doc_disp_width()
+                        {
+                            // If the cursor's position in the current line is less than the length of the total line and the cursor's column in relation to the document
+                            // is less than or equal to the editor's width
+
+                            editor.move_cursor_right();
+                        } else if cursor_pos < curr_line.1.len()
+                            && curr_line.0.contains(&(editor.get_cursor_doc_row() + 1))
+                        {
+                            // If the cursor's position in the current line is less than the length of the total line and the current line's row indices contains the next
+                            // cursor's row in relation to the document
+
+                            if editor.get_cursor_vis_row() < editor.doc_disp_height() {
+                                // If the cursor's row is less than the editor's height
+
+                                // Move down to the next row
+                                editor.move_cursor_vis_down();
+                            } else {
+                                // If the cursor's row is at the editor's height
+
+                                // Push the visible rows of the document down
+                                document.push_vis_down();
+
+                                // Reset the editor
+                                editor.reset_editor_view(&document);
+                            }
+
+                            // Move to the cursor visually the left edge of the editor
+                            editor.move_cursor_vis_editor_left();
+                            // Make the cursor's doc_column value 0 and then move it to the right (increment it) because the cursor needs to hover over the second character of the row
+                            // in this particular case
+                            editor.move_cursor_doc_editor_left();
+
+                            // Because the end of the previous line is included within the conditions of the previous if clause, move the cursor to the right of the immediate next
+                            // chracter in the line
+                            editor.move_cursor_right();
+
+                            // Set the place of the cursor within the document properly
+                            editor.move_cursor_doc_down();
+                        }
                     }
                     // Enter command mode
                     COLON if editor.curr_mode == Modes::Normal => {
