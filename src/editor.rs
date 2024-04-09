@@ -39,6 +39,7 @@ pub struct Editor {
     writer: RefCell<Cursor>,
     print_buffer: RefCell<BufWriter<Stdout>>,
     paste_register: RefCell<String>,
+    open_buffers: Vec<Document>,
 }
 
 impl Editor {
@@ -69,6 +70,7 @@ impl Editor {
             print_buffer: RefCell::new(BufWriter::new(io::stdout())),
             writer: RefCell::new(Cursor::new()),
             paste_register: RefCell::new(String::new()),
+            open_buffers: Vec::new(),
         }
     }
 
