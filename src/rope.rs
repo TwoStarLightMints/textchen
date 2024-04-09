@@ -141,7 +141,38 @@ impl Rope {
         }
     }
 
-    pub fn collect_leaves(&self) {}
+    pub fn collect_leaves(&self) {
+        let mut node_stack = vec![Rc::clone(&self.root)];
+
+        while !node_stack.is_empty() {}
+    }
+}
+
+struct RopeLeaves<'a> {
+    leaves: Vec<&'a RopeNode>,
+    index: usize,
+}
+
+impl RopeLeaves {
+    pub fn new(leaves: Vec<RopeNode>) -> Self {
+        Self { leaves, index: 0 }
+    }
+}
+
+impl<'a> Iterator for RopeLeaves<'a> {
+    type Item = &'a RopeNode;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        if self.index < self.leaves.len() {
+            let res = Some(self.leaves[self.index]);
+
+            self.index += 1;
+
+            res
+        } else {
+            None
+        }
+    }
 }
 
 #[cfg(test)]
