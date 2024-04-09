@@ -350,4 +350,17 @@ impl Cursor {
 
         format!("\u{001b}[{};{}H", self.row, self.column)
     }
+
+    pub fn get_selection_direction(&self) -> bool {
+        //! true == Forward (SELECTION_START -> CURSOR_POS), or there is only one character "selected"
+        //! false == Backward (SELECTION_START <- CURSOR_POS)
+
+        match self.s_row {
+            Some(r) => match self.s_col {
+                Some(c) => self.doc_row > r || (self.doc_column > c && self.doc_column == c),
+                None => true,
+            },
+            None => true,
+        }
+    }
 }
