@@ -268,7 +268,7 @@ fn main() {
                         editor.change_mode(Modes::MoveTo);
 
                         // This flush is necessary because otherwise the new mode is not printed
-                        editor.flush_pen();
+                        editor.flush_print_buf();
 
                         let new_c = get_char();
 
@@ -910,11 +910,11 @@ fn main() {
             _ => (),
         }
 
-        editor.flush_pen();
+        editor.flush_print_buf();
     }
 
-    editor.add_to_draw_buf(return_to_normal_buf());
-    editor.flush_pen();
+    editor.add_to_print_buf(return_to_normal_buf());
+    editor.flush_print_buf();
 
     #[cfg(target_os = "linux")]
     // Similar to set_raw, only used/needed on linux

@@ -37,7 +37,7 @@ pub struct Editor {
     /// The buffer for user entered commands
     pub command_buf: RefCell<String>,
     writer: RefCell<Cursor>,
-    buffer: RefCell<BufWriter<Stdout>>,
+    print_buffer: RefCell<BufWriter<Stdout>>,
     paste_register: RefCell<String>,
 }
 
@@ -66,7 +66,7 @@ impl Editor {
             theme,
             command_buf: RefCell::new(String::new()),
             term_dimensions: dimensions,
-            buffer: RefCell::new(BufWriter::new(io::stdout())),
+            print_buffer: RefCell::new(BufWriter::new(io::stdout())),
             writer: RefCell::new(Cursor::new()),
             paste_register: RefCell::new(String::new()),
         }
@@ -77,15 +77,15 @@ impl Editor {
     // -------------------- COLOR APPLYING METHODS ------------------------
 
     fn reset_color(&self) {
-        self.add_to_draw_buf("\u{001b}[0m");
+        self.add_to_print_buf("\u{001b}[0m");
     }
 
     fn print_line_color(&self, color: impl AsRef<str>) {
-        self.add_to_draw_buf(format!("{}\u{001b}[2K", color.as_ref()));
+        self.add_to_print_buf(format!("{}\u{001b}[2K", color.as_ref()));
     }
 
     fn print_text_colored(&self, color: impl AsRef<str>, message: impl AsRef<str>) {
-        self.add_to_draw_buf(format!("{}{}", color.as_ref(), message.as_ref()));
+        self.add_to_print_buf(format!("{}{}", color.as_ref(), message.as_ref()));
     }
 
     // --------------------- PRINTING METHODS ------------------------------
@@ -232,18 +232,18 @@ impl Editor {
     }
 
     pub fn initialize_display(&self, document: &Document) {
-        self.add_to_draw_buf(switch_to_alt_buf());
+        self.add_to_print_buf(switch_to_alt_buf());
         self.clear_doc_disp_window();
         self.print_title(document);
         self.print_document(document);
         self.print_mode_row();
         self.print_command_row();
         self.move_cursor_vis_to(self.doc_disp_home_row(), self.doc_disp_left_edge());
-        self.flush_pen();
+        self.flush_print_buf();
     }
 
     fn clear_line(&self, color: impl AsRef<str>) {
-        self.add_to_draw_buf(format!("\u{001b}[2K{}", color.as_ref()));
+        self.add_to_print_buf(format!("\u{001b}[2K{}", color.as_ref()));
     }
 
     pub fn clear_doc_disp_window(&self) {
@@ -306,15 +306,15 @@ impl Editor {
 
     // -------------------- PRINT BUFFER MANIPULATION ---------------------
 
-    pub fn add_to_draw_buf<S: AsRef<str>>(&self, content: S) {
-        self.buffer
+    pub fn add_to_print_buf<S: AsRef<str>>(&self, content: S) {
+        self.print_buffer
             .borrow_mut()
             .write(content.as_ref().as_bytes())
             .unwrap();
     }
 
-    pub fn flush_pen(&self) {
-        self.buffer.borrow_mut().flush().unwrap();
+    pub fn flush_print_buf(&self) {
+        self.print_buffer.borrow_mut().flush().unwrap();
     }
 
     // ==================== CURSOR WRAPPER FUNCTIONS ======================
@@ -348,7 +348,7 @@ impl Editor {
     }
 
     pub fn revert_cursor_vis_pos(&self) {
-        self.add_to_draw_buf(self.writer.borrow_mut().revert_pos());
+        self.add_to_print_buf(self.writer.borrow_mut().revert_pos());
     }
 
     // -------------------- CURSOR RELATIVE TO DOCUMENT -------------------
@@ -358,7 +358,7 @@ impl Editor {
     }
 
     pub fn move_cursor_to_pos(&self, new_pos: usize, current_line: &Line, document: &Document) {
-        self.add_to_draw_buf(self.writer.borrow_mut().move_to_pos(
+        self.add_to_print_buf(self.writer.borrow_mut().move_to_pos(
             new_pos,
             current_line,
             document,
@@ -367,17 +367,17 @@ impl Editor {
     }
 
     pub fn move_cursor_to_start_line(&self, document: &mut Document) {
-        self.add_to_draw_buf(self.writer.borrow_mut().move_to_start_line(document, self));
+        self.add_to_print_buf(self.writer.borrow_mut().move_to_start_line(document, self));
     }
 
     pub fn move_cursor_to_end_line(&self, document: &mut Document) {
-        self.add_to_draw_buf(self.writer.borrow_mut().move_to_end_line(document, self));
+        self.add_to_print_buf(self.writer.borrow_mut().move_to_end_line(document, self));
     }
 
     // -------------------- CURSOR MOVEMENT -------------------------------
 
     pub fn move_cursor_vis_to(&self, new_row: usize, new_column: usize) {
-        self.add_to_draw_buf(self.writer.borrow_mut().move_to(new_row, new_column));
+        self.add_to_print_buf(self.writer.borrow_mut().move_to(new_row, new_column));
     }
     pub fn move_cursor_doc_to(&self, new_doc_row: usize, new_doc_col: usize) {
         self.writer
@@ -386,35 +386,35 @@ impl Editor {
     }
 
     pub fn move_cursor_down(&self) {
-        self.add_to_draw_buf(self.writer.borrow_mut().move_down());
+        self.add_to_print_buf(self.writer.borrow_mut().move_down());
     }
 
     pub fn move_cursor_up(&self) {
-        self.add_to_draw_buf(self.writer.borrow_mut().move_up());
+        self.add_to_print_buf(self.writer.borrow_mut().move_up());
     }
 
     pub fn move_cursor_right(&self) {
-        self.add_to_draw_buf(self.writer.borrow_mut().move_right());
+        self.add_to_print_buf(self.writer.borrow_mut().move_right());
     }
 
     pub fn move_cursor_left(&self) {
-        self.add_to_draw_buf(self.writer.borrow_mut().move_left());
+        self.add_to_print_buf(self.writer.borrow_mut().move_left());
     }
 
     pub fn move_cursor_vis_down(&self) {
-        self.add_to_draw_buf(self.writer.borrow_mut().move_vis_down());
+        self.add_to_print_buf(self.writer.borrow_mut().move_vis_down());
     }
 
     pub fn move_cursor_vis_up(&self) {
-        self.add_to_draw_buf(self.writer.borrow_mut().move_vis_up());
+        self.add_to_print_buf(self.writer.borrow_mut().move_vis_up());
     }
 
     pub fn move_cursor_vis_right(&self) {
-        self.add_to_draw_buf(self.writer.borrow_mut().move_vis_right());
+        self.add_to_print_buf(self.writer.borrow_mut().move_vis_right());
     }
 
     pub fn move_cursor_vis_left(&self) {
-        self.add_to_draw_buf(self.writer.borrow_mut().move_vis_left());
+        self.add_to_print_buf(self.writer.borrow_mut().move_vis_left());
     }
 
     pub fn move_cursor_doc_down(&self) {
@@ -444,7 +444,7 @@ impl Editor {
     }
 
     pub fn move_cursor_vis_editor_left(&self) {
-        self.add_to_draw_buf(
+        self.add_to_print_buf(
             self.writer
                 .borrow_mut()
                 .move_to_editor_left(self.doc_disp_left_edge()),
