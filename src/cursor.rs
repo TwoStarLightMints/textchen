@@ -6,8 +6,8 @@ pub struct Cursor {
     pub doc_column: usize,
     pub row: usize,
     pub column: usize,
-    pub s_row: usize,
-    pub s_col: usize,
+    pub s_row: Option<usize>,
+    pub s_col: Option<usize>,
     pub prev_row: Vec<usize>,
     pub prev_col: Vec<usize>,
 }
@@ -19,8 +19,8 @@ impl Cursor {
             doc_column: 0,
             row: 0,
             column: 0,
-            s_row: 0,
-            s_col: 0,
+            s_row: None,
+            s_col: None,
             prev_row: Vec::new(),
             prev_col: Vec::new(),
         }
@@ -32,8 +32,8 @@ impl Cursor {
             doc_column: 0,
             row,
             column,
-            s_row: 0,
-            s_col: 0,
+            s_row: None,
+            s_col: None,
             prev_row: Vec::new(),
             prev_col: Vec::new(),
         }
