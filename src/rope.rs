@@ -153,8 +153,8 @@ struct RopeLeaves<'a> {
     index: usize,
 }
 
-impl RopeLeaves {
-    pub fn new(leaves: Vec<RopeNode>) -> Self {
+impl<'a> RopeLeaves<'a> {
+    pub fn new(leaves: Vec<&'a RopeNode>) -> Self {
         Self { leaves, index: 0 }
     }
 }
