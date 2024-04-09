@@ -38,7 +38,7 @@ pub struct Editor {
     pub command_buf: RefCell<String>,
     writer: RefCell<Cursor>,
     buffer: RefCell<BufWriter<Stdout>>,
-    paste_register: RefCell<String>,
+    pub paste_register: RefCell<String>,
 }
 
 impl Editor {
@@ -317,6 +317,21 @@ impl Editor {
         self.buffer.borrow_mut().flush().unwrap();
     }
 
+    // -------------------- YANK CONTROLS ---------------------------------
+
+    pub fn yank_selection(&self, document: &Document) {
+        match self.writer.borrow().s_row {
+            Some(r) => (),
+            None => self.paste_register.borrow_mut().push(
+                document
+                    .get_str_at_cursor(self.get_cursor_doc_row())
+                    .chars()
+                    .nth(self.get_cursor_pos_in_line(document))
+                    .unwrap(),
+            ),
+        }
+    }
+
     // ==================== CURSOR WRAPPER FUNCTIONS ======================
 
     pub fn get_cursor_pos_in_line(&self, document: &Document) -> usize {
@@ -352,8 +367,8 @@ impl Editor {
     }
 
     pub fn set_yank_start(&self) {
-        self.writer.borrow_mut().s_row = self.get_cursor_doc_row();
-        self.writer.borrow_mut().s_col = self.get_cursor_doc_col();
+        self.writer.borrow_mut().s_row = Some(self.get_cursor_doc_row());
+        self.writer.borrow_mut().s_col = Some(self.get_cursor_doc_col());
     }
 
     // -------------------- CURSOR RELATIVE TO DOCUMENT -------------------
