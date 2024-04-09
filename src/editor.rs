@@ -351,6 +351,11 @@ impl Editor {
         self.add_to_draw_buf(self.writer.borrow_mut().revert_pos());
     }
 
+    pub fn set_yank_start(&self) {
+        self.writer.borrow_mut().s_row = self.get_cursor_doc_row();
+        self.writer.borrow_mut().s_col = self.get_cursor_doc_col();
+    }
+
     // -------------------- CURSOR RELATIVE TO DOCUMENT -------------------
 
     pub fn get_cursor_column_in_doc_disp(&self) -> usize {
