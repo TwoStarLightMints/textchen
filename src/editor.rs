@@ -320,8 +320,32 @@ impl Editor {
     // -------------------- YANK CONTROLS ---------------------------------
 
     pub fn yank_selection(&self, document: &Document) {
+        self.paste_register.borrow_mut().clear();
+
         match self.writer.borrow().s_row {
-            Some(r) => (),
+            Some(r) => {
+                let rows = document.rows(self.doc_disp_width());
+
+                if self.writer.borrow().get_selection_direction() {
+                    self.paste_register.borrow_mut().push_str(
+                        rows.skip(r)
+                            .take(self.get_cursor_doc_row() - r)
+                            .map(|row| row.1)
+                            .flat_map(|s| s.chars().collect::<Vec<char>>())
+                            .collect::<String>()
+                            .as_str(),
+                    );
+                } else {
+                    self.paste_register.borrow_mut().push_str(
+                        rows.skip(r)
+                            .take(r - self.get_cursor_doc_row())
+                            .map(|row| row.1)
+                            .flat_map(|s| s.chars().collect::<Vec<char>>())
+                            .collect::<String>()
+                            .as_str(),
+                    );
+                }
+            }
             None => self.paste_register.borrow_mut().push(
                 document
                     .get_str_at_cursor(self.get_cursor_doc_row())
@@ -369,6 +393,11 @@ impl Editor {
     pub fn set_yank_start(&self) {
         self.writer.borrow_mut().s_row = Some(self.get_cursor_doc_row());
         self.writer.borrow_mut().s_col = Some(self.get_cursor_doc_col());
+    }
+
+    pub fn clear_yank(&self) {
+        self.writer.borrow_mut().s_row = None;
+        self.writer.borrow_mut().s_col = None;
     }
 
     // -------------------- CURSOR RELATIVE TO DOCUMENT -------------------
