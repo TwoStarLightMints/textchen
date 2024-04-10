@@ -64,22 +64,25 @@ impl Line {
 
     pub fn rows(&self, editor_width: usize) -> Rows {
         if self.1.len() > 0 {
-            let mut chars = self.1.chars().peekable();
-
             let mut sub_rows: Vec<_> = Vec::new();
 
-            while let Some(_) = chars.by_ref().peek() {
-                let next_row_content = chars.by_ref().take(editor_width).collect::<String>();
-                sub_rows.push(next_row_content);
+            let mut beg: usize = 0;
+
+            while beg < self.1.len() {
+                if beg + editor_width >= self.1.len() {
+                    sub_rows.push(&self.1[beg..self.1.len()]);
+                } else {
+                    sub_rows.push(&self.1[beg..(beg + editor_width)]);
+                }
+
+                beg += editor_width;
             }
 
             let mut rows: Vec<(usize, &str)> = Vec::new();
 
-            self.0
-                .iter()
-                .zip(sub_rows.iter())
-                .map(|row| (*row.0, row.1.as_str()))
-                .for_each(|e| rows.push(e));
+            for row in self.0.iter().zip(sub_rows.into_iter()) {
+                rows.push((*row.0, row.1));
+            }
 
             Rows::new(Some(rows))
         } else {
@@ -363,27 +366,31 @@ impl Document {
     }
 
     pub fn rows(&self, editor_width: usize) -> Rows {
-        let mut rows: Vec<_> = Vec::new();
+        let mut rows: Vec<(usize, &str)> = Vec::new();
 
         if self.lines.len() > 0 {
             for line in self.lines.iter() {
                 if line.1.len() > 0 {
                     // If line is not empty, this guard needs to be here due to a graphical bug I encountered
 
-                    let mut chars = line.1.chars().peekable();
-
                     let mut sub_rows: Vec<_> = Vec::new();
 
-                    while let Some(_) = chars.by_ref().peek() {
-                        let next_row_content =
-                            chars.by_ref().take(editor_width).collect::<String>();
-                        sub_rows.push(next_row_content);
+                    let mut beg: usize = 0;
+
+                    while beg < line.1.len() {
+                        if beg + editor_width >= line.1.len() {
+                            sub_rows.push(&line.1[beg..line.1.len()]);
+                        } else {
+                            sub_rows.push(&line.1[beg..(beg + editor_width)]);
+                        }
+
+                        beg += editor_width;
                     }
 
                     line.0
                         .iter()
-                        .zip(sub_rows.iter())
-                        .map(|e| (*e.0, e.1.as_str()))
+                        .zip(sub_rows.into_iter())
+                        .map(|e| (*e.0, e.1))
                         .for_each(|e| rows.push(e));
                 } else {
                     // If line is empty
