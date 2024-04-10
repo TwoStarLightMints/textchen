@@ -614,26 +614,12 @@ impl Editor {
 
 pub fn create_document(file_name: Option<String>, editor_dim: &Editor) -> Document {
     if let Some(ifile) = file_name {
-        // If a file has been provided through command line
-
-        // Attempt to open the file provided
-        match File::open(&ifile) {
-            Ok(mut in_file) => {
-                let mut buf = String::new();
-
-                // Read the file contents into the buffer
-                in_file.read_to_string(&mut buf).unwrap();
-
-                // Create document struct instance from file contents and editor width
-                Document::new(ifile, buf.clone(), editor_dim)
-            }
-            Err(_) => Document::new(ifile, "".to_string(), editor_dim),
-        }
+        Document::new(&ifile, editor_dim)
     } else {
         // No file name provided
 
         // Create new empty document with default name scratch
-        Document::new("scratch".to_string(), "".to_string(), &editor_dim)
+        Document::new_scratch(editor_dim.doc_disp_width())
     }
 }
 
