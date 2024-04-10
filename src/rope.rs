@@ -189,6 +189,20 @@ impl Rope {
 
         RopeLeaves::new(res)
     }
+
+    pub fn to_rows(&self) -> Vec<String> {
+        let leaves = self.collect_leaves();
+        let mut res = Vec::new();
+
+        for leaf in leaves {
+            match leaf.borrow().val() {
+                Some(s) => res.push(s),
+                None => (),
+            }
+        }
+
+        res
+    }
 }
 
 impl Display for Rope {
@@ -312,5 +326,23 @@ mod tests {
         let test_rope = Rope::from_str(test_str.clone(), 4);
 
         assert_eq!(test_rope.to_string(), test_str);
+    }
+
+    #[test]
+    fn display_rope_rows() {
+        let test_str = String::from("Hello,_World!");
+
+        let test_rope = Rope::from_str(test_str, 4);
+
+        println!("{test_rope:#?}");
+
+        let control = vec![
+            "Hel".to_string(),
+            "lo,".to_string(),
+            "_Wo".to_string(),
+            "rld!".to_string(),
+        ];
+
+        assert_eq!(test_rope.to_rows(), control);
     }
 }
