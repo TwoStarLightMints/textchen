@@ -668,47 +668,14 @@ impl Editor {
         self.print_text_colored(self.theme.command_text_color(), " ");
     }
 
-    pub fn add_buffer(&self, buff_path: String) {
-        fn create_document(file_name: Option<String>, editor_dim: &Editor) {
-            if let Some(source) = file_name {
-                match File::open(&source)
-            }
-        }
-
+    pub fn add_buffer(&self, buf_path: String) {
         self.open_buffers
             .borrow_mut()
-            .push(create_document(Some(buff_path), self));
+            .push(Document::new(&buf_path, self));
     }
 
     pub fn close_buffer(&self, buf_index: usize) {
         self.open_buffers.borrow_mut().remove(buf_index);
-    }
-}
-
-// ==================== COMMAND ============================================
-
-pub fn create_document(file_name: Option<String>, editor_dim: &Editor) -> Document {
-    if let Some(ifile) = file_name {
-        // If a file has been provided through command line
-
-        // Attempt to open the file provided
-        match File::open(&ifile) {
-            Ok(mut in_file) => {
-                let mut buf = String::new();
-
-                // Read the file contents into the buffer
-                in_file.read_to_string(&mut buf).unwrap();
-
-                // Create document struct instance from file contents and editor width
-                Document::new(ifile, buf.clone(), editor_dim)
-            }
-            Err(_) => Document::new(ifile, "".to_string(), editor_dim),
-        }
-    } else {
-        // No file name provided
-
-        // Create new empty document with default name scratch
-        Document::new("scratch".to_string(), "".to_string(), &editor_dim)
     }
 }
 
