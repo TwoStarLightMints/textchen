@@ -173,6 +173,18 @@ impl Document {
         }
     }
 
+    pub fn new_scratch(doc_disp_height: usize) -> Self {
+        let mut line = Line::new();
+
+        line.0.push(0);
+
+        Self {
+            file_name: "scratch".to_string(),
+            lines: vec![line],
+            visible_rows: (0, doc_disp_height),
+        }
+    }
+
     pub fn get_str_at_cursor(&self, cursor_doc_row: usize) -> &str {
         //! Returns the string content of the line which is located at the cursor's row relative to the document
 
