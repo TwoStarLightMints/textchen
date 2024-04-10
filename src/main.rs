@@ -15,9 +15,6 @@ const O_UPPER: u8 = 'O' as u8;
 const H_LOWER: u8 = 104;
 const G_LOWER: u8 = 103;
 const I_LOWER: u8 = 105;
-const V_LOWER: u8 = 'v' as u8;
-const Y_LOWER: u8 = 'y' as u8;
-const P_LOWER: u8 = 'p' as u8;
 const COLON: u8 = 58;
 const ESC: u8 = 27;
 const BCKSP: u8 = if cfg!(target_os = "linux") { 127 } else { 8 };
@@ -66,10 +63,7 @@ fn main() {
                 // Get a character and match it aginst some cases as a u8
                 match c as u8 {
                     // Move down
-                    J_LOWER
-                        if editor.curr_mode == Modes::Normal
-                            || editor.curr_mode == Modes::Visual =>
-                    {
+                    J_LOWER if editor.curr_mode == Modes::Normal => {
                         // Store the position of the cursor in the original line, save on method calls
 
                         let cursor_pos = editor.get_cursor_pos_in_line(&document);
@@ -117,10 +111,7 @@ fn main() {
                         editor.same_line_different_row_bump(&document);
                     }
                     // Move right
-                    L_LOWER
-                        if editor.curr_mode == Modes::Normal
-                            || editor.curr_mode == Modes::Visual =>
-                    {
+                    L_LOWER if editor.curr_mode == Modes::Normal => {
                         // Get the current line where the cursor is at
 
                         let curr_line = document.get_line_at_cursor(editor.get_cursor_doc_row());
@@ -169,10 +160,7 @@ fn main() {
                         }
                     }
                     // Move up
-                    K_LOWER
-                        if editor.curr_mode == Modes::Normal
-                            || editor.curr_mode == Modes::Visual =>
-                    {
+                    K_LOWER if editor.curr_mode == Modes::Normal => {
                         let cursor_pos = editor.get_cursor_pos_in_line(&document);
 
                         if document.visible_rows.0 != 0 {
@@ -241,10 +229,7 @@ fn main() {
                         editor.same_line_different_row_bump(&document);
                     }
                     // Move left
-                    H_LOWER
-                        if editor.curr_mode == Modes::Normal
-                            || editor.curr_mode == Modes::Visual =>
-                    {
+                    H_LOWER if editor.curr_mode == Modes::Normal => {
                         let cursor_pos = editor.get_cursor_pos_in_line(&document);
 
                         if editor.get_cursor_column_in_doc_disp() > 1 || cursor_pos == 1 {
@@ -280,7 +265,7 @@ fn main() {
                         editor.change_mode(Modes::MoveTo);
 
                         // This flush is necessary because otherwise the new mode is not printed
-                        editor.flush_print_buf();
+                        editor.flush_pen();
 
                         let new_c = get_char();
 
@@ -812,94 +797,6 @@ fn main() {
 
                         editor.reset_editor_view(&document);
                     }
-                    // Enter visual mode
-                    V_LOWER if editor.curr_mode == Modes::Normal => {
-                        editor.change_mode(Modes::Visual);
-
-                        editor.set_yank_start();
-                    }
-                    Y_LOWER
-                        if editor.curr_mode == Modes::Normal
-                            || editor.curr_mode == Modes::Visual =>
-                    {
-                        editor.yank_selection(&document);
-                    }
-                    ESC if editor.curr_mode == Modes::Visual => {
-                        editor.change_mode(Modes::Normal);
-
-                        editor.clear_yank();
-                    }
-                    P_LOWER if editor.curr_mode == Modes::Normal => {
-                        todo!("Implement multi-character pasting");
-                        let curr_num_rows = document.num_rows();
-
-                        let cursor_pos = editor.get_cursor_pos_in_line(&document);
-                        let curr_line = document.get_str_at_cursor(editor.get_cursor_doc_row());
-
-                        let (lhs, rhs) = curr_line.split_at(cursor_pos);
-
-                        let mut lhs_str = lhs.to_string();
-
-                        lhs_str.push_str(editor.paste_register.borrow().as_str());
-
-                        document.set_line_at_cursor(
-                            editor.get_cursor_doc_row(),
-                            lhs_str + rhs,
-                            editor.doc_disp_width(),
-                        );
-
-                        let new_num_rows = document.num_rows();
-
-                        if curr_num_rows == new_num_rows {
-                            editor.print_line(&document);
-                        } else {
-                            editor.reset_editor_view(&document);
-                        }
-
-                        let curr_line = document.get_line_at_cursor(editor.get_cursor_doc_row());
-
-                        if cursor_pos < curr_line.1.len()
-                            && editor.get_cursor_doc_col() < editor.doc_disp_width()
-                        {
-                            // If the cursor's position in the current line is less than the length of the total line and the cursor's column in relation to the document
-                            // is less than or equal to the editor's width
-
-                            editor.move_cursor_right();
-                        } else if cursor_pos < curr_line.1.len()
-                            && curr_line.0.contains(&(editor.get_cursor_doc_row() + 1))
-                        {
-                            // If the cursor's position in the current line is less than the length of the total line and the current line's row indices contains the next
-                            // cursor's row in relation to the document
-
-                            if editor.get_cursor_vis_row() < editor.doc_disp_height() {
-                                // If the cursor's row is less than the editor's height
-
-                                // Move down to the next row
-                                editor.move_cursor_vis_down();
-                            } else {
-                                // If the cursor's row is at the editor's height
-
-                                // Push the visible rows of the document down
-                                document.push_vis_down();
-
-                                // Reset the editor
-                                editor.reset_editor_view(&document);
-                            }
-
-                            // Move to the cursor visually the left edge of the editor
-                            editor.move_cursor_vis_editor_left();
-                            // Make the cursor's doc_column value 0 and then move it to the right (increment it) because the cursor needs to hover over the second character of the row
-                            // in this particular case
-                            editor.move_cursor_doc_editor_left();
-
-                            // Because the end of the previous line is included within the conditions of the previous if clause, move the cursor to the right of the immediate next
-                            // chracter in the line
-                            editor.move_cursor_right();
-
-                            // Set the place of the cursor within the document properly
-                            editor.move_cursor_doc_down();
-                        }
-                    }
                     // Enter command mode
                     COLON if editor.curr_mode == Modes::Normal => {
                         // Change to command mode
@@ -1006,11 +903,11 @@ fn main() {
             _ => (),
         }
 
-        editor.flush_print_buf();
+        editor.flush_pen();
     }
 
-    editor.add_to_print_buf(return_to_normal_buf());
-    editor.flush_print_buf();
+    editor.add_to_draw_buf(return_to_normal_buf());
+    editor.flush_pen();
 
     #[cfg(target_os = "linux")]
     // Similar to set_raw, only used/needed on linux
