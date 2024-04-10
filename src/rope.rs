@@ -1,6 +1,6 @@
 // This rope implementation is based on my work in my data_structures_in_rust repo
 
-use std::{cell::RefCell, rc::Rc};
+use std::{cell::RefCell, fmt::Display, rc::Rc};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum RopeNode {
@@ -48,6 +48,17 @@ impl RopeNode {
                 }
                 None => 0,
             },
+        }
+    }
+
+    fn val(&self) -> Option<String> {
+        match self {
+            &RopeNode::Node {
+                weight: _,
+                lhs: _,
+                rhs: _,
+            } => None,
+            &RopeNode::Leaf { weight: _, ref val } => Some(val.clone()),
         }
     }
 }
@@ -180,6 +191,19 @@ impl Rope {
     }
 }
 
+impl Display for Rope {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "{}",
+            self.collect_leaves()
+                .map(|l| l.borrow().val())
+                .map(|s| s.unwrap_or("".to_string()))
+                .collect::<String>()
+        )
+    }
+}
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct RopeLeaves {
     leaves: Vec<Rc<RefCell<RopeNode>>>,
@@ -279,5 +303,14 @@ mod tests {
         ]);
 
         assert_eq!(test_rope.collect_leaves(), control);
+    }
+
+    #[test]
+    fn display_rope() {
+        let test_str = String::from("Hello,_World!");
+
+        let test_rope = Rope::from_str(test_str.clone(), 4);
+
+        assert_eq!(test_rope.to_string(), test_str);
     }
 }
