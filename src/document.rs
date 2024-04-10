@@ -1,5 +1,7 @@
 use crate::editor::Editor;
 use std::fmt::Display;
+use std::fs::File;
+use std::io::Read;
 use std::iter::Iterator;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -138,33 +140,36 @@ pub struct Document {
 }
 
 impl Document {
-    pub fn new(file_name: String, content: String, editor_dim: &Editor) -> Self {
-        if content.len() == 0 {
+    pub fn new(file_name: &str, content: String, editor_dim: &Editor) -> Self {
+        if let Ok(mut src) = File::open(file_name) {
+            let mut curr_ind: usize = 0;
+            let mut lines: Vec<Line> = Vec::new();
+
+            let mut buf = String::new();
+            src.read_to_string(&mut buf).unwrap();
+
+            for line in buf.lines() {
+                let new_line =
+                    Line::from_str(line.to_string(), &mut curr_ind, editor_dim.doc_disp_width());
+
+                lines.push(new_line);
+            }
+
+            return Self {
+                file_name: file_name.to_string(),
+                lines,
+                visible_rows: (0, editor_dim.doc_disp_height()),
+            };
+        } else {
             let mut line = Line::new();
 
             line.0.push(0);
 
             return Self {
-                file_name,
+                file_name: file_name.to_string(),
                 lines: vec![line],
                 visible_rows: (0, editor_dim.doc_disp_height()),
             };
-        }
-
-        let mut curr_ind: usize = 0;
-        let mut lines: Vec<Line> = Vec::new();
-
-        for line in content.lines() {
-            let new_line =
-                Line::from_str(line.to_string(), &mut curr_ind, editor_dim.doc_disp_width());
-
-            lines.push(new_line);
-        }
-
-        Self {
-            file_name,
-            lines,
-            visible_rows: (0, editor_dim.doc_disp_height()),
         }
     }
 
