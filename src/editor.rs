@@ -1,13 +1,10 @@
+use crate::buffer_manager::BufManager;
 use crate::cursor::*;
 use crate::document::*;
-use crate::term::get_char;
-use crate::term::switch_to_alt_buf;
-use crate::term::term_size;
-use crate::term::{kbhit, Wh};
+use crate::term::{get_char, kbhit, switch_to_alt_buf, term_size, Wh};
 use crate::term_color::{Theme, ThemeBuilder};
 use std::cell::RefCell;
-use std::fs::File;
-use std::io::{self, BufWriter, Read, Stdout, Write};
+use std::io::{self, BufWriter, Stdout, Write};
 use std::sync::mpsc;
 use std::sync::mpsc::Receiver;
 use std::thread;
@@ -39,8 +36,7 @@ pub struct Editor {
     writer: RefCell<Cursor>,
     print_buffer: RefCell<BufWriter<Stdout>>,
     paste_register: RefCell<String>,
-    open_buffers: RefCell<Vec<Document>>,
-    open_buffer_index: usize,
+    buf_man: BufManager,
 }
 
 impl Editor {
