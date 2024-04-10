@@ -140,7 +140,7 @@ pub struct Document {
 }
 
 impl Document {
-    pub fn new(file_name: &str, content: String, editor_dim: &Editor) -> Self {
+    pub fn new(file_name: &str, editor_dim: &Editor) -> Self {
         if let Ok(mut src) = File::open(file_name) {
             let mut curr_ind: usize = 0;
             let mut lines: Vec<Line> = Vec::new();
