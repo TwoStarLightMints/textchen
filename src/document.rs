@@ -73,28 +73,29 @@ impl Line {
                 sub_rows.push(next_row_content);
             }
 
-            let mut rows = Vec::new();
+            let mut rows: Vec<(usize, &str)> = Vec::new();
+
             self.0
                 .iter()
                 .zip(sub_rows.iter())
-                .map(|row| (*row.0, row.1.clone()))
+                .map(|row| (*row.0, row.1.as_str()))
                 .for_each(|e| rows.push(e));
 
             Rows::new(Some(rows))
         } else {
-            Rows::new(Some(vec![(self.0[0], String::new())]))
+            Rows::new(Some(vec![(self.0[0], "")]))
         }
     }
 }
 
-pub struct Rows {
-    rows: Vec<(usize, String)>,
+pub struct Rows<'a> {
+    rows: Vec<(usize, &'a str)>,
     curr_ind: usize,
-    curr: Option<(usize, String)>,
+    curr: Option<(usize, &'a str)>,
 }
 
-impl Rows {
-    pub fn new(opt_rows: Option<Vec<(usize, String)>>) -> Self {
+impl<'a> Rows<'a> {
+    pub fn new(opt_rows: Option<Vec<(usize, &'a str)>>) -> Self {
         if let Some(rows) = opt_rows {
             let curr = Some(rows[0].clone());
             Self {
@@ -112,8 +113,8 @@ impl Rows {
     }
 }
 
-impl Iterator for Rows {
-    type Item = (usize, String);
+impl<'a> Iterator for Rows<'a> {
+    type Item = (usize, &'a str);
 
     fn next(&mut self) -> Option<Self::Item> {
         let res = match &self.curr {
@@ -382,12 +383,12 @@ impl Document {
                     line.0
                         .iter()
                         .zip(sub_rows.iter())
-                        .map(|e| (*e.0, e.1.clone()))
+                        .map(|e| (*e.0, e.1.as_str()))
                         .for_each(|e| rows.push(e));
                 } else {
                     // If line is empty
 
-                    rows.push((line.0[0], "".to_string()));
+                    rows.push((line.0[0], ""));
                 }
             }
             Rows::new(Some(rows))
