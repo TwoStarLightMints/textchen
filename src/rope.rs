@@ -3,68 +3,54 @@
 use std::{cell::RefCell, rc::Rc};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct RopeNode {
-    /// If a node is a leaf, the weight is 0, otherwise it is the length of the str_piece
-    weight: usize,
-
-    // These are behind Rcs to enable easier backtracking later
-    lhs: Option<Rc<RefCell<RopeNode>>>,
-    rhs: Option<Rc<RefCell<RopeNode>>>,
-
-    str_piece: Option<String>,
+pub enum RopeNode {
+    Node {
+        weight: usize,
+        lhs: Option<Rc<RefCell<RopeNode>>>,
+        rhs: Option<Rc<RefCell<RopeNode>>>,
+    },
+    Leaf {
+        weight: usize,
+        val: String,
+    },
 }
 
 impl RopeNode {
-    fn new() -> Self {
-        Self {
-            weight: 0,
-            lhs: None,
-            rhs: None,
-            str_piece: None,
+    fn new_leaf(val: String) -> Self {
+        RopeNode::Leaf {
+            weight: val.len(),
+            val,
         }
     }
 
-    fn from_nodes(lhs: Self, rhs: Self) -> Self {
-        Self {
-            weight: lhs.lhs_weight(),
-            lhs: Some(Rc::new(RefCell::new(lhs))),
-            rhs: Some(Rc::new(RefCell::new(rhs))),
-            str_piece: None,
-        }
-    }
-
-    fn from_node(lhs: Self) -> Self {
-        Self {
-            weight: lhs.lhs_weight(),
-            lhs: Some(Rc::new(RefCell::new(lhs))),
-            rhs: None,
-            str_piece: None,
+    fn new_node(lhs: Option<Rc<RefCell<Self>>>, rhs: Option<Rc<RefCell<Self>>>) -> Self {
+        RopeNode::Node {
+            weight: Rc::clone(lhs.as_ref().unwrap()).borrow().lhs_weight(),
+            lhs,
+            rhs,
         }
     }
 
     fn lhs_weight(&self) -> usize {
-        match self.str_piece {
-            Some(_) => self.weight,
-            None => {
-                let curr_l = self.lhs.as_ref().unwrap().borrow().lhs_weight();
-
-                match self.rhs.as_ref() {
-                    Some(n) => n.borrow().lhs_weight() + curr_l,
-                    None => curr_l,
+        match self {
+            RopeNode::Leaf { weight, val } => *weight,
+            RopeNode::Node { weight, lhs, rhs } => match lhs {
+                Some(l) => {
+                    Rc::clone(l).borrow().lhs_weight()
+                        + match rhs {
+                            Some(r) => Rc::clone(r).borrow().lhs_weight(),
+                            None => 0,
+                        }
                 }
-            }
+                None => 0,
+            },
         }
     }
 }
 
 impl From<String> for RopeNode {
-    fn from(value: String) -> Self {
-        Self {
-            weight: value.len(),
-            lhs: None,
-            rhs: None,
-            str_piece: Some(value),
-        }
+    fn from(value: String) -> RopeNode {
+        Self::new_leaf(value)
     }
 }
 
@@ -76,7 +62,7 @@ pub struct Rope {
 impl Rope {
     pub fn new() -> Self {
         Self {
-            root: Rc::new(RefCell::new(RopeNode::new())),
+            root: Rc::new(RefCell::new(RopeNode::new_node(None, None))),
         }
     }
 
@@ -101,16 +87,29 @@ impl Rope {
                 new_nodes = nodes
                     .windows(2)
                     .step_by(2)
-                    .map(|n| RopeNode::from_nodes(n[0].clone(), n[1].clone()))
+                    .map(|n| {
+                        RopeNode::new_node(
+                            Some(Rc::new(RefCell::new(n[0].clone()))),
+                            Some(Rc::new(RefCell::new(n[1].clone()))),
+                        )
+                    })
                     .collect();
             } else {
                 new_nodes = nodes
                     .windows(2)
                     .step_by(2)
-                    .map(|n| RopeNode::from_nodes(n[0].clone(), n[1].clone()))
+                    .map(|n| {
+                        RopeNode::new_node(
+                            Some(Rc::new(RefCell::new(n[0].clone()))),
+                            Some(Rc::new(RefCell::new(n[1].clone()))),
+                        )
+                    })
                     .collect();
 
-                new_nodes.push(RopeNode::from_node(nodes.last().unwrap().clone()));
+                new_nodes.push(RopeNode::new_node(
+                    Some(Rc::new(RefCell::new(nodes.last().unwrap().clone()))),
+                    None,
+                ));
             }
 
             if new_nodes.len() > 1 {
@@ -188,41 +187,30 @@ mod tests {
         println!("{test_rope:#?}");
 
         let control = Rope {
-            root: Rc::new(RefCell::new(RopeNode {
+            root: Rc::new(RefCell::new(RopeNode::Node {
                 weight: 6,
-                lhs: Some(Rc::new(RefCell::new(RopeNode {
+                lhs: Some(Rc::new(RefCell::new(RopeNode::Node {
                     weight: 3,
-                    lhs: Some(Rc::new(RefCell::new(RopeNode {
+                    lhs: Some(Rc::new(RefCell::new(RopeNode::Leaf {
                         weight: 3,
-                        lhs: None,
-                        rhs: None,
-                        str_piece: Some("Hel".to_string()),
+                        val: "Hel".to_string(),
                     }))),
-                    rhs: Some(Rc::new(RefCell::new(RopeNode {
+                    rhs: Some(Rc::new(RefCell::new(RopeNode::Leaf {
                         weight: 3,
-                        lhs: None,
-                        rhs: None,
-                        str_piece: Some("lo,".to_string()),
+                        val: "lo,".to_string(),
                     }))),
-                    str_piece: None,
                 }))),
-                rhs: Some(Rc::new(RefCell::new(RopeNode {
+                rhs: Some(Rc::new(RefCell::new(RopeNode::Node {
                     weight: 3,
-                    lhs: Some(Rc::new(RefCell::new(RopeNode {
+                    lhs: Some(Rc::new(RefCell::new(RopeNode::Leaf {
                         weight: 3,
-                        lhs: None,
-                        rhs: None,
-                        str_piece: Some("_Wo".to_string()),
+                        val: "_Wo".to_string(),
                     }))),
-                    rhs: Some(Rc::new(RefCell::new(RopeNode {
+                    rhs: Some(Rc::new(RefCell::new(RopeNode::Leaf {
                         weight: 4,
-                        lhs: None,
-                        rhs: None,
-                        str_piece: Some("rld!".to_string()),
+                        val: "rld!".to_string(),
                     }))),
-                    str_piece: None,
                 }))),
-                str_piece: None,
             })),
         };
 
