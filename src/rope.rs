@@ -33,8 +33,12 @@ impl RopeNode {
 
     fn lhs_weight(&self) -> usize {
         match self {
-            RopeNode::Leaf { weight, val } => *weight,
-            RopeNode::Node { weight, lhs, rhs } => match lhs {
+            RopeNode::Leaf { weight, val: _ } => *weight,
+            RopeNode::Node {
+                weight: _,
+                lhs,
+                rhs,
+            } => match lhs {
                 Some(l) => {
                     Rc::clone(l).borrow().lhs_weight()
                         + match rhs {
@@ -140,30 +144,60 @@ impl Rope {
         }
     }
 
-    pub fn collect_leaves(&self) {
+    pub fn collect_leaves(&self) -> RopeLeaves {
         let mut node_stack = vec![Rc::clone(&self.root)];
 
-        while !node_stack.is_empty() {}
+        let mut res: Vec<Rc<RefCell<RopeNode>>> = Vec::new();
+
+        while !node_stack.is_empty() {
+            let curr = node_stack.pop().unwrap();
+
+            match &*(curr.borrow()) {
+                RopeNode::Node {
+                    weight: _,
+                    ref lhs,
+                    ref rhs,
+                } => {
+                    match lhs {
+                        Some(l) => node_stack.push(Rc::clone(l)),
+                        None => (),
+                    }
+
+                    match rhs {
+                        Some(r) => node_stack.push(Rc::clone(r)),
+                        None => (),
+                    }
+                }
+                RopeNode::Leaf { weight: _, val: _ } => res.push(Rc::clone(&curr)),
+            };
+        }
+
+        // Through the traversal and retrieval, the leaves are collected backwards in terms of the
+        // direction of the string
+        res.reverse();
+
+        RopeLeaves::new(res)
     }
 }
 
-struct RopeLeaves<'a> {
-    leaves: Vec<&'a RopeNode>,
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct RopeLeaves {
+    leaves: Vec<Rc<RefCell<RopeNode>>>,
     index: usize,
 }
 
-impl<'a> RopeLeaves<'a> {
-    pub fn new(leaves: Vec<&'a RopeNode>) -> Self {
+impl RopeLeaves {
+    pub fn new(leaves: Vec<Rc<RefCell<RopeNode>>>) -> Self {
         Self { leaves, index: 0 }
     }
 }
 
-impl<'a> Iterator for RopeLeaves<'a> {
-    type Item = &'a RopeNode;
+impl Iterator for RopeLeaves {
+    type Item = Rc<RefCell<RopeNode>>;
 
     fn next(&mut self) -> Option<Self::Item> {
         if self.index < self.leaves.len() {
-            let res = Some(self.leaves[self.index]);
+            let res = Some(Rc::clone(&self.leaves[self.index]));
 
             self.index += 1;
 
@@ -215,5 +249,35 @@ mod tests {
         };
 
         assert_eq!(test_rope, control);
+    }
+
+    #[test]
+    fn collect_leaves() {
+        let test_str = String::from("Hello,_World!");
+
+        let test_rope = Rope::from_str(test_str, 4);
+
+        println!("{test_rope:#?}");
+
+        let control = RopeLeaves::new(vec![
+            Rc::new(RefCell::new(RopeNode::Leaf {
+                weight: 3,
+                val: "Hel".to_string(),
+            })),
+            Rc::new(RefCell::new(RopeNode::Leaf {
+                weight: 3,
+                val: "lo,".to_string(),
+            })),
+            Rc::new(RefCell::new(RopeNode::Leaf {
+                weight: 3,
+                val: "_Wo".to_string(),
+            })),
+            Rc::new(RefCell::new(RopeNode::Leaf {
+                weight: 4,
+                val: "rld!".to_string(),
+            })),
+        ]);
+
+        assert_eq!(test_rope.collect_leaves(), control);
     }
 }
