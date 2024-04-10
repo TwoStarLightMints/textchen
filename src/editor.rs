@@ -39,7 +39,8 @@ pub struct Editor {
     writer: RefCell<Cursor>,
     print_buffer: RefCell<BufWriter<Stdout>>,
     paste_register: RefCell<String>,
-    open_buffers: Vec<Document>,
+    open_buffers: RefCell<Vec<Document>>,
+    open_buffer_index: usize,
 }
 
 impl Editor {
@@ -70,7 +71,8 @@ impl Editor {
             print_buffer: RefCell::new(BufWriter::new(io::stdout())),
             writer: RefCell::new(Cursor::new()),
             paste_register: RefCell::new(String::new()),
-            open_buffers: Vec::new(),
+            open_buffers: RefCell::new(Vec::new()),
+            open_buffer_index: 0,
         }
     }
 
@@ -664,6 +666,22 @@ impl Editor {
     pub fn pop_command_buf(&self) {
         self.command_buf.borrow_mut().pop();
         self.print_text_colored(self.theme.command_text_color(), " ");
+    }
+
+    pub fn add_buffer(&self, buff_path: String) {
+        fn create_document(file_name: Option<String>, editor_dim: &Editor) {
+            if let Some(source) = file_name {
+                match File::open(&source)
+            }
+        }
+
+        self.open_buffers
+            .borrow_mut()
+            .push(create_document(Some(buff_path), self));
+    }
+
+    pub fn close_buffer(&self, buf_index: usize) {
+        self.open_buffers.borrow_mut().remove(buf_index);
     }
 }
 
