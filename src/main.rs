@@ -31,11 +31,7 @@ fn main() {
 
     // Get the command line arguments to the program
 
-    let mut args = env::args();
-
-    // Skip the first argument, this is unnecessary to the program
-
-    let _ = args.next();
+    let mut args = env::args().skip(1);
 
     // Prep the screen to draw the editor and the document to the screen, switching to alt buffer to not erase entire screen
 
@@ -108,7 +104,7 @@ fn main() {
                             editor.move_cursor_to_end_line(&mut document);
                         }
 
-                        editor.multi_row_bump(&document);
+                        editor.same_line_different_row_bump(&document);
                     }
                     // Move right
                     L_LOWER if editor.curr_mode == Modes::Normal => {
@@ -226,7 +222,7 @@ fn main() {
                             }
                         }
 
-                        editor.multi_row_bump(&document);
+                        editor.same_line_different_row_bump(&document);
                     }
                     // Move left
                     H_LOWER if editor.curr_mode == Modes::Normal => {
