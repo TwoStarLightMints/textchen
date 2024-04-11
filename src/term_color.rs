@@ -1,20 +1,21 @@
+use std::{num::ParseIntError, str::FromStr};
+
 struct RGB {
     r: u8,
     g: u8,
     b: u8,
 }
 
-impl From<&str> for RGB {
-    fn from(value: &str) -> Self {
-        //! Format: red;green;blue
+impl FromStr for RGB {
+    type Err = ParseIntError;
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        let color_values: Vec<&str> = s.split(';').collect();
 
-        let color_values: Vec<&str> = value.split(";").collect();
-
-        Self {
-            r: color_values[0].parse().unwrap(),
-            g: color_values[1].parse().unwrap(),
-            b: color_values[2].parse().unwrap(),
-        }
+        Ok(Self {
+            r: color_values[0].parse()?,
+            g: color_values[1].parse()?,
+            b: color_values[2].parse()?,
+        })
     }
 }
 
@@ -117,27 +118,27 @@ impl ThemeBuilder {
     }
 
     pub fn font_body(mut self, color: impl AsRef<str>) -> Self {
-        self.body_fonts = Some(RGB::from(color.as_ref()));
+        self.body_fonts = Some(RGB::from_str(color.as_ref()).unwrap());
         self
     }
 
     pub fn font_accents(mut self, color: impl AsRef<str>) -> Self {
-        self.font_accents = Some(RGB::from(color.as_ref()));
+        self.font_accents = Some(RGB::from_str(color.as_ref()).unwrap());
         self
     }
 
     pub fn editor_background(mut self, color: impl AsRef<str>) -> Self {
-        self.editor_background = Some(RGB::from(color.as_ref()));
+        self.editor_background = Some(RGB::from_str(color.as_ref()).unwrap());
         self
     }
 
     pub fn mode_line(mut self, color: impl AsRef<str>) -> Self {
-        self.mode_line = Some(RGB::from(color.as_ref()));
+        self.mode_line = Some(RGB::from_str(color.as_ref()).unwrap());
         self
     }
 
     pub fn title_line(mut self, color: impl AsRef<str>) -> Self {
-        self.title_line = Some(RGB::from(color.as_ref()));
+        self.title_line = Some(RGB::from_str(color.as_ref()).unwrap());
         self
     }
 
@@ -149,23 +150,23 @@ impl ThemeBuilder {
         Theme {
             body_fonts: match self.body_fonts {
                 Some(color) => color,
-                None => RGB::from(default_font),
+                None => RGB::from_str(default_font).unwrap(),
             },
             font_accents: match self.font_accents {
                 Some(color) => color,
-                None => RGB::from(default_font),
+                None => RGB::from_str(default_font).unwrap(),
             },
             editor_background: match self.editor_background {
                 Some(color) => color,
-                None => RGB::from(default_background),
+                None => RGB::from_str(default_background).unwrap(),
             },
             mode_line: match self.mode_line {
                 Some(color) => color,
-                None => RGB::from(default_mode),
+                None => RGB::from_str(default_mode).unwrap(),
             },
             title_line: match self.title_line {
                 Some(color) => color,
-                None => RGB::from(default_background),
+                None => RGB::from_str(default_background).unwrap(),
             },
         }
     }
