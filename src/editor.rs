@@ -449,7 +449,7 @@ impl Editor {
         self.writer.borrow_mut().move_doc_to_editor_left();
     }
 
-    pub fn same_line_different_row_bump(&self, document: &Document) {
+    pub fn multi_row_bump(&self, document: &Document) {
         //! cursor_pos : This position is the position before having moved the cursor
         //! curr_line : This is the line before moving
         //! next_line : This is the line *AFTER* moving
