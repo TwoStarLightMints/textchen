@@ -171,7 +171,7 @@ impl Editor {
 
             for row in vis_rows.iter() {
                 self.print_line_color(self.theme.background_color());
-                self.print_text_colored(self.theme.body_text_color(), row.1.as_str());
+                self.print_text_colored(self.theme.body_text_color(), row.1);
 
                 self.move_cursor_vis_down();
                 self.move_cursor_vis_editor_left();
@@ -188,7 +188,7 @@ impl Editor {
     pub fn print_line(&self, document: &Document) {
         self.save_cursor_vis_pos();
 
-        let curr_line_rows: Vec<(usize, String)> = document
+        let curr_line_rows: Vec<(usize, &str)> = document
             .get_line_at_cursor(self.get_cursor_doc_row())
             .rows(self.doc_disp_width())
             .collect();
