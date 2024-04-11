@@ -1,5 +1,7 @@
-use crate::document::{Document, Line};
-use crate::editor::Editor;
+use crate::{
+    document::{Document, Line},
+    editor::Editor,
+};
 
 pub struct Cursor {
     pub doc_row: usize,
