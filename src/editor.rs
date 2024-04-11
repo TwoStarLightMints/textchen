@@ -458,8 +458,6 @@ impl Editor {
         //! "Appropriate" here means that if the cursor is in a row of a line other than the beginning line, the very first position the
         //! cursor should be able to take is on top of the second character of the row
 
-        let curr_line = document.get_line_at_cursor(self.get_cursor_pos_in_line(document));
-
         if self.get_cursor_pos_in_line(document) / self.doc_disp_width() == 0 {
             // If after the cursor moved it is at the first row in the line
 
