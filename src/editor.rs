@@ -30,7 +30,7 @@ pub struct Editor {
     /// The buffer for user entered commands
     pub command_buf: RefCell<String>,
     writer: RefCell<Cursor>,
-    buffer: RefCell<BufWriter<Stdout>>,
+    draw_buffer: RefCell<BufWriter<Stdout>>,
 }
 
 impl Editor {
@@ -58,7 +58,7 @@ impl Editor {
             theme,
             command_buf: RefCell::new(String::new()),
             term_dimensions: dimensions,
-            buffer: RefCell::new(BufWriter::new(io::stdout())),
+            draw_buffer: RefCell::new(BufWriter::new(io::stdout())),
             writer: RefCell::new(Cursor::new()),
         }
     }
@@ -301,14 +301,14 @@ impl Editor {
     // -------------------- PRINT BUFFER MANIPULATION ---------------------
 
     pub fn add_to_draw_buf<S: AsRef<str>>(&self, content: S) {
-        self.buffer
+        self.draw_buffer
             .borrow_mut()
             .write(content.as_ref().as_bytes())
             .unwrap();
     }
 
     pub fn flush_pen(&self) {
-        self.buffer.borrow_mut().flush().unwrap();
+        self.draw_buffer.borrow_mut().flush().unwrap();
     }
 
     // ==================== CURSOR WRAPPER FUNCTIONS ======================
