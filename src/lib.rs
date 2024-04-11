@@ -1,4 +1,3 @@
-pub mod buffer_manager;
 pub mod cursor;
 pub mod debug;
 pub mod document;
