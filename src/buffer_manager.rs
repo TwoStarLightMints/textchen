@@ -8,26 +8,29 @@ pub struct BufManager {
 }
 
 impl BufManager {
-    pub fn new(file_name: &str, editor_dim: &Editor) -> Self {
+    pub fn new() -> Self {
         Self {
-            buffers: vec![RefCell::new(Document::new(file_name, editor_dim))],
+            buffers: Vec::new(),
             active_buffer: 0,
         }
     }
-
-    pub fn new_scratch(doc_disp_height: usize) -> Self {
-        Self {
-            buffers: vec![RefCell::new(Document::new_scratch(doc_disp_height))],
-            active_buffer: 0,
-        }
-    }
-
     pub fn add_buffer(&mut self, file_name: &str, editor_dim: &Editor) {
-        self.buffers
-            .push(RefCell::new(Document::new(file_name, editor_dim)));
+        if self.buffers.len() == 0 {
+            self.buffers
+                .push(RefCell::new(Document::new(file_name, editor_dim)));
+        } else {
+            self.buffers
+                .push(RefCell::new(Document::new(file_name, editor_dim)));
+
+            self.active_buffer = self.buffers.len() - 1;
+        }
     }
 
     pub fn remove_buffer(&mut self) {
         self.buffers.remove(self.active_buffer);
+
+        if self.active_buffer != 0 {
+            self.active_buffer -= 1;
+        }
     }
 }
