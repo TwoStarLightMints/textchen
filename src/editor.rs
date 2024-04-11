@@ -31,7 +31,8 @@ pub struct Editor {
     pub command_buf: RefCell<String>,
     writer: RefCell<Cursor>,
     draw_buffer: RefCell<BufWriter<Stdout>>,
-    file_buffers: RefCell<BufManager>,
+    file_buffers: Vec<Document>,
+    active_buffer: usize,
 }
 
 impl Editor {
@@ -61,7 +62,8 @@ impl Editor {
             term_dimensions: dimensions,
             draw_buffer: RefCell::new(BufWriter::new(io::stdout())),
             writer: RefCell::new(Cursor::new()),
-            file_buffers: RefCell::new(BufManager::new()),
+            file_buffers: Vec::new(),
+            active_buffer: 0,
         }
     }
 
@@ -607,12 +609,30 @@ impl Editor {
         self.print_text_w_color(self.theme.command_text_color(), " ");
     }
 
-    pub fn add_file_buffer(&self, file_name: &str) {
-        self.file_buffers.borrow_mut().add_buffer(file_name, &self);
+    pub fn add_file_buffer(&mut self, file_name: &str) {
+        if self.file_buffers.len() == 0 {
+            self.file_buffers.push(Document::new(file_name, &self));
+        } else {
+            self.file_buffers.push(Document::new(file_name, &self));
+
+            self.active_buffer = self.file_buffers.len() - 1;
+        }
     }
 
-    pub fn remove_file_buffer(&self) {
-        self.file_buffers.borrow_mut().remove_buffer();
+    pub fn remove_file_buffer(&mut self) {
+        self.file_buffers.remove(self.active_buffer);
+
+        if self.active_buffer != 0 {
+            self.active_buffer -= 1;
+        }
+    }
+
+    pub fn current_buffer(&self) -> &Document {
+        &self.file_buffers[self.active_buffer]
+    }
+
+    pub fn current_buffer_mut(&mut self) -> &mut Document {
+        &mut self.file_buffers[self.active_buffer]
     }
 }
 
