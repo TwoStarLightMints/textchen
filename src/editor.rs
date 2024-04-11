@@ -1,14 +1,9 @@
-use crate::cursor::*;
-use crate::document::*;
-use crate::term::get_char;
-use crate::term::switch_to_alt_buf;
-use crate::term::term_size;
-use crate::term::{kbhit, Wh};
+use crate::term::{get_char, kbhit, switch_to_alt_buf, term_size, Wh};
 use crate::term_color::{Theme, ThemeBuilder};
+use crate::{cursor::*, document::*};
 use std::cell::RefCell;
 use std::io::{self, BufWriter, Stdout, Write};
-use std::sync::mpsc;
-use std::sync::mpsc::Receiver;
+use std::sync::mpsc::{self, Receiver};
 use std::thread;
 
 // ==================== MODE FUNCTIONS AND DEFINITIONS ================
