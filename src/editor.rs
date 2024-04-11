@@ -460,9 +460,7 @@ impl Editor {
 
         let curr_line = document.get_line_at_cursor(self.get_cursor_pos_in_line(document));
 
-        if self.get_cursor_pos_in_line(document) / self.doc_disp_width()
-            == *curr_line.0.first().unwrap()
-        {
+        if self.get_cursor_pos_in_line(document) / self.doc_disp_width() == 0 {
             // If after the cursor moved it is at the first row in the line
 
             if self.get_cursor_doc_col() == 1 {
