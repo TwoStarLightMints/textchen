@@ -1,6 +1,6 @@
 use crate::term::{get_char, kbhit, switch_to_alt_buf, term_size, Wh};
 use crate::term_color::{Theme, ThemeBuilder};
-use crate::{cursor::*, document::*};
+use crate::{buffer_manager::BufManager, cursor::*, document::*};
 use std::cell::RefCell;
 use std::io::{self, BufWriter, Stdout, Write};
 use std::sync::mpsc::{self, Receiver};
@@ -31,6 +31,7 @@ pub struct Editor {
     pub command_buf: RefCell<String>,
     writer: RefCell<Cursor>,
     draw_buffer: RefCell<BufWriter<Stdout>>,
+    file_buffers: RefCell<BufManager>,
 }
 
 impl Editor {
@@ -60,6 +61,7 @@ impl Editor {
             term_dimensions: dimensions,
             draw_buffer: RefCell::new(BufWriter::new(io::stdout())),
             writer: RefCell::new(Cursor::new()),
+            file_buffers: RefCell::new(BufManager::new()),
         }
     }
 
@@ -603,6 +605,14 @@ impl Editor {
     pub fn pop_command_buf(&self) {
         self.command_buf.borrow_mut().pop();
         self.print_text_w_color(self.theme.command_text_color(), " ");
+    }
+
+    pub fn add_file_buffer(&self, file_name: &str) {
+        self.file_buffers.borrow_mut().add_buffer(file_name, &self);
+    }
+
+    pub fn remove_file_buffer(&self) {
+        self.file_buffers.borrow_mut().remove_buffer();
     }
 }
 
