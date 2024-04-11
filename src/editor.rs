@@ -67,31 +67,33 @@ impl Editor {
 
     // -------------------- COLOR APPLYING METHODS ------------------------
 
-    fn reset_color(&self) {
+    fn apply_reset_color(&self) {
         self.add_to_draw_buf("\u{001b}[0m");
     }
 
-    fn print_line_color(&self, color: impl AsRef<str>) {
+    fn apply_line_color(&self, color: impl AsRef<str>) {
         self.add_to_draw_buf(format!("{}\u{001b}[2K", color.as_ref()));
     }
 
-    fn print_text_colored(&self, color: impl AsRef<str>, message: impl AsRef<str>) {
+    // --------------------- PRINTING METHODS ------------------------------
+
+    fn print_text_w_color(&self, color: impl AsRef<str>, message: impl AsRef<str>) {
         self.add_to_draw_buf(format!("{}{}", color.as_ref(), message.as_ref()));
     }
-
-    // --------------------- PRINTING METHODS ------------------------------
 
     fn print_title(&self, document: &Document) {
         self.save_cursor_vis_pos();
 
         self.move_cursor_vis_to(0, 0);
 
-        self.print_line_color(self.theme.title_line_color());
-        self.print_text_colored(
+        self.apply_line_color(self.theme.title_line_color());
+
+        self.print_text_w_color(
             self.theme.title_text_color(),
             format!(" {}", &document.file_name),
         );
-        self.reset_color();
+
+        self.apply_reset_color();
 
         self.revert_cursor_vis_pos();
     }
@@ -101,9 +103,9 @@ impl Editor {
 
         self.move_cursor_vis_to(self.mode_row(), 0);
 
-        self.print_line_color(self.theme.mode_line_color());
+        self.apply_line_color(self.theme.mode_line_color());
 
-        self.print_text_colored(
+        self.print_text_w_color(
             self.theme.title_text_color(),
             format!(
                 " {}",
@@ -116,7 +118,7 @@ impl Editor {
             ),
         );
 
-        self.reset_color();
+        self.apply_reset_color();
 
         self.revert_cursor_vis_pos();
     }
@@ -126,9 +128,9 @@ impl Editor {
 
         self.move_cursor_vis_to(self.command_row(), 0);
 
-        self.print_line_color(self.theme.background_color());
+        self.apply_line_color(self.theme.background_color());
 
-        self.reset_color();
+        self.apply_reset_color();
 
         self.revert_cursor_vis_pos();
     }
@@ -138,14 +140,15 @@ impl Editor {
 
         self.move_cursor_vis_to(2, self.doc_disp_left_edge());
 
+        self.apply_line_color(self.theme.background_color());
+
         if document.visible_rows.0 == 0 && document.visible_rows.1 < self.doc_disp_bottom() {
             // Number of lines in document does not exceed editor height
             for row in document
                 .rows(self.doc_disp_width())
                 .take(document.visible_rows.1)
             {
-                self.print_line_color(self.theme.background_color());
-                self.print_text_colored(self.theme.body_text_color(), row.1);
+                self.print_text_w_color(self.theme.body_text_color(), row.1);
 
                 self.move_cursor_vis_down();
                 self.move_cursor_vis_editor_left();
@@ -153,7 +156,6 @@ impl Editor {
 
             // Since the document is not as big as the editor window, print the last lines
             while self.get_cursor_vis_row() <= self.doc_disp_bottom() {
-                self.print_line_color(self.theme.background_color());
                 self.move_cursor_vis_down();
             }
         } else {
@@ -165,19 +167,20 @@ impl Editor {
                 .collect();
 
             for row in vis_rows.iter() {
-                self.print_line_color(self.theme.background_color());
-                self.print_text_colored(self.theme.body_text_color(), row.1);
+                self.print_text_w_color(self.theme.body_text_color(), row.1);
 
                 self.move_cursor_vis_down();
                 self.move_cursor_vis_editor_left();
             }
 
             if vis_rows.len() < self.doc_disp_height() {
-                self.print_line_color(self.theme.background_color());
+                self.apply_line_color(self.theme.background_color());
             }
         }
 
         self.revert_cursor_vis_pos();
+
+        self.apply_reset_color();
     }
 
     pub fn print_line(&self, document: &Document) {
@@ -202,8 +205,9 @@ impl Editor {
 
         self.save_cursor_vis_pos();
 
+        self.apply_line_color(self.theme.background_color());
+
         for _ in 0..curr_line_rows.len() {
-            self.print_line_color(self.theme.background_color());
             self.move_cursor_vis_down();
         }
 
@@ -212,13 +216,15 @@ impl Editor {
         self.save_cursor_vis_pos();
 
         for (_, s) in curr_line_rows {
-            self.print_text_colored(self.theme.command_text_color(), s);
+            self.print_text_w_color(self.theme.command_text_color(), s);
             self.move_cursor_vis_down();
         }
 
         self.revert_cursor_vis_pos();
 
         self.revert_cursor_vis_pos();
+
+        self.apply_reset_color();
     }
 
     pub fn initialize_display(&self, document: &Document) {
@@ -275,7 +281,7 @@ impl Editor {
                 if c != ':' {
                     self.command_buf.borrow_mut().push(c);
                 }
-                self.print_text_colored(self.theme.command_text_color(), c.to_string());
+                self.print_text_w_color(self.theme.command_text_color(), c.to_string());
             }
             Modes::Normal | Modes::MoveTo => unreachable!("Not scientifically possible!"),
         }
@@ -567,7 +573,7 @@ impl Editor {
 
         self.move_cursor_vis_to(self.command_row(), 1);
 
-        self.print_line_color(self.theme.background_color());
+        self.apply_line_color(self.theme.background_color());
 
         self.print_char(':');
 
@@ -580,7 +586,7 @@ impl Editor {
         self.print_command_row();
 
         self.move_cursor_vis_to(self.command_row(), 1);
-        self.print_text_colored(self.theme.command_text_color(), message);
+        self.print_text_w_color(self.theme.command_text_color(), message);
 
         self.revert_cursor_vis_pos();
     }
@@ -600,7 +606,7 @@ impl Editor {
 
     pub fn pop_command_buf(&self) {
         self.command_buf.borrow_mut().pop();
-        self.print_text_colored(self.theme.command_text_color(), " ");
+        self.print_text_w_color(self.theme.command_text_color(), " ");
     }
 }
 
