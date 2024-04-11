@@ -616,19 +616,6 @@ impl Editor {
     }
 }
 
-// ==================== COMMAND ============================================
-
-pub fn create_document(file_name: Option<String>, editor_dim: &Editor) -> Document {
-    if let Some(ifile) = file_name {
-        Document::new(&ifile, editor_dim)
-    } else {
-        // No file name provided
-
-        // Create new empty document with default name scratch
-        Document::new_scratch(editor_dim.doc_disp_width())
-    }
-}
-
 // ==================== INPUT RETRIEVAL FUNCTION ===========================
 
 pub fn spawn_char_channel() -> Receiver<char> {
