@@ -104,7 +104,7 @@ fn main() {
                             editor.move_cursor_to_end_line(&mut document);
                         }
 
-                        editor.same_line_different_row_bump(&document);
+                        editor.multi_row_bump(&document);
                     }
                     // Move right
                     L_LOWER if editor.curr_mode == Modes::Normal => {
@@ -222,7 +222,7 @@ fn main() {
                             }
                         }
 
-                        editor.same_line_different_row_bump(&document);
+                        editor.multi_row_bump(&document);
                     }
                     // Move left
                     H_LOWER if editor.curr_mode == Modes::Normal => {
