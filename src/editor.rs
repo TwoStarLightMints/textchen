@@ -661,7 +661,7 @@ impl Editor {
         self.initialize_display();
     }
 
-    pub fn write_buffer_to_file(&self, new_name: Option<&str>) {
+    pub fn write_current_buffer_to_file(&self, new_name: Option<&str>) {
         if let Some(file_name) = new_name {
             let mut out_file = File::create(file_name).unwrap();
 

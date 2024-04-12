@@ -915,7 +915,7 @@ fn main() {
                         if let Some(command) = input_iter.next() {
                             match command {
                                 "w" => {
-                                    editor.write_buffer_to_file(input_iter.next());
+                                    editor.write_current_buffer_to_file(input_iter.next());
 
                                     editor.exit_command_mode::<String>(None);
 
@@ -927,7 +927,7 @@ fn main() {
                                     break;
                                 }
                                 "wq" => {
-                                    editor.write_buffer_to_file(input_iter.next());
+                                    editor.write_current_buffer_to_file(input_iter.next());
 
                                     break;
                                 }
