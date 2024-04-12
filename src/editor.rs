@@ -71,6 +71,10 @@ impl Editor {
             ))));
         }
 
+        if file_buffers.len() == 0 {
+            Rc::new(RefCell::new(Document::new_scratch(dimensions.height - 3)));
+        }
+
         Self {
             left_edge_offset,
             right_edge_offset,
@@ -81,7 +85,7 @@ impl Editor {
             term_dimensions: dimensions,
             draw_buffer: RefCell::new(BufWriter::new(io::stdout())),
             writer: RefCell::new(Cursor::new()),
-            file_buffers: Vec::new(),
+            file_buffers,
             active_buffer: 0,
         }
     }
@@ -305,7 +309,7 @@ impl Editor {
 
         self.clear_doc_disp_window();
 
-        // self.print_title();
+        self.print_title();
 
         self.print_document();
     }
