@@ -642,7 +642,14 @@ impl Editor {
     }
 
     pub fn set_active_buffer_start(&mut self) {
-        self.active_buffer = 0;
+        if self.file_buffers.len() == 0 {
+            self.file_buffers
+                .push(Rc::new(RefCell::new(Document::new_scratch(
+                    self.doc_disp_height(),
+                ))));
+        } else {
+            self.active_buffer = 0;
+        }
     }
 
     pub fn next_buffer(&mut self) {
