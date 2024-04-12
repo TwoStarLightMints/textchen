@@ -634,6 +634,11 @@ impl Editor {
 
         if self.active_buffer != 0 {
             self.active_buffer -= 1;
+        } else {
+            self.file_buffers
+                .push(Rc::new(RefCell::new(Document::new_scratch(
+                    self.doc_disp_height(),
+                ))));
         }
     }
 
