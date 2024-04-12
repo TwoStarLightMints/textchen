@@ -1,4 +1,4 @@
-use crate::term::{get_char, kbhit, switch_to_alt_buf, term_size, Wh};
+use crate::term::{get_char, kbhit, return_to_normal_buf, set_cooked, set_raw, switch_to_alt_buf, term_size, Wh};
 use crate::term_color::{Theme, ThemeBuilder};
 use crate::{cursor::*, document::*};
 use std::cell::RefCell;
@@ -252,6 +252,9 @@ impl Editor {
     }
 
     pub fn initialize(&mut self) {
+        #[cfg(target_os = "linux")]
+        set_raw();
+
         let mut file_names = env::args().skip(1);
 
         while let Some(file_name) = file_names.next() {
@@ -706,6 +709,17 @@ impl Editor {
 
             out_file.write(document.to_string().as_bytes()).unwrap();
         }
+    }
+}
+
+impl Drop for Editor {
+    fn drop(&mut self) {
+        self.add_to_draw_buf(return_to_normal_buf());
+
+        self.flush_pen();
+
+        #[cfg(target_os = "linux")]
+        set_cooked();
     }
 }
 
