@@ -26,10 +26,6 @@ fn main() {
     // Initialize the gap buffer, it will be replaced later when editing actual text
     let mut gap_buf = GapBuf::new();
 
-    // Set the terminal to raw input mode
-    #[cfg(target_os = "linux")]
-    set_raw();
-
     // This will be the channel to receive the characters entered by the user
     let char_channel = spawn_char_channel();
 
@@ -980,11 +976,4 @@ fn main() {
 
         editor.flush_pen();
     }
-
-    editor.add_to_draw_buf(return_to_normal_buf());
-    editor.flush_pen();
-
-    #[cfg(target_os = "linux")]
-    // Similar to set_raw, only used/needed on linux
-    set_cooked();
 }
