@@ -2,6 +2,7 @@ use crate::term::{get_char, kbhit, switch_to_alt_buf, term_size, Wh};
 use crate::term_color::{Theme, ThemeBuilder};
 use crate::{cursor::*, document::*};
 use std::cell::RefCell;
+use std::env;
 use std::fs::File;
 use std::io::{self, BufWriter, Stdout, Write};
 use std::rc::Rc;
@@ -186,9 +187,9 @@ impl Editor {
             }
         }
 
-        self.revert_cursor_vis_pos();
-
         self.apply_reset_color();
+
+        self.revert_cursor_vis_pos();
     }
 
     pub fn print_line(&self) {
@@ -239,7 +240,7 @@ impl Editor {
         self.apply_reset_color();
     }
 
-    pub fn initialize_display(&self) {
+    fn initialize_display(&self) {
         self.add_to_draw_buf(switch_to_alt_buf());
         self.clear_doc_disp_window();
         self.print_title();
@@ -248,6 +249,18 @@ impl Editor {
         self.print_command_row();
         self.move_cursor_vis_to(self.doc_disp_home_row(), self.doc_disp_left_edge());
         self.flush_pen();
+    }
+
+    pub fn initialize(&mut self) {
+        let mut file_names = env::args().skip(1);
+
+        while let Some(file_name) = file_names.next() {
+            self.add_file_buffer(&file_name);
+        }
+
+        self.set_active_buffer_start();
+
+        self.initialize_display();
     }
 
     fn clear_line(&self, color: impl AsRef<str>) {
@@ -280,6 +293,8 @@ impl Editor {
         //! Clears the editor screen and redraws the document provided, tends to be used as to refresh the screen after an edit has occurred
 
         self.clear_doc_disp_window();
+
+        // self.print_title();
 
         self.print_document();
     }
@@ -600,8 +615,6 @@ impl Editor {
     }
 
     pub fn exit_command_mode<S: AsRef<str>>(&self, message: Option<S>) {
-        self.save_cursor_vis_pos();
-
         match message.as_ref() {
             Some(m) => self.print_command_message(m),
             None => self.print_command_message(""),
