@@ -1,4 +1,6 @@
-use crate::term::{get_char, kbhit, return_to_normal_buf, set_cooked, set_raw, switch_to_alt_buf, term_size, Wh};
+use crate::term::{
+    get_char, kbhit, return_to_normal_buf, set_cooked, set_raw, switch_to_alt_buf, term_size, Wh,
+};
 use crate::term_color::{Theme, ThemeBuilder};
 use crate::{cursor::*, document::*};
 use std::cell::RefCell;
@@ -54,6 +56,20 @@ impl Editor {
             .build();
 
         let dimensions = term_size();
+
+        let mut input_files = env::args().skip(1);
+
+        let mut file_buffers = Vec::new();
+
+        while let Some(file_name) = input_files.next() {
+            file_buffers.push(Rc::new(RefCell::new(Document::new(
+                &file_name,
+                (
+                    dimensions.height - 3,
+                    (dimensions.width - right_edge_offset) - left_edge_offset,
+                ),
+            ))));
+        }
 
         Self {
             left_edge_offset,
@@ -254,14 +270,6 @@ impl Editor {
     pub fn initialize(&mut self) {
         #[cfg(target_os = "linux")]
         set_raw();
-
-        let mut file_names = env::args().skip(1);
-
-        while let Some(file_name) = file_names.next() {
-            self.add_file_buffer(&file_name);
-        }
-
-        self.set_active_buffer_start();
 
         self.initialize_display();
     }
@@ -635,11 +643,21 @@ impl Editor {
 
     pub fn add_file_buffer(&mut self, file_name: &str) {
         if self.file_buffers.len() == 0 {
-            self.file_buffers
-                .push(Rc::new(RefCell::new(Document::new(file_name, &self))));
+            self.file_buffers.push(Rc::new(RefCell::new(Document::new(
+                &file_name,
+                (
+                    self.term_dimensions.height - 3,
+                    (self.term_dimensions.width - self.right_edge_offset) - self.left_edge_offset,
+                ),
+            ))));
         } else {
-            self.file_buffers
-                .push(Rc::new(RefCell::new(Document::new(file_name, &self))));
+            self.file_buffers.push(Rc::new(RefCell::new(Document::new(
+                &file_name,
+                (
+                    self.term_dimensions.height - 3,
+                    (self.term_dimensions.width - self.right_edge_offset) - self.left_edge_offset,
+                ),
+            ))));
 
             self.active_buffer = self.file_buffers.len() - 1;
         }
@@ -713,7 +731,7 @@ impl Editor {
 }
 
 impl Drop for Editor {
-    fn drop(&mut self) {
+    fn drop(&mut self) {
         self.add_to_draw_buf(return_to_normal_buf());
 
         self.flush_pen();
