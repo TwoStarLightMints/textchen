@@ -1,4 +1,3 @@
-use crate::editor::Editor;
 use std::fmt::Display;
 use std::fs::File;
 use std::io::Read;
@@ -144,7 +143,8 @@ pub struct Document {
 }
 
 impl Document {
-    pub fn new(file_name: &str, editor_dim: &Editor) -> Self {
+    pub fn new(file_name: &str, editor_dim: (usize, usize)) -> Self {
+        //! editor_dim: (height, width)
         if let Ok(mut src) = File::open(file_name) {
             let mut curr_ind: usize = 0;
             let mut lines: Vec<Line> = Vec::new();
@@ -153,8 +153,7 @@ impl Document {
             src.read_to_string(&mut buf).unwrap();
 
             for line in buf.lines() {
-                let new_line =
-                    Line::from_str(line.to_string(), &mut curr_ind, editor_dim.doc_disp_width());
+                let new_line = Line::from_str(line.to_string(), &mut curr_ind, editor_dim.1);
 
                 lines.push(new_line);
             }
@@ -162,7 +161,7 @@ impl Document {
             return Self {
                 file_name: file_name.to_string(),
                 lines,
-                visible_rows: (0, editor_dim.doc_disp_height()),
+                visible_rows: (0, editor_dim.0),
             };
         } else {
             let mut line = Line::new();
@@ -172,7 +171,7 @@ impl Document {
             return Self {
                 file_name: file_name.to_string(),
                 lines: vec![line],
-                visible_rows: (0, editor_dim.doc_disp_height()),
+                visible_rows: (0, editor_dim.0),
             };
         }
     }
