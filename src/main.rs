@@ -933,6 +933,17 @@ fn main() {
 
                                     break;
                                 }
+                                "o" => {
+                                    while let Some(new_buf) = input_iter.next() {
+                                        editor.add_file_buffer(new_buf);
+                                    }
+
+                                    editor.change_mode(Modes::Normal);
+
+                                    editor.exit_command_mode::<String>(None);
+
+                                    editor.initialize_display();
+                                }
                                 _ => {
                                     editor.revert_cursor_vis_pos();
                                     editor.print_command_message("Invalid Command");
