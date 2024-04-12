@@ -1,8 +1,10 @@
 use crate::term::{get_char, kbhit, switch_to_alt_buf, term_size, Wh};
 use crate::term_color::{Theme, ThemeBuilder};
-use crate::{buffer_manager::BufManager, cursor::*, document::*};
+use crate::{cursor::*, document::*};
 use std::cell::RefCell;
+use std::fs::File;
 use std::io::{self, BufWriter, Stdout, Write};
+use std::rc::Rc;
 use std::sync::mpsc::{self, Receiver};
 use std::thread;
 
@@ -31,7 +33,7 @@ pub struct Editor {
     pub command_buf: RefCell<String>,
     writer: RefCell<Cursor>,
     draw_buffer: RefCell<BufWriter<Stdout>>,
-    file_buffers: Vec<Document>,
+    file_buffers: Vec<Rc<RefCell<Document>>>,
     active_buffer: usize,
 }
 
@@ -85,7 +87,9 @@ impl Editor {
         self.add_to_draw_buf(format!("{}{}", color.as_ref(), message.as_ref()));
     }
 
-    fn print_title(&self, document: &Document) {
+    fn print_title(&self) {
+        let document = Rc::clone(&self.current_buffer());
+
         self.save_cursor_vis_pos();
 
         self.move_cursor_vis_to(0, 0);
@@ -94,7 +98,7 @@ impl Editor {
 
         self.print_text_w_color(
             self.theme.title_text_color(),
-            format!(" {}", &document.file_name),
+            format!(" {}", &document.borrow().file_name),
         );
 
         self.apply_reset_color();
@@ -139,18 +143,23 @@ impl Editor {
         self.revert_cursor_vis_pos();
     }
 
-    fn print_document(&self, document: &Document) {
+    fn print_document(&self) {
+        let document = Rc::clone(&self.current_buffer());
+
         self.save_cursor_vis_pos();
 
         self.move_cursor_vis_to(2, self.doc_disp_left_edge());
 
         self.apply_line_color(self.theme.background_color());
 
-        if document.visible_rows.0 == 0 && document.visible_rows.1 < self.doc_disp_bottom() {
+        if document.borrow().visible_rows.0 == 0
+            && document.borrow().visible_rows.1 < self.doc_disp_bottom()
+        {
             // Number of lines in document does not exceed editor height
             for row in document
+                .borrow()
                 .rows(self.doc_disp_width())
-                .take(document.visible_rows.1)
+                .take(document.borrow().visible_rows.1)
             {
                 self.print_text_w_color(self.theme.body_text_color(), row.1);
 
@@ -164,21 +173,16 @@ impl Editor {
             }
         } else {
             // Number of lines in document does exceed editor height
-            let vis_rows: Vec<_> = document
+            for row in document
+                .borrow()
                 .rows(self.doc_disp_width())
-                .skip(document.visible_rows.0)
-                .take(document.visible_rows.1 - document.visible_rows.0)
-                .collect();
-
-            for row in vis_rows.iter() {
+                .skip(document.borrow().visible_rows.0)
+                .take(document.borrow().visible_rows.1 - document.borrow().visible_rows.0)
+            {
                 self.print_text_w_color(self.theme.body_text_color(), row.1);
 
                 self.move_cursor_vis_down();
                 self.move_cursor_vis_editor_left();
-            }
-
-            if vis_rows.len() < self.doc_disp_height() {
-                self.apply_line_color(self.theme.background_color());
             }
         }
 
@@ -187,8 +191,12 @@ impl Editor {
         self.apply_reset_color();
     }
 
-    pub fn print_line(&self, document: &Document) {
+    pub fn print_line(&self) {
         self.save_cursor_vis_pos();
+
+        let binding = Rc::clone(&self.current_buffer());
+
+        let document = binding.borrow();
 
         let curr_line_rows: Vec<(usize, &str)> = document
             .get_line_at_cursor(self.get_cursor_doc_row())
@@ -231,11 +239,11 @@ impl Editor {
         self.apply_reset_color();
     }
 
-    pub fn initialize_display(&self, document: &Document) {
+    pub fn initialize_display(&self) {
         self.add_to_draw_buf(switch_to_alt_buf());
         self.clear_doc_disp_window();
-        self.print_title(document);
-        self.print_document(document);
+        self.print_title();
+        self.print_document();
         self.print_mode_row();
         self.print_command_row();
         self.move_cursor_vis_to(self.doc_disp_home_row(), self.doc_disp_left_edge());
@@ -265,7 +273,7 @@ impl Editor {
         self.revert_cursor_vis_pos();
     }
 
-    pub fn reset_editor_view(&self, document: &Document) {
+    pub fn reset_editor_view(&self) {
         //! document - Document being edited
         //! cursor - Get control of cursor
         //!
@@ -273,7 +281,7 @@ impl Editor {
 
         self.clear_doc_disp_window();
 
-        self.print_document(document);
+        self.print_document();
     }
 
     pub fn print_char(&self, c: char) {
@@ -291,15 +299,20 @@ impl Editor {
         }
     }
 
-    pub fn redraw_screen(&mut self, document: &mut Document) {
+    pub fn redraw_screen(&self) {
         //! dimensions - The new dimensions of the terminal screen after resize
         //! self - The old dimensions of the editor screen
 
-        document.recalculate_indices(self.doc_disp_width());
+        let document = Rc::clone(&self.current_buffer());
 
-        document.visible_rows.1 = document.visible_rows.0 + self.doc_disp_height();
+        document
+            .borrow_mut()
+            .recalculate_indices(self.doc_disp_width());
 
-        self.initialize_display(document);
+        document.borrow_mut().visible_rows.1 =
+            document.borrow().visible_rows.0 + self.doc_disp_height();
+
+        self.initialize_display();
     }
 
     // -------------------- PRINT BUFFER MANIPULATION ---------------------
@@ -317,8 +330,8 @@ impl Editor {
 
     // ==================== CURSOR WRAPPER FUNCTIONS ======================
 
-    pub fn get_cursor_pos_in_line(&self, document: &Document) -> usize {
-        self.writer.borrow().get_position_in_line(document, self)
+    pub fn get_cursor_pos_in_line(&self) -> usize {
+        self.writer.borrow().get_position_in_line(self)
     }
 
     // -------------------- CURSOR INFORMATION RETRIEVAL ------------------
@@ -355,21 +368,16 @@ impl Editor {
         self.writer.borrow().column - self.doc_disp_left_edge()
     }
 
-    pub fn move_cursor_to_pos(&self, new_pos: usize, current_line: &Line, document: &Document) {
-        self.add_to_draw_buf(self.writer.borrow_mut().move_to_pos(
-            new_pos,
-            current_line,
-            document,
-            self,
-        ));
+    pub fn move_cursor_to_pos(&self, new_pos: usize) {
+        self.add_to_draw_buf(self.writer.borrow_mut().move_to_pos(new_pos, self));
     }
 
-    pub fn move_cursor_to_start_line(&self, document: &mut Document) {
-        self.add_to_draw_buf(self.writer.borrow_mut().move_to_start_line(document, self));
+    pub fn move_cursor_to_start_line(&self) {
+        self.add_to_draw_buf(self.writer.borrow_mut().move_to_start_line(self));
     }
 
-    pub fn move_cursor_to_end_line(&self, document: &mut Document) {
-        self.add_to_draw_buf(self.writer.borrow_mut().move_to_end_line(document, self));
+    pub fn move_cursor_to_end_line(&self) {
+        self.add_to_draw_buf(self.writer.borrow_mut().move_to_end_line(self));
     }
 
     // -------------------- CURSOR MOVEMENT -------------------------------
@@ -453,7 +461,7 @@ impl Editor {
         self.writer.borrow_mut().move_doc_to_editor_left();
     }
 
-    pub fn multi_row_bump(&self, document: &Document) {
+    pub fn multi_row_bump(&self) {
         //! cursor_pos : This position is the position before having moved the cursor
         //! curr_line : This is the line before moving
         //! next_line : This is the line *AFTER* moving
@@ -462,7 +470,7 @@ impl Editor {
         //! "Appropriate" here means that if the cursor is in a row of a line other than the beginning line, the very first position the
         //! cursor should be able to take is on top of the second character of the row
 
-        if self.get_cursor_pos_in_line(document) / self.doc_disp_width() == 0 {
+        if self.get_cursor_pos_in_line() / self.doc_disp_width() == 0 {
             // If after the cursor moved it is at the first row in the line
 
             if self.get_cursor_doc_col() == 1 {
@@ -533,7 +541,7 @@ impl Editor {
 
     // -------------------- DIMENSION MANIPULATION ------------------------
 
-    pub fn check_resize(&mut self, document: &mut Document) {
+    pub fn check_resize(&mut self) {
         let checker = term_size();
 
         if checker.width != self.term_dimensions.width
@@ -541,7 +549,7 @@ impl Editor {
         {
             self.term_dimensions = checker;
 
-            self.redraw_screen(document);
+            self.redraw_screen();
         }
     }
 
@@ -611,9 +619,11 @@ impl Editor {
 
     pub fn add_file_buffer(&mut self, file_name: &str) {
         if self.file_buffers.len() == 0 {
-            self.file_buffers.push(Document::new(file_name, &self));
+            self.file_buffers
+                .push(Rc::new(RefCell::new(Document::new(file_name, &self))));
         } else {
-            self.file_buffers.push(Document::new(file_name, &self));
+            self.file_buffers
+                .push(Rc::new(RefCell::new(Document::new(file_name, &self))));
 
             self.active_buffer = self.file_buffers.len() - 1;
         }
@@ -627,12 +637,46 @@ impl Editor {
         }
     }
 
-    pub fn current_buffer(&self) -> &Document {
-        &self.file_buffers[self.active_buffer]
+    pub fn current_buffer(&self) -> Rc<RefCell<Document>> {
+        Rc::clone(&self.file_buffers[self.active_buffer])
     }
 
-    pub fn current_buffer_mut(&mut self) -> &mut Document {
-        &mut self.file_buffers[self.active_buffer]
+    pub fn next_buffer(&mut self) {
+        if self.active_buffer + 1 == self.file_buffers.len() {
+            self.active_buffer = 0;
+        } else {
+            self.active_buffer += 1;
+        }
+
+        self.initialize_display();
+    }
+
+    pub fn prev_buffer(&mut self) {
+        if self.active_buffer == 0 {
+            self.active_buffer = self.file_buffers.len() - 1;
+        } else {
+            self.active_buffer -= 1;
+        }
+
+        self.initialize_display();
+    }
+
+    pub fn write_buffer_to_file(&self, new_name: Option<&str>) {
+        if let Some(file_name) = new_name {
+            let mut out_file = File::create(file_name).unwrap();
+
+            out_file
+                .write(self.current_buffer().borrow().to_string().as_bytes())
+                .unwrap();
+        } else {
+            let doc_bind = Rc::clone(&self.current_buffer());
+
+            let document = doc_bind.borrow();
+
+            let mut out_file = File::create(&document.file_name).unwrap();
+
+            out_file.write(document.to_string().as_bytes()).unwrap();
+        }
     }
 }
 
