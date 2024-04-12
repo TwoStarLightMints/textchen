@@ -35,6 +35,8 @@ fn main() {
         editor.add_file_buffer(&file_name);
     }
 
+    editor.set_active_buffer_start();
+
     // Prep the screen to draw the editor and the document to the screen, switching to alt buffer to not erase entire screen
 
     editor.initialize_display();

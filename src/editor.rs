@@ -641,6 +641,10 @@ impl Editor {
         Rc::clone(&self.file_buffers[self.active_buffer])
     }
 
+    pub fn set_active_buffer_start(&mut self) {
+        self.active_buffer = 0;
+    }
+
     pub fn next_buffer(&mut self) {
         if self.active_buffer + 1 == self.file_buffers.len() {
             self.active_buffer = 0;
