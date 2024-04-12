@@ -1,4 +1,3 @@
-use std::env;
 use textchen::{document::*, editor::*, gapbuf::*, term::*};
 
 // ==== ASCII KEY CODE VALUES ====
@@ -19,27 +18,10 @@ const BCKSP: u8 = if cfg!(target_os = "linux") { 127 } else { 8 };
 const RETURN: u8 = if cfg!(target_os = "linux") { 10 } else { 13 };
 
 fn main() {
-    // Dimensions for the terminal screen
-    // Wh.width - The width of the terminal as a whole
-    // Wh.height - The height of the terminal as a whole
+    // Editor is the primary instance to control the editor and all its data
     let mut editor = Editor::new(2, 2);
 
-    // Title row is the home row
-    // row: 0, column: 0
-
-    // Get the command line arguments to the program
-
-    let mut args = env::args().skip(1);
-
-    while let Some(file_name) = args.next() {
-        editor.add_file_buffer(&file_name);
-    }
-
-    editor.set_active_buffer_start();
-
-    // Prep the screen to draw the editor and the document to the screen, switching to alt buffer to not erase entire screen
-
-    editor.initialize_display();
+    editor.initialize();
 
     // Initialize the gap buffer, it will be replaced later when editing actual text
     let mut gap_buf = GapBuf::new();
@@ -921,8 +903,6 @@ fn main() {
 
                                     editor.exit_command_mode::<String>(None);
 
-                                    editor.revert_cursor_vis_pos();
-
                                     editor.change_mode(Modes::Normal);
                                 }
                                 "q" => {
@@ -942,7 +922,7 @@ fn main() {
 
                                     editor.exit_command_mode::<String>(None);
 
-                                    editor.initialize_display();
+                                    editor.reset_editor_view();
                                 }
                                 "bc" => {
                                     editor.remove_file_buffer();
@@ -951,7 +931,7 @@ fn main() {
 
                                     editor.exit_command_mode::<String>(None);
 
-                                    editor.initialize_display();
+                                    editor.reset_editor_view();
                                 }
                                 _ => {
                                     editor.revert_cursor_vis_pos();
