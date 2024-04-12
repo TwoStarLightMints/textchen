@@ -944,6 +944,15 @@ fn main() {
 
                                     editor.initialize_display();
                                 }
+                                "bc" => {
+                                    editor.remove_file_buffer();
+
+                                    editor.change_mode(Modes::Normal);
+
+                                    editor.exit_command_mode::<String>(None);
+
+                                    editor.initialize_display();
+                                }
                                 _ => {
                                     editor.revert_cursor_vis_pos();
                                     editor.print_command_message("Invalid Command");
