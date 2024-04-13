@@ -21,9 +21,10 @@ pub enum Modes {
     MoveTo,
 }
 
+/// Responsible for holding all information about terminal size, document
+/// display window size, active buffers, and printing to the screen
 pub struct Editor {
-    /// Responsible for holding all information about terminal size, document
-    /// display window size, and printing to the screen
+    /// Width and height of the terminal
     term_dimensions: Wh,
     left_edge_offset: usize,
     right_edge_offset: usize,
@@ -34,9 +35,13 @@ pub struct Editor {
     theme: Theme,
     /// The buffer for user entered commands
     pub command_buf: RefCell<String>,
+    /// Cursor to be used by this instance of the editor
     writer: RefCell<Cursor>,
+    /// The buffer which holds each frame of changes to the UI
     draw_buffer: RefCell<BufWriter<Stdout>>,
+    /// Holds all the active buffers in the editor
     file_buffers: Vec<Rc<RefCell<Document>>>,
+    /// The index of the active buffer in file_buffers
     active_buffer: usize,
 }
 
@@ -95,17 +100,25 @@ impl Editor {
     // -------------------- COLOR APPLYING METHODS ------------------------
 
     fn apply_reset_color(&self) {
+        //! Adds reset color command to the draw buffer
+
         self.add_to_draw_buf("\u{001b}[0m");
     }
 
     fn apply_line_color(&self, color: impl AsRef<str>) {
+        //! Adds color command to the draw buffer
+
         self.add_to_draw_buf(format!("{}\u{001b}[2K", color.as_ref()));
     }
 
     // --------------------- PRINTING METHODS ------------------------------
 
     fn print_text_w_color(&self, color: impl AsRef<str>, message: impl AsRef<str>) {
-        self.add_to_draw_buf(format!("{}{}", color.as_ref(), message.as_ref()));
+        //! Print the given message with the given color
+
+        self.apply_line_color(color);
+
+        self.add_to_draw_buf(message.as_ref());
     }
 
     fn print_title(&self) {
