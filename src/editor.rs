@@ -109,7 +109,8 @@ impl Editor {
     }
 
     fn print_title(&self) {
-        let document = Rc::clone(&self.current_buffer());
+        let doc_binding = self.current_buffer();
+        let document = doc_binding.borrow();
 
         self.save_cursor_vis_pos();
 
@@ -119,7 +120,7 @@ impl Editor {
 
         self.print_text_w_color(
             self.theme.title_text_color(),
-            format!(" {}", &document.borrow().file_name),
+            format!(" {}", &document.file_name),
         );
 
         self.apply_reset_color();
@@ -165,7 +166,8 @@ impl Editor {
     }
 
     fn print_document(&self) {
-        let document = Rc::clone(&self.current_buffer());
+        let doc_binding = self.current_buffer();
+        let document = doc_binding.borrow();
 
         self.save_cursor_vis_pos();
 
@@ -173,14 +175,11 @@ impl Editor {
 
         self.apply_line_color(self.theme.background_color());
 
-        if document.borrow().visible_rows.0 == 0
-            && document.borrow().visible_rows.1 < self.doc_disp_bottom()
-        {
+        if document.visible_rows.0 == 0 && document.visible_rows.1 < self.doc_disp_bottom() {
             // Number of lines in document does not exceed editor height
             for row in document
-                .borrow()
                 .rows(self.doc_disp_width())
-                .take(document.borrow().visible_rows.1)
+                .take(document.visible_rows.1)
             {
                 self.print_text_w_color(self.theme.body_text_color(), row.1);
 
@@ -195,10 +194,9 @@ impl Editor {
         } else {
             // Number of lines in document does exceed editor height
             for row in document
-                .borrow()
                 .rows(self.doc_disp_width())
-                .skip(document.borrow().visible_rows.0)
-                .take(document.borrow().visible_rows.1 - document.borrow().visible_rows.0)
+                .skip(document.visible_rows.0)
+                .take(document.visible_rows.1 - document.visible_rows.0)
             {
                 self.print_text_w_color(self.theme.body_text_color(), row.1);
 
@@ -215,9 +213,9 @@ impl Editor {
     pub fn print_line(&self) {
         self.save_cursor_vis_pos();
 
-        let binding = Rc::clone(&self.current_buffer());
+        let doc_binding = self.current_buffer();
 
-        let document = binding.borrow();
+        let document = doc_binding.borrow();
 
         let curr_line_rows: Vec<(usize, &str)> = document
             .get_line_at_cursor(self.get_cursor_doc_row())
@@ -333,14 +331,14 @@ impl Editor {
         //! dimensions - The new dimensions of the terminal screen after resize
         //! self - The old dimensions of the editor screen
 
-        let document = Rc::clone(&self.current_buffer());
+        let doc_binding = self.current_buffer();
 
-        document
+        doc_binding
             .borrow_mut()
             .recalculate_indices(self.doc_disp_width());
 
-        document.borrow_mut().visible_rows.1 =
-            document.borrow().visible_rows.0 + self.doc_disp_height();
+        doc_binding.borrow_mut().visible_rows.1 =
+            doc_binding.borrow().visible_rows.0 + self.doc_disp_height();
 
         self.initialize_display();
     }
