@@ -72,7 +72,9 @@ impl Editor {
         }
 
         if file_buffers.len() == 0 {
-            Rc::new(RefCell::new(Document::new_scratch(dimensions.height - 3)));
+            file_buffers.push(Rc::new(RefCell::new(Document::new_scratch(
+                dimensions.height - 3,
+            ))));
         }
 
         Self {
