@@ -12,6 +12,7 @@ struct wh {
 #include <termios.h>
 #include <sys/ioctl.h>
 #include <unistd.h>
+#include <signal.h>
 
 struct wh get_term_size() {
   struct winsize w;
