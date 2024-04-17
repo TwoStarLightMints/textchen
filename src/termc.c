@@ -12,6 +12,7 @@ struct wh {
 #include <termios.h>
 #include <sys/ioctl.h>
 #include <unistd.h>
+#include <signal.h>
 
 struct wh get_term_size() {
   struct winsize w;
@@ -72,6 +73,10 @@ unsigned int c_kbhit() {
   ioctl(STDIN_FILENO, FIONREAD, &waiting);
 
   return waiting > 0;
+}
+
+void watch_resize_win(void (*func)()) {
+  signal(SIGWINCH, func);
 }
 
 #endif

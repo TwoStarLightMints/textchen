@@ -11,6 +11,7 @@ char get_ch();
 // Required for Linux
 void set_raw_term();
 void set_cooked_term();
+void watch_resize_win(void (*)());
 
 #endif
 
