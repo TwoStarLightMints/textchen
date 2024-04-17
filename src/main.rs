@@ -961,5 +961,7 @@ fn main() {
         }
 
         editor.flush_pen();
+
+        std::thread::sleep(std::time::Duration::from_millis(10));
     }
 }
