@@ -75,10 +75,6 @@ unsigned int c_kbhit() {
   return waiting > 0;
 }
 
-void watch_resize_win(void (*func)()) {
-  signal(SIGWINCH, func);
-}
-
 #endif
 
 #ifdef _WIN32

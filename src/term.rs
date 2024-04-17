@@ -24,7 +24,6 @@ extern "C" {
     fn c_kbhit() -> c_uint;
     fn get_term_size() -> WidthHeight;
     fn get_ch() -> c_char;
-    fn watch_resize_win(handler: Option<unsafe extern "C" fn()>);
 }
 
 #[cfg(target_os = "linux")]
@@ -80,10 +79,4 @@ pub fn clear_line() -> &'static str {
 
 pub fn move_cursor_to(row: usize, column: usize) -> String {
     format!("\u{001b}[{};{}H", row, column)
-}
-
-pub fn set_resize_handle(handler: fn()) {
-    unsafe {
-        watch_resize_win(Some(std::mem::transmute(handler)));
-    }
 }
