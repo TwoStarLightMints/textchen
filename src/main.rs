@@ -949,9 +949,7 @@ fn main() {
                 c if editor.curr_mode == Modes::Command => {
                     // Push the pressed character to the buffer
                     // Display the character to the screen
-                    editor.print_char(c as char);
-
-                    editor.move_cursor_vis_right();
+                    editor.push_command_buf(c as char);
                 }
 
                 _ => (),

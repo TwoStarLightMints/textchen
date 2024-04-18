@@ -332,18 +332,7 @@ impl Editor {
     }
 
     pub fn print_char(&self, c: char) {
-        match self.curr_mode {
-            Modes::Insert => {
-                todo!();
-            }
-            Modes::Command => {
-                if c != ':' {
-                    self.command_buf.borrow_mut().push(c);
-                }
-                self.add_to_draw_buf(format!("{}{}", self.theme.body_text_color(), c));
-            }
-            Modes::Normal | Modes::MoveTo => unreachable!("Not scientifically possible!"),
-        }
+        self.add_to_draw_buf(format!("{}{}", self.theme.body_text_color(), c));
     }
 
     pub fn redraw_screen(&self) {
@@ -657,9 +646,18 @@ impl Editor {
         self.revert_cursor_vis_pos();
     }
 
+    pub fn push_command_buf(&self, c: char) {
+        self.command_buf.borrow_mut().push(c);
+
+        self.print_char(c);
+
+        self.move_cursor_right();
+    }
+
     pub fn pop_command_buf(&self) {
         self.command_buf.borrow_mut().pop();
-        self.print_text_w_color(self.theme.command_text_color(), " ");
+
+        self.print_char(' ');
     }
 
     pub fn add_file_buffer(&mut self, file_name: &str) {
