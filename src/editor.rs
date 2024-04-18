@@ -340,7 +340,7 @@ impl Editor {
                 if c != ':' {
                     self.command_buf.borrow_mut().push(c);
                 }
-                self.print_text_w_color(self.theme.command_text_color(), c.to_string());
+                self.add_to_draw_buf(format!("{}{}", self.theme.body_text_color(), c));
             }
             Modes::Normal | Modes::MoveTo => unreachable!("Not scientifically possible!"),
         }
