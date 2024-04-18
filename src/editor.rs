@@ -1,6 +1,6 @@
-use crate::term::{
-    get_char, kbhit, return_to_normal_buf, set_cooked, set_raw, switch_to_alt_buf, term_size, Wh,
-};
+use crate::term::{get_char, kbhit, return_to_normal_buf, switch_to_alt_buf, term_size, Wh};
+#[cfg(target_os = "linux")]
+use crate::term::{set_cooked, set_raw};
 use crate::term_color::{Theme, ThemeBuilder};
 use crate::{cursor::*, document::*};
 use std::cell::RefCell;
@@ -68,7 +68,11 @@ impl Editor {
 
         while let Some(file_name) = input_files.next() {
             file_buffers.push(Rc::new(RefCell::new(Document::new(
-                &file_name,
+                std::path::Path::new(&file_name)
+                    .file_name()
+                    .unwrap()
+                    .to_str()
+                    .unwrap(),
                 (
                     dimensions.height - 3,
                     (dimensions.width - right_edge_offset) - left_edge_offset,
