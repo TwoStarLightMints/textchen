@@ -34,19 +34,8 @@ fn main() {
                 J_LOWER if editor.curr_mode == Modes::Normal => {
                     // Store the position of the cursor in the original line, save on method calls
 
-                    let cursor_pos = editor.get_cursor_pos_in_line();
-
                     if editor.get_cursor_vis_row() < editor.doc_disp_height()
-                        && editor.get_cursor_doc_row()
-                            != *editor
-                                .current_buffer()
-                                .borrow()
-                                .lines
-                                .last()
-                                .unwrap()
-                                .0
-                                .last()
-                                .unwrap()
+                        && editor.get_cursor_doc_row() != editor.current_buffer_last_row_index()
                     {
                         // If the cursor's visual row is less than the height of the editor (the editor's height refers to the number of rows *downward* that the
                         // editor's screen spans) and the cursor's row in relation to the document is not equal to the last row
@@ -63,16 +52,7 @@ fn main() {
                         {
                             editor.move_cursor_to_end_line();
                         }
-                    } else if editor.get_cursor_doc_row()
-                        != *editor
-                            .current_buffer()
-                            .borrow()
-                            .lines
-                            .last()
-                            .unwrap()
-                            .0
-                            .last()
-                            .unwrap()
+                    } else if editor.get_cursor_doc_row() != editor.current_buffer_last_row_index()
                     {
                         editor.current_buffer().borrow_mut().push_vis_down();
                         editor.move_cursor_doc_down();
@@ -80,7 +60,7 @@ fn main() {
                         editor.reset_editor_view();
                     }
 
-                    if cursor_pos % editor.doc_disp_width()
+                    if editor.get_cursor_pos_in_line() % editor.doc_disp_width()
                         > editor
                             .current_buffer()
                             .borrow()
@@ -301,18 +281,7 @@ fn main() {
                             editor.doc_disp_left_edge(),
                         );
 
-                        editor.move_cursor_doc_to(
-                            *editor
-                                .current_buffer()
-                                .borrow()
-                                .lines
-                                .last()
-                                .unwrap()
-                                .0
-                                .last()
-                                .unwrap(),
-                            0,
-                        );
+                        editor.move_cursor_doc_to(editor.current_buffer_last_row_index(), 0);
 
                         editor.current_buffer().borrow_mut().visible_rows.0 =
                             (editor.current_buffer().borrow().num_rows() + 1)

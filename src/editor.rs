@@ -699,6 +699,10 @@ impl Editor {
         Rc::clone(&self.file_buffers[self.active_buffer])
     }
 
+    pub fn current_buffer_last_row_index(&self) -> usize {
+        self.current_buffer().borrow().last_row_index(self.doc_disp_width())
+    }
+
     pub fn set_active_buffer_start(&mut self) {
         if self.file_buffers.len() == 0 {
             self.file_buffers

@@ -426,6 +426,10 @@ impl Document {
             self.visible_rows.1 -= 1;
         }
     }
+
+    pub fn last_row_index(&self, editor_width: usize) -> usize {
+        self.rows(editor_width).last().unwrap().0
+    }
 }
 
 impl Display for Document {
