@@ -42,9 +42,9 @@ fn main() {
 
                         editor.move_cursor_down();
 
-                        let binding = editor.current_buffer();
+                        let doc_binding = editor.current_buffer();
 
-                        let document = binding.borrow();
+                        let document = doc_binding.borrow();
                         let curr_line = document.get_line_at_cursor(editor.get_cursor_doc_row());
 
                         if editor.get_cursor_doc_col() > curr_line.1.len() % editor.doc_disp_width()
@@ -81,9 +81,9 @@ fn main() {
                 L_LOWER if editor.curr_mode == Modes::Normal => {
                     // Get the current line where the cursor is at
 
-                    let binding = editor.current_buffer();
+                    let doc_binding = editor.current_buffer();
 
-                    let document = binding.borrow();
+                    let document = doc_binding.borrow();
                     let curr_line = document.get_line_at_cursor(editor.get_cursor_doc_row());
                     let cursor_pos = editor.get_cursor_pos_in_line();
 
