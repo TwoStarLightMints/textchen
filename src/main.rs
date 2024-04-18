@@ -503,8 +503,6 @@ fn main() {
 
                     // Change mode to normal
                     editor.change_mode(Modes::Normal);
-
-                    editor.revert_cursor_vis_pos();
                 }
                 // Delete a character while in insert mode
                 BCKSP if editor.curr_mode == Modes::Insert => {
@@ -962,6 +960,6 @@ fn main() {
 
         editor.flush_pen();
 
-        std::thread::sleep(std::time::Duration::from_millis(10));
+        std::thread::sleep(std::time::Duration::from_millis(15));
     }
 }
