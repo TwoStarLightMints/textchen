@@ -283,11 +283,12 @@ fn main() {
 
                         editor.move_cursor_doc_to(editor.current_buffer_last_row_index(), 0);
 
-                        editor.current_buffer().borrow_mut().visible_rows.0 =
-                            (editor.current_buffer().borrow().num_rows() + 1)
-                                - editor.doc_disp_height();
-                        editor.current_buffer().borrow_mut().visible_rows.1 =
-                            editor.current_buffer().borrow().num_rows();
+                        let new_top_vis = (editor.current_buffer().borrow().num_rows() + 1)
+                            - editor.doc_disp_height();
+                        editor.current_buffer().borrow_mut().visible_rows.0 = new_top_vis;
+
+                        let new_bottom_vis = editor.current_buffer().borrow().num_rows();
+                        editor.current_buffer().borrow_mut().visible_rows.1 = new_bottom_vis;
 
                         editor.reset_editor_view();
 
