@@ -1,7 +1,2 @@
-0|Add registers|[0|Add in editor register|%0|Add ability to paste in system clipboard|]
-0|Add selections|
-0|Optimize and remove the many clone statements|
-0|Add Windows compatibility|[0|Update drawing functions to work with Windows API|]
-0|Create documentation for others of how I dealt with the C files, it was insane|
-0|Issue with moving to end of line and beginning|
-0|Make printing full editor window make more sense|
+0|Add advanced movement keys for normal mode|[0|Move forward to end of next word (e)|%0|Move forward to next space after next word (w)|%0|Move back a word (b)|]
+0|Add ability to delete text using key cominations|[0|Ctrl-w for deleting previous word|%0|Ctrl-h for deleting previous character|]
