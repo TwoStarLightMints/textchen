@@ -499,19 +499,27 @@ impl Editor {
     }
 
     pub fn move_cursor_doc_down(&self) {
-        self.writer.borrow_mut().move_doc_down()
+        if self.writer.borrow().doc_row < self.current_buffer().borrow().num_rows() {
+            self.writer.borrow_mut().move_doc_down()
+        }
     }
 
     pub fn move_cursor_doc_up(&self) {
-        self.writer.borrow_mut().move_doc_up()
+        if self.writer.borrow().doc_row > 0 {
+            self.writer.borrow_mut().move_doc_up()
+        }
     }
 
     pub fn move_cursor_doc_right(&self) {
-        self.writer.borrow_mut().move_doc_right()
+        if self.writer.borrow().doc_column < self.doc_disp_width() {
+            self.writer.borrow_mut().move_doc_right()
+        }
     }
 
     pub fn move_cursor_doc_left(&self) {
-        self.writer.borrow_mut().move_doc_left()
+        if self.writer.borrow().doc_column > 0 {
+            self.writer.borrow_mut().move_doc_left()
+        }
     }
 
     pub fn move_cursor_doc_to_editor_right(&self) {
