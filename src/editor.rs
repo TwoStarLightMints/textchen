@@ -475,19 +475,27 @@ impl Editor {
     }
 
     pub fn move_cursor_vis_down(&self) {
-        self.add_to_draw_buf(self.writer.borrow_mut().move_vis_down());
+        if self.writer.borrow().row < self.doc_disp_height() {
+            self.add_to_draw_buf(self.writer.borrow_mut().move_vis_down());
+        }
     }
 
     pub fn move_cursor_vis_up(&self) {
-        self.add_to_draw_buf(self.writer.borrow_mut().move_vis_up());
+        if self.writer.borrow().row > self.doc_disp_home_row() {
+            self.add_to_draw_buf(self.writer.borrow_mut().move_vis_up());
+        }
     }
 
     pub fn move_cursor_vis_right(&self) {
-        self.add_to_draw_buf(self.writer.borrow_mut().move_vis_right());
+        if self.writer.borrow().column < self.doc_disp_right_edge() {
+            self.add_to_draw_buf(self.writer.borrow_mut().move_vis_right());
+        }
     }
 
     pub fn move_cursor_vis_left(&self) {
-        self.add_to_draw_buf(self.writer.borrow_mut().move_vis_left());
+        if self.writer.borrow().column > self.doc_disp_left_edge() {
+            self.add_to_draw_buf(self.writer.borrow_mut().move_vis_left());
+        }
     }
 
     pub fn move_cursor_doc_down(&self) {
