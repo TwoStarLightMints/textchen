@@ -2,3 +2,4 @@
 0|Add ability to delete text using key cominations|[0|Ctrl-w for deleting previous word|%0|Ctrl-h for deleting previous character|]
 0|Implement a visual mode|
 0|Separate user's cursor from the cursor used to draw elements in the UI|
+0|Add error handling for cursor movement in realtion to the document|
