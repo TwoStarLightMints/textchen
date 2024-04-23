@@ -1,3 +1,4 @@
 0|Add advanced movement keys for normal mode|[0|Move forward to end of next word (e)|%0|Move forward to next space after next word (w)|%0|Move back a word (b)|]
 0|Add ability to delete text using key cominations|[0|Ctrl-w for deleting previous word|%0|Ctrl-h for deleting previous character|]
 0|Implement a visual mode|
+0|Separate user's cursor from the cursor used to draw elements in the UI|
