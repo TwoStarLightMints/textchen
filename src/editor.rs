@@ -419,7 +419,9 @@ impl Editor {
     // -------------------- CURSOR MOVEMENT -------------------------------
 
     fn move_writer_to(&self, new_row: usize, new_column: usize) {
-        self.add_to_draw_buf(self.writer.borrow_mut().move_to(new_row, new_column));
+        if new_row <= self.term_dimensions.height && new_column <= self.term_dimensions.width {
+            self.add_to_draw_buf(self.writer.borrow_mut().move_to(new_row, new_column));
+        }
     }
 
     fn move_writer_down(&self) {
@@ -449,7 +451,11 @@ impl Editor {
     }
 
     pub fn move_cursor_vis_to(&self, new_row: usize, new_column: usize) {
-        if new_row <= self.doc_disp_height() && new_column <= self.right_edge_offset {
+        if new_row <= self.doc_disp_height()
+            && new_row >= self.doc_disp_home_row()
+            && new_column <= self.doc_disp_right_edge()
+            && new_column >= self.doc_disp_left_edge()
+        {
             self.add_to_draw_buf(self.writer.borrow_mut().move_to(new_row, new_column));
         }
     }
