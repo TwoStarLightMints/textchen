@@ -421,6 +421,7 @@ impl Editor {
     pub fn move_cursor_vis_to(&self, new_row: usize, new_column: usize) {
         self.add_to_draw_buf(self.writer.borrow_mut().move_to(new_row, new_column));
     }
+
     pub fn move_cursor_doc_to(&self, new_doc_row: usize, new_doc_col: usize) {
         self.writer
             .borrow_mut()
@@ -700,7 +701,9 @@ impl Editor {
     }
 
     pub fn current_buffer_last_row_index(&self) -> usize {
-        self.current_buffer().borrow().last_row_index(self.doc_disp_width())
+        self.current_buffer()
+            .borrow()
+            .last_row_index(self.doc_disp_width())
     }
 
     pub fn set_active_buffer_start(&mut self) {
