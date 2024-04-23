@@ -423,19 +423,29 @@ impl Editor {
     }
 
     fn move_writer_down(&self) {
-        self.add_to_draw_buf(self.writer.borrow_mut().move_vis_down());
+        if self.writer.borrow().row < self.term_dimensions.height {
+            self.add_to_draw_buf(self.writer.borrow_mut().move_vis_down());
+        }
     }
 
     fn move_writer_up(&self) {
-        self.add_to_draw_buf(self.writer.borrow_mut().move_vis_up());
+        if self.writer.borrow().row > 0 {
+            self.add_to_draw_buf(self.writer.borrow_mut().move_vis_up());
+        }
     }
 
     fn move_writer_right(&self) {
-        self.add_to_draw_buf(self.writer.borrow_mut().move_vis_right());
+        if self.writer.borrow().column < self.term_dimensions.width {
+            self.add_to_draw_buf(self.writer.borrow_mut().move_vis_right());
+        }
     }
 
+    // This method might be needed later, so it will remain
+    #[allow(unused)]
     fn move_writer_left(&self) {
-        self.add_to_draw_buf(self.writer.borrow_mut().move_vis_left());
+        if self.writer.borrow().column > 0 {
+            self.add_to_draw_buf(self.writer.borrow_mut().move_vis_left());
+        }
     }
 
     pub fn move_cursor_vis_to(&self, new_row: usize, new_column: usize) {
