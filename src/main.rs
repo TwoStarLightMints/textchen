@@ -17,6 +17,8 @@ const ESC: u8 = 27;
 const BCKSP: u8 = if cfg!(target_os = "linux") { 127 } else { 8 };
 const RETURN: u8 = if cfg!(target_os = "linux") { 10 } else { 13 };
 
+const CTRL_H: u8 = 8;
+
 fn main() {
     // Editor is the primary instance to control the editor and all its data
     let mut editor = Editor::new(2, 2);
@@ -475,7 +477,7 @@ fn main() {
                     editor.change_mode(Modes::Normal);
                 }
                 // Delete a character while in insert mode
-                BCKSP if editor.curr_mode == Modes::Insert => {
+                BCKSP | CTRL_H if editor.curr_mode == Modes::Insert => {
                     let cursor_pos = editor.get_cursor_pos_in_line();
 
                     let curr_num_rows = editor.current_buffer().borrow().num_rows();
@@ -897,7 +899,7 @@ fn main() {
                     }
                 }
                 // Delete character while in command mode
-                BCKSP if editor.curr_mode == Modes::Command => {
+                BCKSP | CTRL_H if editor.curr_mode == Modes::Command => {
                     if editor.command_buf.borrow().len() > 0 {
                         // If the buffer is not empty
 
