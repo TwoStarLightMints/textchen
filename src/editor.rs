@@ -216,6 +216,7 @@ impl Editor {
 
             // Since the document is not as big as the editor window, print the last lines
             while self.get_cursor_vis_row() <= self.doc_disp_bottom() {
+                self.apply_line_color(self.theme.background_color());
                 self.move_writer_down();
             }
         } else {
