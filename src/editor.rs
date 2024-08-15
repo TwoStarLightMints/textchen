@@ -114,7 +114,15 @@ impl Editor {
     fn apply_line_color(&self, color: impl AsRef<str>) {
         //! Adds color command to the draw buffer
 
-        self.add_to_draw_buf(format!("{}\u{001b}[2K", color.as_ref()));
+        self.save_cursor_vis_pos();
+
+        let curr_row = self.get_cursor_vis_row();
+
+        self.move_writer_to(curr_row, 0);
+
+        self.add_to_draw_buf(format!("\u{001b}[0G{}\u{001b}[0K", color.as_ref()));
+
+        self.revert_cursor_vis_pos();
     }
 
     // --------------------- PRINTING METHODS ------------------------------
