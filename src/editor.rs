@@ -354,8 +354,9 @@ impl Editor {
             .borrow_mut()
             .recalculate_indices(self.doc_disp_width());
 
-        doc_binding.borrow_mut().visible_rows.1 =
-            doc_binding.borrow().visible_rows.0 + self.doc_disp_height();
+        let new_doc_end_vis_row = doc_binding.borrow().visible_rows.0 + self.doc_disp_height();
+
+        doc_binding.borrow_mut().visible_rows.1 = new_doc_end_vis_row;
 
         self.initialize_display();
     }

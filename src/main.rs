@@ -30,6 +30,8 @@ fn main() {
 
     // Main loop for program
     loop {
+        editor.check_resize();
+
         if kbhit() {
             match get_char() as u8 {
                 // Move down
