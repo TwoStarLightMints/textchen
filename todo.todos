@@ -3,4 +3,3 @@
 0|Implement a visual mode|
 0|Separate user's cursor from the cursor used to draw elements in the UI|
 0|Add error handling for cursor movement in realtion to the document|
-1|Fix terminal coloring due to bug with zellij multiplexer|
