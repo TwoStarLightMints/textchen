@@ -3,16 +3,16 @@ use textchen::{document::*, editor::*, gapbuf::*, term::*};
 // ==== ASCII KEY CODE VALUES ====
 // Note: I use the ascii values as the keys so that it is more simple
 // to check against special keys such as Escape, Backspace, etc.
-const J_LOWER: u8 = 106;
-const K_LOWER: u8 = 107;
-const L_LOWER: u8 = 108;
-const X_LOWER: u8 = 120;
-const O_LOWER: u8 = 111;
+const J_LOWER: u8 = 'j' as u8;
+const K_LOWER: u8 = 'k' as u8;
+const L_LOWER: u8 = 'l' as u8;
+const X_LOWER: u8 = 'x' as u8;
+const O_LOWER: u8 = 'o' as u8;
 const O_UPPER: u8 = 'O' as u8;
-const H_LOWER: u8 = 104;
-const G_LOWER: u8 = 103;
-const I_LOWER: u8 = 105;
-const COLON: u8 = 58;
+const H_LOWER: u8 = 'h' as u8;
+const G_LOWER: u8 = 'g' as u8;
+const I_LOWER: u8 = 'i' as u8;
+const COLON: u8 = ':' as u8;
 const ESC: u8 = 27;
 const BCKSP: u8 = if cfg!(target_os = "linux") { 127 } else { 8 };
 const RETURN: u8 = if cfg!(target_os = "linux") { 10 } else { 13 };
