@@ -1,4 +1,9 @@
-use textchen::{document::*, editor::*, gapbuf::*, term::*};
+use textchen::{
+    document::Line,
+    editor::{Editor, Modes},
+    gapbuf::GapBuf,
+    term::{get_char, kbhit},
+};
 
 // ==== ASCII KEY CODE VALUES ====
 // Note: I use the ascii values as the keys so that it is more simple

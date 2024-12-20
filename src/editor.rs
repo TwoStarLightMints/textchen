@@ -2,7 +2,7 @@ use crate::term::{get_char, kbhit, return_to_normal_buf, switch_to_alt_buf, Wh};
 #[cfg(target_os = "linux")]
 use crate::term::{set_cooked, set_raw};
 use crate::term_color::{Theme, ThemeBuilder};
-use crate::{cursor::*, document::*};
+use crate::{cursor::Cursor, document::Document};
 use std::cell::RefCell;
 use std::env;
 use std::fs::File;
