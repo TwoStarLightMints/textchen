@@ -1,8 +1,6 @@
 #ifndef TERMC
 #define TERMC
 
-struct wh;
-
 unsigned int c_kbhit();
 char get_ch();
 
@@ -19,5 +17,8 @@ void set_cooked_term();
 
 // Required overall
 struct wh get_term_size();
+
+unsigned get_terminal_width();
+unsigned get_terminal_width();
 
 #endif

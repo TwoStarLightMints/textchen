@@ -7,22 +7,20 @@ pub struct Wh {
 }
 
 impl Wh {
-    pub fn from_c(c_vals: WidthHeight) -> Self {
-        let width = c_vals.width as usize;
-        let height = c_vals.height as usize;
-        Self { width, height }
+    pub fn new() -> Self {
+        unsafe {
+            Self {
+                width: get_terminal_width() as usize,
+                height: get_terminal_height() as usize,
+            }
+        }
     }
-}
-
-#[repr(C)]
-pub struct WidthHeight {
-    width: c_uint,
-    height: c_uint,
 }
 
 extern "C" {
     fn c_kbhit() -> c_uint;
-    fn get_term_size() -> WidthHeight;
+    fn get_terminal_width() -> c_uint;
+    fn get_terminal_height() -> c_uint;
     fn get_ch() -> c_char;
 }
 
@@ -53,12 +51,6 @@ pub fn get_char() -> char {
 pub fn kbhit() -> bool {
     // If the result is 0, it should be false, so return the inverse
     unsafe { c_kbhit() != 0 }
-}
-
-pub fn term_size() -> Wh {
-    let from_c = unsafe { get_term_size() };
-
-    Wh::from_c(from_c)
 }
 
 pub fn move_cursor_home() -> &'static str {

@@ -1,4 +1,4 @@
-use crate::term::{get_char, kbhit, return_to_normal_buf, switch_to_alt_buf, term_size, Wh};
+use crate::term::{get_char, kbhit, return_to_normal_buf, switch_to_alt_buf, Wh};
 #[cfg(target_os = "linux")]
 use crate::term::{set_cooked, set_raw};
 use crate::term_color::{Theme, ThemeBuilder};
@@ -60,7 +60,7 @@ impl Editor {
             .editor_background("36;40;59")
             .build();
 
-        let dimensions = term_size();
+        let dimensions = Wh::new();
 
         let mut input_files = env::args().skip(1);
 
@@ -643,7 +643,7 @@ impl Editor {
     // -------------------- DIMENSION MANIPULATION ------------------------
 
     pub fn check_resize(&mut self) {
-        let checker = term_size();
+        let checker = Wh::new();
 
         if checker.width != self.term_dimensions.width
             || checker.height != self.term_dimensions.height

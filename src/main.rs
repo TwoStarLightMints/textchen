@@ -13,6 +13,7 @@ const H_LOWER: u8 = 'h' as u8;
 const G_LOWER: u8 = 'g' as u8;
 const I_LOWER: u8 = 'i' as u8;
 const COLON: u8 = ':' as u8;
+
 const ESC: u8 = 27;
 const BCKSP: u8 = if cfg!(target_os = "linux") { 127 } else { 8 };
 const RETURN: u8 = if cfg!(target_os = "linux") { 10 } else { 13 };

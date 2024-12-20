@@ -2,26 +2,26 @@
 
 #include <stdio.h>
 
-struct wh {
-  unsigned int width;
-  unsigned int height;
-};
-
 #ifdef __linux__
 
 #include <termios.h>
 #include <sys/ioctl.h>
 #include <unistd.h>
 
-struct wh get_term_size() {
-  struct winsize w;
+unsigned get_terminal_width() {
+    struct winsize w;
 
-  ioctl(STDOUT_FILENO, TIOCGWINSZ, &w);
+    ioctl(STDOUT_FILENO, TIOCGWINSZ, &w);
 
-  struct wh res = { .width = w.ws_col, .height = w.ws_row };
+    return w.ws_col;
+}
 
-  return res;
+unsigned get_terminal_height() {
+    struct winsize w;
 
+    ioctl(STDOUT_FILENO, TIOCGWINSZ, &w);
+
+    return w.ws_row;
 }
 
 // Set the terminal into raw mode (i.e. do not wait for the user to press return to accept and begin processing the input)
@@ -81,20 +81,26 @@ unsigned int c_kbhit() {
 #include <Windows.h>
 #include <conio.h>
 
-struct wh get_term_size() {
-  HANDLE hConsoleOutput;
-  CONSOLE_SCREEN_BUFFER_INFO csbi;
+unsigned get_terminal_width() {
+    HANDLE hConsoleOutput;
+    CONSOLE_SCREEN_BUFFER_INFO csbi;
 
-  hConsoleOutput = GetStdHandle(STD_OUTPUT_HANDLE);
+    hConsoleOutput = GetStdHandle(STD_OUTPUT_HANDLE);
 
-  GetConsoleScreenBufferInfo(hConsoleOutput, &csbi);
+    GetConsoleScreenBufferInfo(hConsoleOutput, &csbi);
 
-  struct wh widthHeight = {
-    .width = csbi.dwSize.X,
-    .height = csbi.dwSize.Y
-    };
+    return csbi.dwSize.X;
+}
 
-    return widthHeight;
+unsigned get_terminal_height() {
+    HANDLE hConsoleOutput;
+    CONSOLE_SCREEN_BUFFER_INFO csbi;
+
+    hConsoleOutput = GetStdHandle(STD_OUTPUT_HANDLE);
+
+    GetConsoleScreenBufferInfo(hConsoleOutput, &csbi);
+
+    return csbi.dwSize.Y;
 }
 
 char get_ch() {
